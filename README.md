@@ -83,12 +83,21 @@ one vendor.
 
 ## Repository layout
 
+Present today:
+
 ```
-.github/workflows/   reusable pipelines consumers call
 specs/               design specs, one aspect per spec
 ```
 
-Directories arrive as their specs land.
+Planned, each arriving with the spec that defines it:
+
+```
+.github/workflows/   reusable pipelines consumers call
+cmd/template/        the generator and drift check
+skeleton/            the files a consumer materializes
+example/             a generated reference service, kept working in CI
+docs/                the template contract and its reference documents
+```
 
 ## Contributing
 

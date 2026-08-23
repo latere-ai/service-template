@@ -12,16 +12,24 @@ the acceptance criteria. Read it, then implement it.
 3. Update the spec with an Outcome section and set `status: complete`.
 
 For a change with no spec, open an issue first and say which aspect of the
-template it touches. A change that adds a new aspect needs a new spec.
+template it touches. A change that adds a new aspect needs a new spec, and a
+spec is a reasonable first contribution on its own.
 
 ## Standards
 
-The template holds itself to the standards it ships:
+The template holds itself to the standards it ships, so CI checks the same
+things a consumer's CI would:
 
-- `make fmt-check lint test` passes before you push.
-- Every bug fix carries a test that fails without the fix.
-- Coverage stays above the threshold the coverage spec sets.
-- Documentation changes reach every locale in the same change.
+- `make fmt-check lint test` is what CI runs. Running it first saves you a
+  round trip.
+- A bug fix wants a test that fails without the fix. That test is how the fix
+  stays fixed.
+- Coverage has a threshold, and the build reports where you landed.
+- A change to translated text needs every locale, because the completeness gate
+  fails on a locale left behind.
+
+If you hit a genuine exception to any of these, say so in the pull request
+rather than working around the check.
 
 ## Commit messages
 
