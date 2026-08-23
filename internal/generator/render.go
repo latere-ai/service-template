@@ -3,6 +3,7 @@ package generator
 import (
 	"bytes"
 	"fmt"
+	"go/format"
 	"io/fs"
 	"path"
 	"strings"
@@ -88,6 +89,27 @@ func substitute(content []byte, cfg *Config) []byte {
 	return out
 }
 
+// gofmtSource re-formats generated Go source. The mechanical rewrite changes
+// identifier lengths, and gofmt aligns consecutive composite-literal values and
+// line comments to the widest entry in a run, so substituting a longer or
+// shorter module path or service name leaves the alignment wrong. Without this
+// pass a freshly generated repository fails its own fmt-check gate, which is
+// the first promise the template makes.
+//
+// A rewrite that produces invalid Go is a defect in the skeleton, not something
+// to paper over, so the parse error is returned rather than the unformatted
+// bytes.
+func gofmtSource(path string, out []byte) ([]byte, error) {
+	if !strings.HasSuffix(path, ".go") {
+		return out, nil
+	}
+	formatted, err := format.Source(out)
+	if err != nil {
+		return nil, fmt.Errorf("generated %s is not valid Go after the rewrite: %w", path, err)
+	}
+	return formatted, nil
+}
+
 // Render reads one skeleton file, renders it when it carries the template
 // suffix, and applies the mechanical rewrite.
 func Render(src fs.FS, e Entry, cfg *Config) ([]byte, error) {
@@ -100,7 +122,7 @@ func Render(src fs.FS, e Entry, cfg *Config) ([]byte, error) {
 		return nil, fmt.Errorf("read skeleton file %s: %w", e.Source, err)
 	}
 	if !strings.HasSuffix(e.Source, TemplateSuffix) {
-		return substitute(raw, cfg), nil
+		return gofmtSource(e.Path, substitute(raw, cfg))
 	}
 	t, err := template.New(path.Base(e.Source)).Option("missingkey=error").Parse(string(raw))
 	if err != nil {
@@ -110,5 +132,5 @@ func Render(src fs.FS, e Entry, cfg *Config) ([]byte, error) {
 	if err := t.Execute(&buf, NewData(cfg)); err != nil {
 		return nil, fmt.Errorf("render skeleton template %s: %w", e.Source, err)
 	}
-	return substitute(buf.Bytes(), cfg), nil
+	return gofmtSource(e.Path, substitute(buf.Bytes(), cfg))
 }
