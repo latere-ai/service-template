@@ -1,0 +1,67 @@
+# The repository settings pipeline.
+#
+# Settings are applied by an authenticated identity, from a maintainer
+# workstation or from this workflow. The scheduled call reports drift and
+# reverts nothing: a maintainer may have changed a setting deliberately during
+# an incident, and a job that silently puts it back is worse than one that says
+# what changed.
+name: settings
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: report states the drift and changes nothing; apply writes the settings that differ.
+        type: string
+        required: false
+        default: report
+      runner:
+        type: string
+        required: false
+        default: ubuntu-latest
+    secrets:
+      settings-token:
+        description: A token with administration rights on this repository.
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  settings:
+    name: settings
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Reject an unknown mode
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          set -eu
+          case "$MODE" in
+          report | apply) ;;
+          *)
+            echo "settings: mode is \"$MODE\", want report or apply" >&2
+            exit 1
+            ;;
+          esac
+      - name: Ownership and declaration
+        run: make settings-verify
+      - name: Settings
+        env:
+          GITHUB_TOKEN: ${{ secrets.settings-token }}
+          MODE: ${{ inputs.mode }}
+        run: go run ./tools/settings -mode="$MODE" -repo="${{ github.repository }}"
+      - name: Required status check
+        env:
+          GITHUB_TOKEN: ${{ secrets.settings-token }}
+        run: |
+          set -eu
+          go run ./tools/settings -mode=required-check -repo="${{ github.repository }}" || status=$?
+          if [ "${status:-0}" -ne 0 ]; then
+            echo "::warning title=Gate not required::the gate is not a required status check on the default branch"
+          fi

@@ -1,0 +1,186 @@
+# Dependency maintenance.
+#
+# Grouping and the automerge rule live in each repository's dependabot
+# configuration. This workflow holds the three parts that need a run: the
+# pinning check, the automerge decision, and the notification that a newer
+# template release exists.
+name: deps
+
+on:
+  workflow_call:
+    inputs:
+      job:
+        description: >-
+          Which part to run: pins, automerge, or template-version. A caller
+          schedules template-version, runs pins on every change, and calls
+          automerge from its dependency update workflow.
+        type: string
+        required: true
+      template-repo:
+        description: Owner and name of the template repository.
+        type: string
+        required: false
+        default: latere-ai/service-template
+      gate-check:
+        description: The check whose success automerge waits for.
+        type: string
+        required: false
+        default: gate
+      gate-timeout-minutes:
+        description: How long automerge waits for the gate.
+        type: number
+        required: false
+        default: 45
+      runs-on:
+        description: Runner label.
+        type: string
+        required: false
+        default: ubuntu-latest
+
+permissions: {}
+
+jobs:
+  # A tag on an action repository can be moved by its owner, which makes a
+  # tag-pinned action a mutable dependency inside the build.
+  pins:
+    name: action pinning
+    if: inputs.job == 'pins'
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - run: go run ./tools/release pins
+
+  # Automerge applies only when the full gate passes, and never to a major
+  # version or a security update, because both need a human to read the change.
+  automerge:
+    name: automerge
+    if: inputs.job == 'automerge' && github.actor == 'dependabot[bot]'
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: read
+    steps:
+      - name: read the update
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ github.token }}
+
+      - name: refuse a major or a security update
+        id: eligible
+        run: |
+          set -euo pipefail
+          update='${{ steps.metadata.outputs.update-type }}'
+          alert='${{ steps.metadata.outputs.alert-state }}'
+          if [ "$update" = "version-update:semver-major" ]; then
+            echo "a major update is reviewed by a person"
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -n "$alert" ]; then
+            echo "an advisory-driven update is reviewed by a person"
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "eligible=true" >> "$GITHUB_OUTPUT"
+
+      # The gate is the single required check. Automerge waits for its
+      # conclusion rather than assuming it, so a forced gate failure blocks
+      # the merge here and not only in branch protection.
+      - name: wait for the gate
+        if: steps.eligible.outputs.eligible == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          deadline=$(( $(date +%s) + ${{ inputs.gate-timeout-minutes }} * 60 ))
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            state=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/check-runs" \
+              --jq '.check_runs[] | select(.name == "${{ inputs.gate-check }}") | "\(.status):\(.conclusion)"' | head -1)
+            case "$state" in
+              completed:success) echo "the gate passed"; exit 0 ;;
+              completed:*) echo "::error::the gate ended ${state#completed:}"; exit 1 ;;
+              "") echo "waiting for the gate to start" ;;
+              *) echo "the gate is ${state%%:*}" ;;
+            esac
+            sleep 30
+          done
+          echo "::error::the gate did not finish within ${{ inputs.gate-timeout-minutes }} minutes"
+          exit 1
+
+      - name: merge
+        if: steps.eligible.outputs.eligible == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr merge --squash --auto '${{ github.event.pull_request.number }}'
+
+  # The template is a dependency, and a consumer must learn that a newer
+  # version exists. This opens one issue and updates it rather than opening a
+  # pull request, because absorbing a template version can require running the
+  # generator and reviewing generated diffs.
+  template-version:
+    name: template version
+    if: inputs.job == 'template-version'
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: compare against the latest template release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TEMPLATE: ${{ inputs.template-repo }}
+          TITLE: Template update available
+        run: |
+          set -euo pipefail
+          have=$(sed -n 's/^version:[[:space:]]*//p' .template.yaml | tr -d '"')
+          latest=$(gh api "repos/$TEMPLATE/releases/latest" --jq .tag_name)
+          if [ -z "$have" ] || [ -z "$latest" ]; then
+            echo "::error::could not read the current version ($have) or the latest release ($latest)"
+            exit 1
+          fi
+
+          existing=$(gh issue list --state open --search "$TITLE in:title" \
+            --json number,title --jq ".[] | select(.title == \"$TITLE\") | .number" | head -1)
+
+          if [ "$have" = "$latest" ]; then
+            echo "the repository follows $latest"
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" --comment "The repository now follows $latest."
+            fi
+            exit 0
+          fi
+
+          {
+            echo "This repository follows template \`$have\`. The latest release is \`$latest\`."
+            echo
+            echo "Absorb it with:"
+            echo
+            echo '```sh'
+            echo "template upgrade --to $latest"
+            echo "template check"
+            echo '```'
+            echo
+            echo "Changes between the two:"
+            echo
+            gh api "repos/$TEMPLATE/releases" --jq \
+              ".[] | select(.tag_name > \"$have\") | \"### \(.tag_name)\n\n\(.body)\n\"" || true
+          } > body.md
+
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --body-file body.md
+            echo "updated issue #$existing"
+          else
+            gh issue create --title "$TITLE" --body-file body.md --label dependencies
+          fi

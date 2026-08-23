@@ -1,0 +1,25 @@
+# The caller a consumer commits at .github/workflows/release.yml.
+#
+# A tag starts the pipeline. The permissions below are the maximum the
+# reusable workflow may use; it grants each job less.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  packages: write
+  attestations: write
+  actions: read
+  id-token: write
+
+jobs:
+  release:
+    uses: latere-ai/service-template/.github/workflows/release.yml@v1
+    with:
+      production-url: https://service.example.com
+      preproduction-url: https://service.preprod.example.com
+      cluster-api-url: https://cluster.example.com
+      cluster-ca: ${{ vars.CLUSTER_CA }}

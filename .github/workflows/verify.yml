@@ -1,0 +1,550 @@
+# The reusable pre-merge pipeline every consumer calls.
+#
+# The job graph is prepare, then the independent gates in parallel, then one
+# gate job, then the build that the release pipeline consumes. The gate job is
+# the single required status check: it reads the result of every upstream job
+# and fails unless all of them succeeded, so a job that was skipped by a path
+# filter, a matrix condition, or a missing input cannot report a pass.
+#
+# Feature selection never uses a job level condition. A job that a feature
+# switches off still runs and reports success after stating that the feature is
+# off, because a skipped job and a disabled gate are indistinguishable to the
+# branch protection rule.
+name: verify
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        description: The service name. Read from .template.yaml when empty.
+        type: string
+        required: false
+        default: ""
+      main-package:
+        description: The main package. Defaults to ./cmd/<service name>.
+        type: string
+        required: false
+        default: ""
+      frontend:
+        description: auto reads features.frontend from .template.yaml; true or false overrides it.
+        type: string
+        required: false
+        default: auto
+      database:
+        description: auto reads features.database from .template.yaml; true or false overrides it.
+        type: string
+        required: false
+        default: auto
+      runner:
+        description: The runner label every job uses.
+        type: string
+        required: false
+        default: ubuntu-latest
+    outputs:
+      binary-artifact:
+        description: Artifact name holding the built binary.
+        value: ${{ jobs.build.outputs.binary-artifact }}
+      bundle-artifact:
+        description: Artifact name holding the built frontend bundle.
+        value: ${{ jobs.build.outputs.bundle-artifact }}
+      template-version:
+        description: The template version the consumer declares.
+        value: ${{ jobs.prepare.outputs.template-version }}
+
+# A run on a branch cancels its predecessor because only the newest commit
+# matters there. A run on the default branch never cancels, because the release
+# path reads its result and a cancelled verify run is not a verified commit.
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_name != github.event.repository.default_branch }}
+
+permissions:
+  contents: read
+
+env:
+  # The pipeline scripts live in the template repository and are checked out at
+  # the exact commit that provides this workflow, so a workflow and its scripts
+  # can never be a version apart.
+  TEMPLATE_REPOSITORY: latere-ai/service-template
+  SCRIPTS: .template-pipeline/.github/scripts
+  # The minimum consumer declaration this workflow accepts. A workflow change
+  # that reads a new generated file raises this, and raising it is a minor
+  # release that names the file.
+  MIN_TEMPLATE_VERSION: v0.1.0
+  BINARY_ARTIFACT: verify-binary
+  BUNDLE_ARTIFACT: verify-bundle
+  BUNDLE_SIZE_ARTIFACT: verify-bundle-size
+  COVERAGE_ARTIFACT: verify-coverage
+
+jobs:
+  # Resolves what the rest of the run needs and refuses to run against a
+  # repository whose generated files are older than this workflow expects.
+  prepare:
+    name: prepare
+    runs-on: ${{ inputs.runner }}
+    outputs:
+      template-version: ${{ steps.declaration.outputs.template-version }}
+      service: ${{ steps.resolve.outputs.service }}
+      main-package: ${{ steps.resolve.outputs.main-package }}
+      profile: ${{ steps.declaration.outputs.profile }}
+      frontend: ${{ steps.resolve.outputs.frontend }}
+      database: ${{ steps.resolve.outputs.database }}
+      background: ${{ steps.declaration.outputs.feature-background }}
+      go-version: ${{ steps.go.outputs.go-version }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Check out the pipeline scripts
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: ${{ env.TEMPLATE_REPOSITORY }}
+          ref: ${{ github.job_workflow_sha }}
+          path: .template-pipeline
+      - name: Read the template declaration
+        id: declaration
+        run: sh "$SCRIPTS/template-version.sh" .template.yaml
+      - name: Resolve the run inputs
+        id: resolve
+        env:
+          INPUT_SERVICE: ${{ inputs.service-name }}
+          INPUT_MAIN: ${{ inputs.main-package }}
+          INPUT_FRONTEND: ${{ inputs.frontend }}
+          INPUT_DATABASE: ${{ inputs.database }}
+          DECLARED_SERVICE: ${{ steps.declaration.outputs.name }}
+          DECLARED_FRONTEND: ${{ steps.declaration.outputs.feature-frontend }}
+          DECLARED_DATABASE: ${{ steps.declaration.outputs.feature-database }}
+        run: |
+          set -eu
+          service="${INPUT_SERVICE:-$DECLARED_SERVICE}"
+          main="${INPUT_MAIN:-./cmd/$service}"
+          # auto means the declaration decides, which is the default, so the
+          # feature set is stated in one place rather than in two.
+          frontend="$DECLARED_FRONTEND"
+          if [ "$INPUT_FRONTEND" != auto ]; then frontend="$INPUT_FRONTEND"; fi
+          database="$DECLARED_DATABASE"
+          if [ "$INPUT_DATABASE" != auto ]; then database="$INPUT_DATABASE"; fi
+          {
+            echo "service=$service"
+            echo "main-package=$main"
+            echo "frontend=$frontend"
+            echo "database=$database"
+          } >>"$GITHUB_OUTPUT"
+      # The toolchain is whatever go.mod asks for. A version written here would
+      # be a second declaration of the same fact and would drift from the first.
+      - name: Set up Go
+        id: go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Report the resolved run
+        run: |
+          {
+            echo "### Verify"
+            echo
+            echo "| Input | Value |"
+            echo "| --- | --- |"
+            echo "| Template version | ${{ steps.declaration.outputs.template-version }} |"
+            echo "| Profile | ${{ steps.declaration.outputs.profile }} |"
+            echo "| Service | ${{ steps.resolve.outputs.service }} |"
+            echo "| Go | ${{ steps.go.outputs.go-version }} |"
+            echo "| Frontend | ${{ steps.resolve.outputs.frontend }} |"
+            echo "| Database | ${{ steps.resolve.outputs.database }} |"
+            echo
+          } >>"$GITHUB_STEP_SUMMARY"
+
+  lint:
+    name: lint
+    runs-on: ${{ inputs.runner }}
+    needs: prepare
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Check out the pipeline scripts
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: ${{ env.TEMPLATE_REPOSITORY }}
+          ref: ${{ github.job_workflow_sha }}
+          path: .template-pipeline
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Formatting
+        run: make fmt-check
+      - name: Generated files match the template
+        run: make template-check
+      # Ownership coverage needs no credentials, so it runs on every pull
+      # request rather than only where an administrative token exists.
+      - name: Settings and ownership
+        run: make settings-verify
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+      # The exit code is kept and re-raised by the summary step, so a run
+      # always produces the report a reviewer reads.
+      - name: Lint
+        run: |
+          set -eu
+          mkdir -p out
+          status=0
+          golangci-lint run --output.json.path out/lint.json ./... || status=$?
+          echo "golangci-lint exited $status"
+      - name: Findings per linter
+        run: sh "$SCRIPTS/lint-summary.sh" --file out/lint.json
+
+  static:
+    name: static analysis
+    runs-on: ${{ inputs.runner }}
+    needs: prepare
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Check out the pipeline scripts
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: ${{ env.TEMPLATE_REPOSITORY }}
+          ref: ${{ github.job_workflow_sha }}
+          path: .template-pipeline
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      # The package list is the evidence that vet analyzed this module. A vet
+      # run that cannot resolve packages prints nothing and exits clean, which
+      # is the failure the guard below names.
+      - name: Vet
+        run: |
+          set -eu
+          mkdir -p out
+          go list ./... >out/vet-packages.txt
+          go vet ./...
+      - name: Assert vet analyzed the module
+        run: |
+          set -eu
+          module=$(go list -m)
+          sh "$SCRIPTS/scan-guard.sh" --tool vet \
+            --file out/vet-packages.txt --evidence "^$module"
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      # govulncheck decides nothing here. It writes the report, the guard proves
+      # the report describes a real scan, and the reachability rule turns the
+      # report into a verdict.
+      - name: Scan for advisories
+        run: |
+          set -eu
+          mkdir -p out
+          govulncheck -format json ./... >out/govulncheck.json || true
+      - name: Assert the advisory scan ran
+        run: |
+          sh "$SCRIPTS/scan-guard.sh" --tool govulncheck \
+            --file out/govulncheck.json --evidence '"scanner_name": *"govulncheck"'
+      - name: Advisory verdict
+        run: |
+          sh "$SCRIPTS/govulncheck-report.sh" --file out/govulncheck.json \
+            --suppressions .github/suppressions.yml
+      - name: Suppressions
+        run: sh "$SCRIPTS/suppressions.sh" --file .github/suppressions.yml --root .
+
+  codeql:
+    name: code scanning
+    runs-on: ${{ inputs.runner }}
+    needs: prepare
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Check out the pipeline scripts
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: ${{ env.TEMPLATE_REPOSITORY }}
+          ref: ${{ github.job_workflow_sha }}
+          path: .template-pipeline
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@42947a340483f03ba47bb1a039b2c519aab3df85 # v3
+        with:
+          languages: ${{ needs.prepare.outputs.frontend == 'true' && 'go,javascript-typescript' || 'go' }}
+          queries: security-extended
+      - name: Build
+        run: go build ./...
+      # A fork run holds no token that may write code scanning results. The
+      # analysis still runs and still fails the job on a finding; only the
+      # upload is left out, because skipping the job would hide the gate.
+      - name: Analyze
+        uses: github/codeql-action/analyze@42947a340483f03ba47bb1a039b2c519aab3df85 # v3
+        with:
+          output: out/codeql
+          upload: ${{ github.event.pull_request.head.repo.fork != true }}
+      - name: Assert the code scan ran
+        run: |
+          set -eu
+          for sarif in out/codeql/*.sarif; do
+            sh "$SCRIPTS/scan-guard.sh" --tool codeql --file "$sarif" \
+              --min-bytes 512 --evidence '"semmle\.sourceLanguage"|"artifactLocation"'
+          done
+      - name: Findings
+        run: |
+          set -eu
+          {
+            echo "### Code scanning"
+            echo
+            echo "| Analysis | Findings |"
+            echo "| --- | --- |"
+          } >>"$GITHUB_STEP_SUMMARY"
+          blocking=0
+          for sarif in out/codeql/*.sarif; do
+            count=$(jq '[.runs[].results[]?] | length' "$sarif")
+            # A note is advice and reaches the security tab. An error or a
+            # warning is a defect the analyzer proved, and it fails the job.
+            raised=$(jq '[.runs[].results[]? | select((.level // "warning") != "note")] | length' "$sarif")
+            blocking=$((blocking + raised))
+            echo "| \`$(basename "$sarif")\` | $count ($raised at warning or above) |" \
+              >>"$GITHUB_STEP_SUMMARY"
+          done
+          echo >>"$GITHUB_STEP_SUMMARY"
+          if [ "$blocking" -gt 0 ]; then
+            echo "codeql: $blocking findings at warning or above, listed in the security tab" >&2
+            exit 1
+          fi
+
+  test:
+    name: test
+    runs-on: ${{ inputs.runner }}
+    needs: prepare
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Unit tests with the race detector
+        run: make test
+
+  integration:
+    name: integration
+    runs-on: ${{ inputs.runner }}
+    needs: prepare
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: service_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Required mode turns a missing dependency into a failure that names it.
+      # Without it the tier reports success for tests that never ran.
+      TEST_DEPENDENCY_MODE: required
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/service_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Check out the pipeline scripts
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: ${{ env.TEMPLATE_REPOSITORY }}
+          ref: ${{ github.job_workflow_sha }}
+          path: .template-pipeline
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      # The tier runs twice on purpose. The first run asserts that no required
+      # dependency skipped, which the coverage run does not check; the second
+      # measures the combined figure the gate judges.
+      - name: Integration tests
+        run: make test-integration
+      - name: Coverage
+        run: |
+          set -eu
+          mkdir -p out
+          make cover 2>&1 | tee out/coverage.txt
+      - name: Coverage per package
+        if: ${{ !cancelled() }}
+        run: |
+          set -eu
+          {
+            echo "### Coverage"
+            echo
+            echo '```'
+            cat out/coverage.txt
+            echo '```'
+            echo
+          } >>"$GITHUB_STEP_SUMMARY"
+      - name: Upload the coverage profiles
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ env.COVERAGE_ARTIFACT }}
+          path: |
+            out/cover-unit.out
+            out/cover-integration.out
+            out/coverage.txt
+          if-no-files-found: warn
+          retention-days: 7
+
+  frontend:
+    name: frontend
+    runs-on: ${{ inputs.runner }}
+    needs: prepare
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Check out the pipeline scripts
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: ${{ env.TEMPLATE_REPOSITORY }}
+          ref: ${{ github.job_workflow_sha }}
+          path: .template-pipeline
+      - name: Report a repository with no frontend
+        if: needs.prepare.outputs.frontend != 'true'
+        run: |
+          echo "frontend: features.frontend is off, so this job verified nothing"
+          echo "The frontend feature is off." >>"$GITHUB_STEP_SUMMARY"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        if: needs.prepare.outputs.frontend == 'true'
+        with:
+          bun-version: latest
+      - name: Restore the dependency cache
+        if: needs.prepare.outputs.frontend == 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('frontend/bun.lock', 'frontend/bun.lockb', 'frontend/package.json') }}
+          restore-keys: bun-${{ runner.os }}-
+      # The install is frozen, so a cache hit and a cache miss resolve the same
+      # dependency tree. Cache is a speed optimization and never an input to the
+      # result.
+      - name: Install
+        if: needs.prepare.outputs.frontend == 'true'
+        run: make frontend-install
+      - name: Compiled twin guard
+        if: needs.prepare.outputs.frontend == 'true'
+        run: make frontend-guard
+      - name: Type check
+        if: needs.prepare.outputs.frontend == 'true'
+        run: make frontend-typecheck
+      - name: Tests
+        if: needs.prepare.outputs.frontend == 'true'
+        run: make frontend-test
+      - name: Build
+        if: needs.prepare.outputs.frontend == 'true'
+        run: make frontend-build
+      - name: Download the bundle size baseline
+        if: needs.prepare.outputs.frontend == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          mkdir -p out/baseline
+          run=$(gh run list --branch "${{ github.event.repository.default_branch }}" \
+            --workflow "${{ github.workflow }}" --status success --limit 1 \
+            --json databaseId --jq '.[0].databaseId // empty')
+          if [ -n "$run" ]; then
+            gh run download "$run" --name "$BUNDLE_SIZE_ARTIFACT" --dir out/baseline
+          fi
+      - name: Bundle size
+        if: needs.prepare.outputs.frontend == 'true'
+        run: |
+          set -eu
+          mkdir -p out
+          sh "$SCRIPTS/bundle-size.sh" --dist frontend/dist \
+            --out out/bundle-size.json --baseline out/baseline/bundle-size.json
+      - name: Upload the bundle size
+        if: needs.prepare.outputs.frontend == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ env.BUNDLE_SIZE_ARTIFACT }}
+          path: out/bundle-size.json
+          retention-days: 30
+
+  # The single required status check. In the caller it is reported as
+  # "<caller job id> / gate", which is the name branch protection must require.
+  gate:
+    name: gate
+    runs-on: ${{ inputs.runner }}
+    if: always()
+    needs: [prepare, lint, static, codeql, test, integration, frontend]
+    steps:
+      - name: Check out the pipeline scripts
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: ${{ env.TEMPLATE_REPOSITORY }}
+          ref: ${{ github.job_workflow_sha }}
+          path: .template-pipeline
+      - name: Judge every upstream job
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: sh "$SCRIPTS/gate.sh"
+
+  # The artifacts the release pipeline consumes. Building here, after the gate,
+  # is what makes the released binary the verified one rather than a rebuild.
+  build:
+    name: build
+    runs-on: ${{ inputs.runner }}
+    needs: [prepare, gate]
+    outputs:
+      binary-artifact: ${{ steps.names.outputs.binary-artifact }}
+      bundle-artifact: ${{ steps.names.outputs.bundle-artifact }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - name: Name the artifacts
+        id: names
+        run: |
+          {
+            echo "binary-artifact=$BINARY_ARTIFACT"
+            echo "bundle-artifact=$BUNDLE_ARTIFACT"
+          } >>"$GITHUB_OUTPUT"
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        if: needs.prepare.outputs.frontend == 'true'
+        with:
+          bun-version: latest
+      - name: Build the frontend bundle
+        if: needs.prepare.outputs.frontend == 'true'
+        run: |
+          make frontend-install
+          make frontend-build
+      - name: Build the binary
+        env:
+          RELEASE: "1"
+        run: make build
+      - name: Upload the binary
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ env.BINARY_ARTIFACT }}
+          path: out/${{ needs.prepare.outputs.service }}
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload the frontend bundle
+        if: needs.prepare.outputs.frontend == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ env.BUNDLE_ARTIFACT }}
+          path: frontend/dist
+          if-no-files-found: error
+          retention-days: 7
+      - name: Report the artifacts
+        run: |
+          {
+            echo "### Artifacts"
+            echo
+            echo "| Artifact | Content |"
+            echo "| --- | --- |"
+            echo "| \`$BINARY_ARTIFACT\` | out/${{ needs.prepare.outputs.service }} |"
+            echo "| \`$BUNDLE_ARTIFACT\` | frontend/dist |"
+            echo
+          } >>"$GITHUB_STEP_SUMMARY"

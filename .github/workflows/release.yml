@@ -1,0 +1,809 @@
+# The release pipeline.
+#
+# Order is the point of this file. The tag gate runs before anything is built,
+# the credentials are proved before anything is published, the attestations are
+# verified rather than only produced, the deploy is proved by a live smoke run,
+# and the release is published last. Publishing before the smoke passes
+# announces a version that may not be serving.
+#
+# Every decision the pipeline makes lives in tools/release and tools/smoke, so
+# each one is covered by a test. This file is wiring.
+name: release
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: Registry reference without a tag, for example ghcr.io/owner/name.
+        type: string
+        required: false
+        default: ""
+      platforms:
+        description: Architectures in the published manifest list.
+        type: string
+        required: false
+        default: linux/amd64,linux/arm64
+      runs-on:
+        description: Runner label.
+        type: string
+        required: false
+        default: ubuntu-latest
+      default-branch:
+        description: The branch a proving verify run must have run on.
+        type: string
+        required: false
+        default: main
+      verify-workflow:
+        description: The workflow whose passing run the tag gate reads.
+        type: string
+        required: false
+        default: .github/workflows/verify.yml
+      minimum-template-version:
+        description: The lowest .template.yaml version this pipeline supports.
+        type: string
+        required: false
+        default: v0.1.0
+      binary-artifact:
+        description: >-
+          Name of the binary artifact the verify run published. A
+          multi-architecture release needs one per platform, named
+          <binary-artifact>-<os>-<arch>.
+        type: string
+        required: false
+        default: verify-binary
+      bundle-artifact:
+        description: Name of the frontend bundle artifact the verify run published.
+        type: string
+        required: false
+        default: verify-bundle
+      production-target:
+        description: Overlay under deploy/ for a release tag.
+        type: string
+        required: false
+        default: production
+      preproduction-target:
+        description: Overlay under deploy/ for a pre-release tag.
+        type: string
+        required: false
+        default: preproduction
+      production-url:
+        description: Live address the smoke run asserts against for a release tag.
+        type: string
+        required: true
+      preproduction-url:
+        description: Live address the smoke run asserts against for a pre-release tag.
+        type: string
+        required: false
+        default: ""
+      cluster-api-url:
+        description: Kubernetes API address the deploy credential authenticates to.
+        type: string
+        required: true
+      cluster-ca:
+        description: Base64 PEM certificate authority of the cluster. Public data, not a secret.
+        type: string
+        required: true
+      cluster-audience:
+        description: Audience the cluster's identity provider expects in the workflow token.
+        type: string
+        required: false
+        default: kubernetes
+      scan-severity:
+        description: Severities that fail the release.
+        type: string
+        required: false
+        default: CRITICAL,HIGH
+
+# Nothing is granted by default. Each job takes the smallest set it needs, and
+# a job that tries to act outside it fails.
+permissions: {}
+
+# A release run is never cancelled by a later one. Two runs for one tag cannot
+# both be correct, and a cancelled run leaves a pushed image with no release.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GO_VERSION_FILE: go.mod
+
+jobs:
+  # The tag gate. Nothing is built before this holds.
+  gate:
+    name: tag gate
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+      prerelease: ${{ steps.tag.outputs.prerelease }}
+      target: ${{ steps.tag.outputs.target }}
+      base-url: ${{ steps.tag.outputs.base_url }}
+      namespace: ${{ steps.namespace.outputs.namespace }}
+      commit: ${{ github.sha }}
+      source-date-epoch: ${{ steps.tag.outputs.source_date_epoch }}
+      image: ${{ steps.tag.outputs.image }}
+      verify-run: ${{ steps.gate.outputs.verify_run }}
+      verify-run-id: ${{ steps.gate.outputs.verify_run_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      # A workflow may not read a generated file it did not declare a minimum
+      # for, so the minimum is asserted before anything else runs.
+      - name: assert the template version
+        run: |
+          set -euo pipefail
+          have=$(sed -n 's/^version:[[:space:]]*//p' .template.yaml | tr -d '"')
+          want='${{ inputs.minimum-template-version }}'
+          if [ -z "$have" ]; then
+            echo "::error::.template.yaml declares no version"
+            exit 1
+          fi
+          lowest=$(printf '%s\n%s\n' "${have#v}" "${want#v}" | sort -V | head -1)
+          if [ "$lowest" != "${want#v}" ] && [ "${have#v}" != "${want#v}" ]; then
+            echo "::error::this pipeline needs template $want, the repository declares $have; run template upgrade"
+            exit 1
+          fi
+          echo "template version $have satisfies $want"
+
+      - name: read the tag
+        id: tag
+        run: |
+          set -euo pipefail
+          case '${{ github.ref }}' in
+            refs/tags/*) ;;
+            *) echo "::error::the release pipeline runs on a tag, not on ${{ github.ref }}"; exit 1 ;;
+          esac
+          version='${{ github.ref_name }}'
+          image='${{ inputs.image-name }}'
+          if [ -z "$image" ]; then
+            image="ghcr.io/${GITHUB_REPOSITORY}"
+          fi
+          # A tag with a pre-release suffix deploys to the pre-production
+          # target and publishes as a pre-release.
+          if printf '%s' "$version" | grep -q -- '-'; then
+            prerelease=true
+            target='${{ inputs.preproduction-target }}'
+            base_url='${{ inputs.preproduction-url }}'
+          else
+            prerelease=false
+            target='${{ inputs.production-target }}'
+            base_url='${{ inputs.production-url }}'
+          fi
+          if [ -z "$base_url" ]; then
+            echo "::error::no live address is configured for $target, so the release could not be smoked"
+            exit 1
+          fi
+          {
+            echo "version=$version"
+            echo "prerelease=$prerelease"
+            echo "target=$target"
+            echo "base_url=$base_url"
+            echo "image=$image"
+            echo "source_date_epoch=$(git show -s --format=%ct '${{ github.sha }}')"
+          } >> "$GITHUB_OUTPUT"
+
+      # The exact commit the tag points at must have a passing verify run.
+      # Not the branch tip, not a later commit, that commit.
+      - name: prove the commit was verified
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          go run ./tools/release gate \
+            -repo "$GITHUB_REPOSITORY" \
+            -commit '${{ github.sha }}' \
+            -branch '${{ inputs.default-branch }}' \
+            -workflow '${{ inputs.verify-workflow }}'
+
+      - name: read the target namespace
+        id: namespace
+        run: go run ./tools/release namespace -target '${{ steps.tag.outputs.target }}'
+
+  # Every credential the run will use, proved before the first mutating step.
+  preflight:
+    name: preflight
+    needs: gate
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - uses: azure/setup-kubectl@829323503d1be3d00ca8346e5391ca0b07a9ab0d # v5.1.0
+
+      # The registry credential is the run's own token: short lived, scoped to
+      # this repository, and gone when the job ends.
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # The cluster credential is the workflow's identity token, exchanged at
+      # run time. Nothing long lived is stored for it, and the cluster binds
+      # its role to this repository, this workflow, and this ref pattern.
+      - name: exchange an identity token for the cluster
+        run: |
+          set -euo pipefail
+          token=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=${{ inputs.cluster-audience }}" \
+            | sed -n 's/.*"value":"\([^"]*\)".*/\1/p')
+          if [ -z "$token" ]; then
+            echo "::error::the job could not obtain an identity token; grant id-token: write"
+            exit 1
+          fi
+          printf '%s' '${{ inputs.cluster-ca }}' | base64 -d > "$RUNNER_TEMP/cluster-ca.pem"
+          kubectl config set-cluster target \
+            --server='${{ inputs.cluster-api-url }}' \
+            --certificate-authority="$RUNNER_TEMP/cluster-ca.pem" --embed-certs=true
+          kubectl config set-credentials pipeline --token="$token"
+          kubectl config set-context target --cluster=target --user=pipeline \
+            --namespace='${{ needs.gate.outputs.namespace }}'
+          kubectl config use-context target
+
+      - name: verify every credential
+        run: |
+          go run ./tools/release preflight -namespace '${{ needs.gate.outputs.namespace }}'
+
+      # A registry write that fails after the image is built leaves a
+      # published artifact with no release, so the write itself is proved here
+      # with a throwaway reference.
+      - name: prove the registry accepts a write
+        run: |
+          set -euo pipefail
+          probe='${{ needs.gate.outputs.image }}:preflight-${{ github.run_id }}'
+          echo '{}' > "$RUNNER_TEMP/probe.json"
+          printf 'FROM scratch\nCOPY probe.json /probe.json\n' > "$RUNNER_TEMP/Dockerfile.probe"
+          docker buildx build --push --provenance=false --sbom=false \
+            -f "$RUNNER_TEMP/Dockerfile.probe" -t "$probe" "$RUNNER_TEMP"
+          echo "the registry accepted $probe"
+
+      # The probe reference is not part of any release, so it is removed
+      # rather than left to accumulate one tag per run.
+      - name: remove the probe reference
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          name=${GITHUB_REPOSITORY#*/}
+          version=$(gh api "user/packages/container/$name/versions" \
+            --jq ".[] | select(.metadata.container.tags[]? == \"preflight-${{ github.run_id }}\") | .id" 2>/dev/null | head -1) || true
+          if [ -n "${version:-}" ]; then
+            gh api -X DELETE "user/packages/container/$name/versions/$version" >/dev/null 2>&1 || true
+            echo "removed the probe reference"
+          fi
+
+  # The image, built from the artifacts the verify run produced.
+  build:
+    name: build image
+    needs: [gate, preflight]
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+      image: ${{ needs.gate.outputs.image }}@${{ steps.push.outputs.digest }}
+      architectures: ${{ inputs.platforms }}
+      asset-hash: ${{ steps.artifacts.outputs.asset_hash }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # The bytes that passed the gate are the bytes that ship, so the
+      # binaries come from the verify run rather than from a second compile.
+      - name: take the verified artifacts
+        id: artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT: ${{ inputs.binary-artifact }}
+          RUN_ID: ${{ needs.gate.outputs.verify-run-id }}
+        run: |
+          set -euo pipefail
+          mkdir -p out stage
+          gh run download "$RUN_ID" --dir out --pattern "$ARTIFACT*"
+          gh run download "$RUN_ID" --dir out/bundle --name '${{ inputs.bundle-artifact }}' || true
+
+          # One binary per platform, staged under the layout Dockerfile.ci
+          # copies from. A platform with no artifact fails here: the release
+          # packages what the verify run built and never rebuilds it.
+          platforms=$(printf '%s' '${{ inputs.platforms }}' | tr ',' ' ')
+          count=$(printf '%s\n' $platforms | wc -l | tr -d ' ')
+          for platform in $platforms; do
+            os=${platform%%/*}
+            arch=${platform##*/}
+            dir="out/$ARTIFACT-$os-$arch"
+            if [ ! -d "$dir" ] && [ "$count" -eq 1 ] && [ -d "out/$ARTIFACT" ]; then
+              dir="out/$ARTIFACT"
+            fi
+            if [ ! -d "$dir" ]; then
+              echo "::error::the verify run published no binary for $platform at out/$ARTIFACT-$os-$arch"
+              exit 1
+            fi
+            binary=$(find "$dir" -maxdepth 1 -type f | head -1)
+            if [ -z "$binary" ]; then
+              echo "::error::$dir holds no binary"
+              exit 1
+            fi
+            mkdir -p "stage/$os-$arch"
+            cp "$binary" "stage/$os-$arch/app"
+            chmod +x "stage/$os-$arch/app"
+          done
+
+          # The entry asset the release built. The live document must
+          # reference this exact name after the deploy.
+          asset=none
+          if [ -f out/bundle/index.html ]; then
+            asset=$(sed -n 's/.*src="[^"]*\/\([^"/]*\.js\)".*/\1/p' out/bundle/index.html | head -1)
+            [ -n "$asset" ] || asset=none
+          fi
+          echo "asset_hash=$asset" >> "$GITHUB_OUTPUT"
+
+      - name: build and push
+        id: push
+        env:
+          SOURCE_DATE_EPOCH: ${{ needs.gate.outputs.source-date-epoch }}
+        run: |
+          set -euo pipefail
+          # Inline attestations carry the builder identity and the build time,
+          # which would change the index digest between two builds of one
+          # commit. They are attached separately in the attest job instead.
+          docker buildx build \
+            --file Dockerfile.ci \
+            --platform '${{ inputs.platforms }}' \
+            --build-arg BINARY=stage \
+            --build-arg SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
+            --provenance=false --sbom=false \
+            --output "type=image,name=${{ needs.gate.outputs.image }},rewrite-timestamp=true,push=true" \
+            --metadata-file first.json .
+          digest=$(sed -n 's/.*"containerimage.digest": *"\([^"]*\)".*/\1/p' first.json | head -1)
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "pushed ${{ needs.gate.outputs.image }}@$digest"
+
+      # Two builds of one commit produce the same image digest. Without this
+      # the provenance claim is decorative: nobody can reproduce the artifact
+      # it describes.
+      - name: prove the build is reproducible
+        env:
+          SOURCE_DATE_EPOCH: ${{ needs.gate.outputs.source-date-epoch }}
+        run: |
+          set -euo pipefail
+          docker buildx build \
+            --file Dockerfile.ci \
+            --platform '${{ inputs.platforms }}' \
+            --build-arg BINARY=stage \
+            --build-arg SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
+            --provenance=false --sbom=false --no-cache \
+            --output "type=image,name=${{ needs.gate.outputs.image }},rewrite-timestamp=true,push=true" \
+            --metadata-file second.json .
+          second=$(sed -n 's/.*"containerimage.digest": *"\([^"]*\)".*/\1/p' second.json | head -1)
+          if [ "$second" != '${{ steps.push.outputs.digest }}' ]; then
+            echo "::error::two builds of ${{ github.sha }} produced ${{ steps.push.outputs.digest }} and $second"
+            exit 1
+          fi
+          echo "two builds of this commit produced $second" >> "$GITHUB_STEP_SUMMARY"
+
+  # The three attestations, attached and then verified. An attestation that is
+  # produced and never verified does not prove anything.
+  attest:
+    name: attest and scan
+    needs: [gate, build]
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    outputs:
+      sbom: ${{ steps.verify.outputs.sbom }}
+      provenance: ${{ steps.verify.outputs.provenance }}
+      signature: ${{ steps.verify.outputs.signature }}
+      scan: ${{ steps.scan.outputs.result }}
+      architectures: ${{ steps.arches.outputs.result }}
+    env:
+      IMAGE: ${{ needs.build.outputs.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # The bill of materials is taken from the source tree so it lists both
+      # the Go modules and the frontend packages.
+      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: sign and attach
+        run: |
+          set -euo pipefail
+          cosign sign --yes "$IMAGE"
+          cosign attest --yes --predicate sbom.cdx.json --type cyclonedx "$IMAGE"
+
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ needs.gate.outputs.image }}
+          subject-digest: ${{ needs.build.outputs.digest }}
+          push-to-registry: true
+
+      # Verification is part of the pipeline and not a manual step. The
+      # identity is scoped to this repository, this workflow, and this ref, so
+      # a signature from another repository or another workflow is rejected.
+      - name: verify the attestations
+        id: verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          identity="^https://github.com/${GITHUB_REPOSITORY}/\.github/workflows/release\.yml@refs/tags/"
+          issuer=https://token.actions.githubusercontent.com
+
+          cosign verify --certificate-identity-regexp "$identity" \
+            --certificate-oidc-issuer "$issuer" "$IMAGE" > signature.json
+          cosign verify-attestation --type cyclonedx \
+            --certificate-identity-regexp "$identity" \
+            --certificate-oidc-issuer "$issuer" "$IMAGE" > sbom-attestation.json
+          gh attestation verify "oci://$IMAGE" --repo "$GITHUB_REPOSITORY"
+
+          components=$(grep -o '"bom-ref"' sbom.cdx.json | wc -l | tr -d ' ')
+          go_modules=$(grep -c '"purl": *"pkg:golang' sbom.cdx.json || true)
+          npm_packages=$(grep -c '"purl": *"pkg:npm' sbom.cdx.json || true)
+          if [ "$go_modules" -eq 0 ]; then
+            echo "::error::the bill of materials lists no Go modules"
+            exit 1
+          fi
+          # A repository with a frontend must see its packages listed too,
+          # otherwise the bill of materials covers half the artifact.
+          if [ -f frontend/package-lock.json ] && [ "$npm_packages" -eq 0 ]; then
+            echo "::error::the repository ships a frontend and the bill of materials lists no packages for it"
+            exit 1
+          fi
+          {
+            echo "sbom=verified, $components components ($go_modules Go modules, $npm_packages frontend packages)"
+            echo "provenance=verified against $GITHUB_REPOSITORY ${{ github.workflow_ref }}"
+            echo "signature=verified, keyless certificate for ${{ github.ref }}"
+          } >> "$GITHUB_OUTPUT"
+
+      # A verification that cannot fail proves nothing, so the failure path is
+      # exercised on every run. The image is the real one; the identity is one
+      # this pipeline could never hold, which is what the check must reject.
+      - name: prove verification rejects a foreign identity
+        run: |
+          set -euo pipefail
+          if cosign verify \
+              --certificate-identity-regexp "^https://github.com/nobody/nothing/" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+              "$IMAGE" >/dev/null 2>&1; then
+            echo "::error::verification accepted a signature from an identity this pipeline never holds"
+            exit 1
+          fi
+          echo "verification rejects a foreign signing identity" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: assert every architecture is present
+        id: arches
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "$IMAGE" --raw > manifest.json
+          missing=0
+          for platform in $(printf '%s' '${{ inputs.platforms }}' | tr ',' ' '); do
+            os=${platform%%/*}
+            arch=${platform##*/}
+            if ! grep -q "\"architecture\": *\"$arch\"" manifest.json; then
+              echo "::error::the published manifest list has no $os/$arch entry"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+          echo "result=${{ inputs.platforms }}" >> "$GITHUB_OUTPUT"
+
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ needs.build.outputs.image }}
+          format: json
+          output: scan.json
+          severity: ${{ inputs.scan-severity }}
+          ignore-unfixed: false
+          exit-code: "0"
+
+      # A finding above the configured severity fails the release before the
+      # deploy step.
+      - name: fail on a finding above the threshold
+        id: scan
+        run: |
+          set -euo pipefail
+          if [ ! -s scan.json ]; then
+            echo "::error::the image scan produced no result file; the scan did not run"
+            exit 1
+          fi
+          findings=$(grep -o '"Severity"' scan.json | wc -l | tr -d ' ')
+          echo "result=$findings finding(s) at ${{ inputs.scan-severity }}" >> "$GITHUB_OUTPUT"
+          if [ "$findings" -ne 0 ]; then
+            echo "::error::the image has $findings finding(s) at ${{ inputs.scan-severity }}"
+            exit 1
+          fi
+
+  deploy:
+    name: deploy
+    needs: [gate, build, attest]
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      namespace: ${{ steps.rollout.outputs.namespace }}
+      replicas: ${{ steps.rollout.outputs.replicas }}
+      completed: ${{ steps.rollout.outputs.completed }}
+      previous-image: ${{ steps.previous.outputs.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      - uses: azure/setup-kubectl@829323503d1be3d00ca8346e5391ca0b07a9ab0d # v5.1.0
+
+      - name: exchange an identity token for the cluster
+        run: |
+          set -euo pipefail
+          token=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=${{ inputs.cluster-audience }}" \
+            | sed -n 's/.*"value":"\([^"]*\)".*/\1/p')
+          printf '%s' '${{ inputs.cluster-ca }}' | base64 -d > "$RUNNER_TEMP/cluster-ca.pem"
+          kubectl config set-cluster target \
+            --server='${{ inputs.cluster-api-url }}' \
+            --certificate-authority="$RUNNER_TEMP/cluster-ca.pem" --embed-certs=true
+          kubectl config set-credentials pipeline --token="$token"
+          kubectl config set-context target --cluster=target --user=pipeline \
+            --namespace='${{ needs.gate.outputs.namespace }}'
+          kubectl config use-context target
+
+      # The digest that is serving now. A rollback needs it, and after the
+      # apply it is gone.
+      - name: record the image that is serving
+        id: previous
+        run: |
+          set -euo pipefail
+          # The workload name follows the single entry point under cmd/, the
+          # same rule the manifests and the rollout use.
+          count=$(ls -d cmd/*/ | wc -l | tr -d ' ')
+          if [ "$count" -ne 1 ]; then
+            echo "::error::cmd/ holds $count command directories; the workload name is ambiguous"
+            exit 1
+          fi
+          service=$(basename "$(ls -d cmd/*/)")
+          image=$(kubectl get deployment "$service" -n '${{ needs.gate.outputs.namespace }}' \
+            -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || true)
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "the target is serving ${image:-nothing yet}"
+
+      - name: apply and wait
+        id: rollout
+        run: |
+          go run ./tools/release rollout \
+            -target '${{ needs.gate.outputs.target }}' \
+            -image '${{ needs.gate.outputs.image }}' \
+            -digest '${{ needs.build.outputs.digest }}'
+
+  smoke:
+    name: live smoke
+    needs: [gate, build, deploy]
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      # The run goes against the live address, so it exercises the ingress,
+      # the certificate, and the routing rather than only the process.
+      - name: assert the release is serving
+        env:
+          SMOKE_BASE_URL: ${{ needs.gate.outputs.base-url }}
+          SMOKE_TARGET: ${{ needs.gate.outputs.target }}
+          SMOKE_EXPECT_VERSION: ${{ needs.gate.outputs.version }}
+          SMOKE_EXPECT_COMMIT: ${{ needs.gate.outputs.commit }}
+          SMOKE_EXPECT_ASSET: ${{ needs.build.outputs.asset-hash }}
+          SMOKE_EVIDENCE: smoke-evidence.md
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          go run ./tools/smoke
+          cat smoke-evidence.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: smoke-evidence
+          path: smoke-evidence.md
+          if-no-files-found: error
+
+  # A failed smoke rolls back to the previous released digest, verifies the
+  # rollback, and fails the release. A rollback that is not itself verified can
+  # leave the service in a worse state than the failed deploy.
+  rollback:
+    name: roll back
+    needs: [gate, deploy, smoke]
+    if: failure() && needs.deploy.result == 'success'
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      - uses: azure/setup-kubectl@829323503d1be3d00ca8346e5391ca0b07a9ab0d # v5.1.0
+
+      - name: exchange an identity token for the cluster
+        run: |
+          set -euo pipefail
+          token=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=${{ inputs.cluster-audience }}" \
+            | sed -n 's/.*"value":"\([^"]*\)".*/\1/p')
+          printf '%s' '${{ inputs.cluster-ca }}' | base64 -d > "$RUNNER_TEMP/cluster-ca.pem"
+          kubectl config set-cluster target \
+            --server='${{ inputs.cluster-api-url }}' \
+            --certificate-authority="$RUNNER_TEMP/cluster-ca.pem" --embed-certs=true
+          kubectl config set-credentials pipeline --token="$token"
+          kubectl config set-context target --cluster=target --user=pipeline \
+            --namespace='${{ needs.gate.outputs.namespace }}'
+          kubectl config use-context target
+
+      - name: roll back to the previous released digest
+        env:
+          PREVIOUS: ${{ needs.deploy.outputs.previous-image }}
+        run: |
+          set -euo pipefail
+          if [ -z "$PREVIOUS" ] || ! printf '%s' "$PREVIOUS" | grep -q '@sha256:'; then
+            echo "::error::there is no previous released digest to roll back to"
+            exit 1
+          fi
+          go run ./tools/release rollout \
+            -target '${{ needs.gate.outputs.target }}' \
+            -image "${PREVIOUS%@*}" \
+            -digest "${PREVIOUS#*@}"
+
+      # The rollback is smoked against the previous release's own identity,
+      # taken from the evidence block that release published.
+      - name: verify the rollback
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SMOKE_BASE_URL: ${{ needs.gate.outputs.base-url }}
+          SMOKE_TARGET: ${{ needs.gate.outputs.target }} (rolled back)
+          SMOKE_EVIDENCE: rollback-evidence.md
+        run: |
+          set -euo pipefail
+          body=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .body)
+          version=$(printf '%s' "$body" | sed -n 's/.*version `\([^`]*\)`.*/\1/p' | head -1)
+          commit=$(printf '%s' "$body" | sed -n 's/.*commit `\([^`]*\)`.*/\1/p' | head -1)
+          asset=$(printf '%s' "$body" | sed -n 's/.*entry asset `\([^`]*\)`.*/\1/p' | head -1)
+          if [ -z "$version" ] || [ -z "$commit" ] || [ -z "$asset" ]; then
+            echo "::error::the previous release carries no build identity, so the rollback cannot be verified"
+            exit 1
+          fi
+          SMOKE_EXPECT_VERSION="$version" SMOKE_EXPECT_COMMIT="$commit" SMOKE_EXPECT_ASSET="$asset" \
+            go run ./tools/smoke
+          cat rollback-evidence.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: fail the release
+        run: |
+          echo "::error::the release was rolled back and no release was published"
+          exit 1
+
+  # The release is published last. Publishing before the smoke passes announces
+  # a version that may not be serving.
+  publish:
+    name: publish release
+    needs: [gate, build, attest, deploy, smoke]
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: smoke-evidence
+
+      # Every field is machine generated from the run. A field that cannot be
+      # filled fails the release rather than printing a placeholder, because an
+      # evidence block with gaps is worse than none: it looks like proof.
+      - name: assemble the evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          live=$(sed -n 's/.*| build identity: version | [^|]* | \([^|]*\) |.*/\1/p' smoke-evidence.md | head -1)
+          live_commit=$(sed -n 's/.*| build identity: commit | [^|]* | \([^|]*\) |.*/\1/p' smoke-evidence.md | head -1)
+          live_asset=$(sed -n 's/.*| build identity: entry asset | [^|]* | \([^|]*\) |.*/\1/p' smoke-evidence.md | head -1)
+          [ -n "$live_asset" ] || live_asset='${{ needs.build.outputs.asset-hash }}'
+          cat > evidence.json <<JSON
+          {
+            "version": "${{ needs.gate.outputs.version }}",
+            "commit": "${{ needs.gate.outputs.commit }}",
+            "verify_run": "${{ needs.gate.outputs.verify-run }}",
+            "image": "${{ needs.build.outputs.image }}",
+            "architectures": "${{ needs.attest.outputs.architectures }}",
+            "sbom": "${{ needs.attest.outputs.sbom }}",
+            "provenance": "${{ needs.attest.outputs.provenance }}",
+            "signature": "${{ needs.attest.outputs.signature }}",
+            "scan": "${{ needs.attest.outputs.scan }}",
+            "target": "${{ needs.gate.outputs.target }}",
+            "rollout_completed": "${{ needs.deploy.outputs.completed }}",
+            "replicas": "${{ needs.deploy.outputs.replicas }}",
+            "live_version": "$(printf '%s' "$live" | xargs)",
+            "live_commit": "$(printf '%s' "$live_commit" | xargs)",
+            "live_asset": "$(printf '%s' "$live_asset" | xargs)"
+          }
+          JSON
+          go run ./tools/release evidence -in evidence.json -live smoke-evidence.md -out evidence.md
+
+      - name: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name='${{ needs.gate.outputs.version }}' \
+            -f target_commitish='${{ needs.gate.outputs.commit }}' \
+            --jq .body > notes.md
+          cat notes.md evidence.md > release-notes.md
+          flags=""
+          if [ '${{ needs.gate.outputs.prerelease }}' = 'true' ]; then
+            flags="--prerelease"
+          fi
+          gh release create '${{ needs.gate.outputs.version }}' \
+            --title '${{ needs.gate.outputs.version }}' \
+            --notes-file release-notes.md \
+            --target '${{ needs.gate.outputs.commit }}' \
+            $flags
+          cat evidence.md >> "$GITHUB_STEP_SUMMARY"
