@@ -1,0 +1,1 @@
+{"Issues":[],"Report":{"Linters":[{"Name":"errcheck","Enabled":true},{"Name":"govet","Enabled":true},{"Name":"ineffassign","Enabled":true},{"Name":"staticcheck","Enabled":true},{"Name":"typecheck","Enabled":true},{"Name":"unused","Enabled":true}]}}

@@ -1,0 +1,11 @@
+{"config":{"protocol_version":"v1.0.0","scanner_name":"govulncheck","scanner_version":"v1.7.0","db":"https://vuln.go.dev","db_last_modified":"2026-08-21T20:38:00Z","go_version":"go1.27.0","scan_level":"symbol","scan_mode":"source"}}
+{"SBOM":{"go_version":"go1.27.0","modules":[{"path":"example.com/vulnfix"},{"path":"golang.org/x/text","version":"v0.3.5"},{"path":"stdlib","version":"v1.27.0"}],"roots":["example.com/vulnfix"]}}
+{"progress":{"message":"Fetching vulnerabilities from the database..."}}
+{"progress":{"message":"Checking the code against the vulnerabilities..."}}
+{"finding":{"osv":"GO-2021-0113","fixed_version":"v0.3.7","trace":[{"module":"golang.org/x/text","version":"v0.3.5"}]}}
+{"finding":{"osv":"GO-2022-1059","fixed_version":"v0.3.8","trace":[{"module":"golang.org/x/text","version":"v0.3.5"}]}}
+{"finding":{"osv":"GO-2026-5970","fixed_version":"v0.39.0","trace":[{"module":"golang.org/x/text","version":"v0.3.5"}]}}
+{"finding":{"osv":"GO-2021-0113","fixed_version":"v0.3.7","trace":[{"module":"golang.org/x/text","version":"v0.3.5","package":"golang.org/x/text/language"}]}}
+{"finding":{"osv":"GO-2022-1059","fixed_version":"v0.3.8","trace":[{"module":"golang.org/x/text","version":"v0.3.5","package":"golang.org/x/text/language"}]}}
+{"osv":{"id":"GO-2021-0113","summary":"Out-of-bounds read in golang.org/x/text/language"}}
+{"osv":{"id":"GO-2022-1059","summary":"Denial of service via crafted Accept-Language header in golang.org/x/text/language"}}
