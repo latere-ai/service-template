@@ -7,7 +7,7 @@ depends_on:
 affects: [skeleton/internal/worker/, skeleton/cmd/]
 created: 2026-08-23
 author: changkun
-trigger: a consumer runs scheduled or queue-driven work; open question whether every service needs it
+trigger: a consumer runs scheduled or queue-driven work
 ---
 
 # Background work runtime
@@ -31,6 +31,18 @@ Layer 2 and 3. The work interfaces, execution modes, the single-execution rule,
 and the observability of work that has no request.
 
 ## Design
+
+### The template ships no broker
+
+Whether a message broker is worth running as its own component is a decision
+per product, not a decision this template makes. It therefore ships no broker,
+selects none, and does not require one.
+
+What it ships is the shape: the interface a consumer implements, and the
+lifecycle, locking, retry, and telemetry that sit around it. A consumer that
+runs only scheduled work needs no broker at all and still gets the whole
+mechanism. A consumer that later adopts one implements the same interface
+against it, and nothing above the interface changes.
 
 ### One shape for three kinds
 
@@ -95,3 +107,8 @@ scheduled job that silently stopped running, which no error rate will show.
 6. Each execution produces a trace with the job name and attempt number, and the
    time-since-last-success metric rises when a job stops running.
 7. One image serves, works, and runs a named job once, selected by flag.
+
+## Out of scope
+
+The broker itself, its operation, and the choice between running one and using
+a managed service.

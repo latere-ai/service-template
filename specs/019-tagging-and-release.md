@@ -39,6 +39,22 @@ Tagging is deliberate. Automation computes and proposes; a maintainer triggers.
 A pipeline that tags on every merge removes the ability to group changes into a
 meaningful release, and a version number is a communication device.
 
+The trigger is a release command, not a raw `git tag`. The command is the
+deterministic half of the gate and runs before the tag exists:
+
+1. Resolve the exact commit to be tagged.
+2. Prove that commit has a passing verify run. Not the branch tip, not a later
+   commit.
+3. Print the derived version and what changed since the previous tag.
+4. Push the tag only after both hold.
+5. Watch the pipeline it started, and report the released version as live only
+   once the smoke evidence says so.
+
+Splitting the gate this way means the same condition is checked twice, once
+before the tag is pushed and once inside the pipeline. The first check is where
+a maintainer can still change their mind; the second is what makes the rule hold
+when a tag arrives by any other route.
+
 ### The tag gate
 
 Before anything is built, the pipeline asserts that the exact commit the tag
@@ -98,3 +114,6 @@ traceable as a release.
 5. The live build identity in the evidence matches the tagged commit.
 6. A failed smoke rolls back and leaves no published release.
 7. A pre-release tag targets pre-production and publishes as a pre-release.
+8. The release command refuses to push a tag whose commit has no passing verify
+   run, and reports the released version as live only after the smoke evidence
+   is written.
