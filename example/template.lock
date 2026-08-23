@@ -136,7 +136,7 @@ files:
     digest: sha256:79cffbf338701ff6d58b17ed2c58f27786082c375762eab6207ca40070138a88
   - path: frontend/.gitignore
     mode: merged
-    digest: sha256:bb1b11dce753063011f4bb934129a82cde66bad6f19c00d8c817d40c57d51b24
+    digest: sha256:1cce964e85897eb3bedcc0dd4edff90e2109b674be2a122aab9d332bad43c94e
   - path: frontend/.prettierignore
     mode: generated
     digest: sha256:4f73a60417cc3861d75080d928ec76b50dd2917a131fda2bc7c7c75701c9457b

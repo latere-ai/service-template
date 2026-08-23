@@ -46,7 +46,7 @@ func trackedFiles(t *testing.T, root string) map[string]bool {
 		t.Skipf("git ls-files unavailable: %v", err)
 	}
 	set := map[string]bool{}
-	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(string(out)), "\n") {
 		if line != "" {
 			set[line] = true
 		}

@@ -1,10 +1,12 @@
 # Repository-specific frontend ignores go outside the managed region below.
 
 # >>> template: managed region, do not edit <<<
-# Dependency and build trees.
-node_modules/
-dist/
-coverage/
+# Dependency and build trees. Anchored to this directory with a leading slash:
+# an unanchored pattern matches a directory of that name at ANY depth, so a bare
+# `coverage/` also swallows committed test fixtures that live under one.
+/node_modules/
+/dist/
+/coverage/
 
 # Compiled twins. A .js beside its .ts source shadows it in module resolution,
 # so the test runner executes a stale build and reports a pass for code that is
