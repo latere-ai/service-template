@@ -1,0 +1,7 @@
+services:
+# >>> template: managed region, do not edit <<<
+  database:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: {{ .Name }}
+# >>> template: end managed region <<<

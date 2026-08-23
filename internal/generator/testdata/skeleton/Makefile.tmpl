@@ -1,0 +1,12 @@
+# >>> template: managed region, do not edit <<<
+SERVICE := {{ .Name }}
+MODULE  := {{ .Module }}
+
+.PHONY: build
+build:
+	go build -o out/$(SERVICE) ./cmd/{{ .Name }}
+
+.PHONY: template-check
+template-check:
+	template check
+# >>> template: end managed region <<<

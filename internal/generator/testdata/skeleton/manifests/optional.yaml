@@ -1,0 +1,16 @@
+files:
+  - path: deploy/service.yaml
+    mode: generated
+    profiles: [service]
+  - path: internal/store/store.go
+    mode: generated
+    features: [database]
+  - path: frontend/index.html
+    mode: generated
+    features: [frontend]
+  - path: lib/doc.go
+    mode: generated
+    profiles: [library]
+  - path: docker-compose.yaml
+    mode: merged
+    features: [database]

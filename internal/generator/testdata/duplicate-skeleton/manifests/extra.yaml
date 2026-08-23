@@ -1,0 +1,3 @@
+files:
+  - path: .golangci.yml
+    mode: seed

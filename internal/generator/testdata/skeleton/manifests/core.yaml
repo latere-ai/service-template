@@ -1,0 +1,15 @@
+files:
+  - path: .golangci.yml
+    mode: generated
+  - path: .githooks/pre-commit
+    mode: generated
+  - path: Makefile
+    mode: merged
+  - path: README.md
+    mode: seed
+  - path: cmd/service/main.go
+    mode: seed
+    profiles: [service]
+  - path: internal/version/version.go
+    mode: generated
+    profiles: [service]

@@ -1,0 +1,11 @@
+package main
+
+import (
+	"fmt"
+
+	"{{ .Module }}/internal/version"
+)
+
+func main() {
+	fmt.Println("{{ .Name }}", version.Info().Version)
+}
