@@ -289,7 +289,7 @@ func parseInline(file string, line int, s string) (*node, error) {
 		if body == "" {
 			return seq, nil
 		}
-		for _, part := range strings.Split(body, ",") {
+		for part := range strings.SplitSeq(body, ",") {
 			part = strings.TrimSpace(part)
 			if part == "" {
 				return nil, errAt(file, line, "empty item in flow sequence")

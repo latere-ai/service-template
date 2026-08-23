@@ -80,6 +80,36 @@ func TestVerifyCoverageFindsUndeclaredAndMissingFiles(t *testing.T) {
 	}
 }
 
+// The frontend build copies its bundle into the directory the binary embeds,
+// which also holds one committed placeholder. A maintainer who runs that copy
+// must not turn every emitted asset into an undeclared skeleton file.
+func TestVerifyCoverageIgnoresTheEmbeddedBundle(t *testing.T) {
+	const dir = "internal/web/public"
+	fixture := fstest.MapFS{
+		"manifests/web.yaml": {Data: []byte(
+			"files:\n  - path: " + dir + "/index.html\n    mode: seed\n")},
+		dir + "/index.html":            {Data: []byte("<html></html>\n")},
+		dir + "/assets/index-a1b2.js":  {Data: []byte("console.log(1)\n")},
+		dir + "/assets/index-a1b2.css": {Data: []byte("body{}\n")},
+	}
+	if err := VerifyCoverage(fixture); err != nil {
+		t.Fatalf("a built bundle was reported as undeclared: %v", err)
+	}
+
+	// The declared placeholder is still required, so the directory is not a
+	// hole the coverage check stops looking into.
+	missing := fstest.MapFS{
+		"manifests/web.yaml": {Data: []byte(
+			"files:\n  - path: " + dir + "/index.html\n    mode: seed\n")},
+		dir + "/assets/index-a1b2.js": {Data: []byte("console.log(1)\n")},
+	}
+	err := VerifyCoverage(missing)
+	if err == nil {
+		t.Fatal("a missing placeholder passed the coverage check")
+	}
+	mustContain(t, err.Error(), dir+"/index.html", "the declared path with no file")
+}
+
 func TestSplitRegionRejectsBrokenMarkers(t *testing.T) {
 	cases := []struct {
 		name string

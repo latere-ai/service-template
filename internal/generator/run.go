@@ -47,12 +47,15 @@ Exit codes for check:
 `
 
 // Run executes one command and returns the process exit code.
+//
+// A write to the command's own streams is not checked: the report of a failed
+// write would go to the stream that failed.
 func Run(env Env, args []string) int {
 	if env.Now.IsZero() {
 		env.Now = time.Now()
 	}
 	if len(args) == 0 {
-		fmt.Fprint(env.Stderr, usage)
+		_, _ = fmt.Fprint(env.Stderr, usage)
 		return ExitError
 	}
 	var err error
@@ -69,17 +72,17 @@ func Run(env Env, args []string) int {
 	case "manifest":
 		err = runManifest(env, args[1:])
 	case "help", "-h", "--help":
-		fmt.Fprint(env.Stdout, usage)
+		_, _ = fmt.Fprint(env.Stdout, usage)
 		return ExitOK
 	default:
-		fmt.Fprintf(env.Stderr, "unknown command %q\n\n%s", args[0], usage)
+		_, _ = fmt.Fprintf(env.Stderr, "unknown command %q\n\n%s", args[0], usage)
 		return ExitError
 	}
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return ExitError
 		}
-		fmt.Fprintf(env.Stderr, "template: %v\n", err)
+		_, _ = fmt.Fprintf(env.Stderr, "template: %v\n", err)
 		return ExitError
 	}
 	if code < 0 {
@@ -126,7 +129,7 @@ func runInit(env Env, args []string) error {
 		Features: map[string]bool{},
 		Coverage: Coverage{Threshold: *threshold},
 	}
-	for _, f := range strings.Split(*features, ",") {
+	for f := range strings.SplitSeq(*features, ",") {
 		f = strings.TrimSpace(f)
 		if f != "" {
 			cfg.Features[f] = true
@@ -139,8 +142,8 @@ func runInit(env Env, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(env.Stdout, "scaffolded the %s profile of %s at %s\n", cfg.Profile, cfg.Module, *dir)
-	fmt.Fprint(env.Stdout, report.String())
+	_, _ = fmt.Fprintf(env.Stdout, "scaffolded the %s profile of %s at %s\n", cfg.Profile, cfg.Module, *dir)
+	_, _ = fmt.Fprint(env.Stdout, report.String())
 	return nil
 }
 
@@ -178,7 +181,7 @@ func runSync(env Env, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprint(env.Stdout, report.String())
+	_, _ = fmt.Fprint(env.Stdout, report.String())
 	return nil
 }
 
@@ -200,7 +203,7 @@ func runCheck(env Env, args []string) (int, error) {
 	if report.Exit() != ExitOK {
 		out = env.Stderr
 	}
-	fmt.Fprint(out, report.String())
+	_, _ = fmt.Fprint(out, report.String())
 	return report.Exit(), nil
 }
 
@@ -242,15 +245,15 @@ func runUpgrade(env Env, args []string) error {
 	if err := os.WriteFile(path, updated, 0o644); err != nil {
 		return fmt.Errorf("write %s: %w", ConfigFile, err)
 	}
-	fmt.Fprintf(env.Stdout, "upgraded %s from %s to %s\n", ConfigFile, from, *version)
-	fmt.Fprint(env.Stdout, report.String())
+	_, _ = fmt.Fprintf(env.Stdout, "upgraded %s from %s to %s\n", ConfigFile, from, *version)
+	_, _ = fmt.Fprint(env.Stdout, report.String())
 	paths := make([]string, 0, len(report.Diffs))
 	for p := range report.Diffs {
 		paths = append(paths, p)
 	}
 	sort.Strings(paths)
 	for _, p := range paths {
-		fmt.Fprint(env.Stdout, report.Diffs[p])
+		_, _ = fmt.Fprint(env.Stdout, report.Diffs[p])
 	}
 	return nil
 }
@@ -267,7 +270,7 @@ func runManifest(env Env, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(env.Stdout, "the manifest declares %d skeleton files and every file is accounted for\n",
+	_, _ = fmt.Fprintf(env.Stdout, "the manifest declares %d skeleton files and every file is accounted for\n",
 		len(m.Entries))
 	return nil
 }

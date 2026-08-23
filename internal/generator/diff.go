@@ -62,11 +62,7 @@ func diffOps(a, b []string) []diffOp {
 				table[i][j] = table[i+1][j+1] + 1
 				continue
 			}
-			if table[i+1][j] >= table[i][j+1] {
-				table[i][j] = table[i+1][j]
-			} else {
-				table[i][j] = table[i][j+1]
-			}
+			table[i][j] = max(table[i+1][j], table[i][j+1])
 		}
 	}
 	var ops []diffOp

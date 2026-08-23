@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -214,13 +215,7 @@ func validateEntry(name string, e *Entry) error {
 // declaration.
 func (e Entry) Selects(cfg *Config) bool {
 	if len(e.Profiles) > 0 {
-		match := false
-		for _, p := range e.Profiles {
-			if p == cfg.Profile {
-				match = true
-				break
-			}
-		}
+		match := slices.Contains(e.Profiles, cfg.Profile)
 		if !match {
 			return false
 		}
@@ -269,6 +264,27 @@ var skipDirs = map[string]bool{
 	"tmp":          true,
 }
 
+// buildOutputDirs names directories the skeleton declares files in and a local
+// build also writes into. An undeclared file under one of them is build output
+// rather than a file the manifest forgot.
+//
+// The directory itself is not skipped, because the declared files inside it
+// still have to be found. The frontend build copies its bundle into the
+// directory the binary embeds, which holds one committed placeholder document
+// and, after a build, everything the bundler emitted.
+var buildOutputDirs = []string{"internal/web/public"}
+
+// isBuildOutput reports whether an undeclared path is build output rather than
+// an undeclared template file.
+func isBuildOutput(p string) bool {
+	for _, dir := range buildOutputDirs {
+		if strings.HasPrefix(p, dir+"/") {
+			return true
+		}
+	}
+	return false
+}
+
 // skipFiles names artifacts a working tree carries and the skeleton never
 // ships. Without them a local build makes the coverage check fail on files
 // that are not template content.
@@ -307,7 +323,7 @@ func VerifyCoverage(src fs.FS) error {
 		}
 		out := strings.TrimSuffix(p, TemplateSuffix)
 		present[out] = true
-		if !declared[out] {
+		if !declared[out] && !isBuildOutput(out) {
 			undeclared = append(undeclared, p)
 		}
 		return nil

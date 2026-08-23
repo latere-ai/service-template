@@ -284,7 +284,7 @@ func TestMergedFileWithoutMarkersFailsTheCheck(t *testing.T) {
 	src := skeletonFS(t)
 	dir := initRepo(t, src, testConfig())
 	stripped := []string{}
-	for _, line := range strings.Split(read(t, dir, "Makefile"), "\n") {
+	for line := range strings.SplitSeq(read(t, dir, "Makefile"), "\n") {
 		if line == MarkerStart || line == MarkerEnd {
 			continue
 		}
