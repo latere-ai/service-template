@@ -102,6 +102,25 @@ The template publishes semantic version tags and a moving `v1` tag. Inside `v1`:
 
 Deprecations warn for one minor release before they break.
 
+### Layer skew
+
+Workflows ride a moving major tag while materialized files are pinned to an
+exact version, so a consumer can run a newer workflow against older generated
+files. The skew is real and it must fail loudly rather than in the middle of a
+release.
+
+Two rules close it:
+
+1. A reusable workflow declares the minimum `.template.yaml` version it needs.
+   Its first job reads the consumer's version and fails with an upgrade
+   instruction when the consumer is below it.
+2. A workflow change that depends on a new or changed generated file raises that
+   minimum. Raising the minimum is a minor release, and the release notes name
+   the generated file, so an upgrade is one `template sync` away.
+
+A workflow may never read a generated file it did not declare a minimum for.
+That is what keeps rule 1 sufficient.
+
 ## Acceptance criteria
 
 1. `docs/contract.md` states the three layers, the ownership boundary, and the
@@ -110,6 +129,8 @@ Deprecations warn for one minor release before they break.
    default.
 3. Each later spec names the layer it belongs to.
 4. The README table matches `docs/contract.md`; a test fails if they diverge.
+5. A consumer below a workflow's declared minimum version fails in the first job
+   with an upgrade instruction, and no later job runs.
 
 ## Out of scope
 

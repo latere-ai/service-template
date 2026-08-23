@@ -29,7 +29,7 @@ stateDiagram-v2
 ## Reading order
 
 Spec 001 defines the contract every other spec builds on. Read it first. The
-rest group into six sections that follow the dependency order.
+remaining 29 specs group into six sections that follow the dependency order.
 
 ## Dependency graph
 
@@ -54,11 +54,14 @@ flowchart TB
     direction TB
     S022["022 generator + drift"]
     S023["023 spec workflow"]
+    S029["029 profiles"]
+    S028["028 repo settings"]
   end
 
   subgraph R["Service runtime"]
     direction TB
     S007["007 config"] --> S008["008 runtime"] --> S009["009 observability"]
+    S008 --> S030["030 background work"]
     S008 --> S010["010 api surface"]
     S009 --> S010
     S010 --> S012["012 auth boundary"]
@@ -75,6 +78,7 @@ flowchart TB
     direction TB
     S018["018 verify"] --> S019["019 tag + release"] --> S020["020 deploy + smoke"]
     S017["017 image + supply chain"] --> S019
+    S027["027 pipeline identity"]
     S018 --> S021["021 dep updates"]
   end
 
@@ -87,6 +91,13 @@ flowchart TB
 
   S001 --> S022
   S004 --> S022
+  S001 --> S029
+  S022 --> S029
+  S018 --> S028
+  S022 --> S028
+  S017 --> S027
+  S020 --> S027
+  S009 --> S030
   S001 --> S023 --> S024
   S002 --> S007
   S004 --> S009
@@ -129,6 +140,7 @@ flowchart TB
 | [010](010-http-api-surface.md) | Routing, middleware order, error envelope, versioning | drafted |
 | [011](011-persistence-and-migrations.md) | Schema versioning and a test database that must exist | drafted |
 | [012](012-authentication-boundary.md) | Pluggable identity with no provider in the core | drafted |
+| [030](030-background-work-runtime.md) | Scheduled jobs, queue consumers, one-shot commands | drafted |
 
 ## Frontend
 
@@ -148,6 +160,7 @@ flowchart TB
 | [019](019-tagging-and-release.md) | Version derivation, tag gate, release evidence | drafted |
 | [020](020-deploy-and-smoke.md) | Rollout contract, live verification, rollback | drafted |
 | [021](021-dependency-updates.md) | Grouped updates and template version notification | drafted |
+| [027](027-pipeline-identity-and-secrets.md) | Federated pipeline credentials and least privilege | drafted |
 
 ## Template mechanics
 
@@ -155,6 +168,8 @@ flowchart TB
 | --- | --- | --- |
 | [022](022-generator-and-drift-check.md) | Materializing generated files and proving they match | drafted |
 | [023](023-spec-driven-workflow.md) | Spec format, lifecycle, validator | drafted |
+| [028](028-repository-settings.md) | Branch protection, ownership, and merge rules as code | drafted |
+| [029](029-profiles.md) | What service, library, and frontend-only repositories generate | drafted |
 
 ## Developer experience
 
@@ -167,10 +182,14 @@ flowchart TB
 ## Suggested build order
 
 1. **001** alone. Everything else references it.
-2. **002 to 006** and **022**. The generator arrives early so later specs
-   materialize their files through it rather than being retrofitted.
-3. **018**. Once gates exist, wire them centrally.
-4. **007 to 012**. The runtime.
+2. **002 to 006**, then **022** and **029**. The generator and the profiles
+   arrive early so later specs materialize their files through the generator
+   rather than being retrofitted into it.
+3. **018** and **028**. Once gates exist, wire them centrally and make them
+   binding. A gate that is not a required check is advisory.
+4. **007 to 012**, and **030** when the consumer runs background work.
 5. **013 to 016**. The frontend.
-6. **017, 019, 020, 021**. Delivery.
+6. **017, 019, 020**, then **027** and **021**. The pipelines are built first,
+   then 027 replaces their bootstrap credentials with federated identity and
+   least-privilege grants before any of them run against production.
 7. **023 to 026**. Process, documentation, and the proof.

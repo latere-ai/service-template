@@ -53,6 +53,12 @@ flowchart LR
   build provenance, and a signature. A version tag starts one pipeline that
   verifies, builds, deploys, smokes the live surface, and only then publishes
   the release with the smoke output attached as evidence.
+- **Background work.** Scheduled jobs, queue consumers, and one-shot commands
+  share the service lifecycle, run once across replicas, and report the signal
+  that catches a job which silently stopped.
+- **Repository settings as code.** Branch protection, required checks,
+  ownership, and merge rules are declared and applied, so the gates are binding
+  rather than advisory.
 - **Process.** A spec directory, a lifecycle for each spec, and a documentation
   set that a new contributor can read in order.
 
