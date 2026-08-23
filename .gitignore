@@ -1,0 +1,12 @@
+.DS_Store
+.claude/
+*.log
+/out/
+/dist/
+coverage.out
+node_modules/
+frontend/dist/
+frontend/node_modules/
+*.tsbuildinfo
+.env.local
+release-evidence/
