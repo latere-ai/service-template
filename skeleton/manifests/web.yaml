@@ -1,0 +1,55 @@
+# Web group: the handler that serves the built frontend from the binary, and
+# the placeholder that keeps the embedded bundle directory present in version
+# control.
+#
+# Every file is gated on the frontend feature, because a service that ships no
+# frontend embeds no bundle and needs no fallback rule.
+#
+# The placeholder document is seed. The frontend build writes over it, so a
+# drift-checked placeholder would report every repository that builds a
+# frontend as edited.
+files:
+  # The serving handler, the precedence rule, and the asset index.
+  - path: internal/web/web.go
+    mode: generated
+    profiles: [service]
+    features: [frontend]
+  - path: internal/web/asset.go
+    mode: generated
+    profiles: [service]
+    features: [frontend]
+  - path: internal/web/embed.go
+    mode: generated
+    profiles: [service]
+    features: [frontend]
+  - path: internal/web/web_test.go
+    mode: generated
+    profiles: [service]
+    features: [frontend]
+  - path: internal/web/asset_test.go
+    mode: generated
+    profiles: [service]
+    features: [frontend]
+  - path: internal/web/embed_test.go
+    mode: generated
+    profiles: [service]
+    features: [frontend]
+
+  # The embedded bundle directory. The placeholder keeps it present so a fresh
+  # clone compiles before the frontend is built, and the release check refuses
+  # a binary that still carries it.
+  - path: internal/web/public/index.html
+    mode: seed
+    profiles: [service]
+    features: [frontend]
+
+  # The entry-asset reader. The build stamps its output into the binary, so
+  # /version reports which bundle the process serves.
+  - path: tools/assethash/main.go
+    mode: generated
+    profiles: [service]
+    features: [frontend]
+  - path: tools/assethash/main_test.go
+    mode: generated
+    profiles: [service]
+    features: [frontend]

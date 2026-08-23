@@ -1,0 +1,78 @@
+# Auth group: the identity boundary. The two interfaces, the principal, the
+# scope rule, the route policy and its guard, three reference implementations,
+# and the conformance suite every implementation runs.
+#
+# Every file is generated. The template owns the boundary: a consumer that
+# needs another identity source adds an Authenticator of its own beside these
+# rather than editing them, so a fix to the guard or to a reference
+# implementation keeps propagating.
+files:
+  # Interfaces, principal, denial vocabulary, and credential header reading.
+  - path: internal/auth/auth.go
+    mode: generated
+    profiles: [service]
+  - path: internal/auth/auth_test.go
+    mode: generated
+    profiles: [service]
+
+  # Scope grammar, containment, and the scope authorizer.
+  - path: internal/auth/scope.go
+    mode: generated
+    profiles: [service]
+  - path: internal/auth/scope_test.go
+    mode: generated
+    profiles: [service]
+
+  # Route policy, the guard middleware, and the route table the deny by
+  # default test enumerates.
+  - path: internal/auth/policy.go
+    mode: generated
+    profiles: [service]
+  - path: internal/auth/policy_test.go
+    mode: generated
+    profiles: [service]
+
+  # Reference implementation: signed bearer tokens.
+  - path: internal/auth/bearer.go
+    mode: generated
+    profiles: [service]
+  - path: internal/auth/bearer_test.go
+    mode: generated
+    profiles: [service]
+
+  # Reference implementation: static service keys.
+  - path: internal/auth/statickey.go
+    mode: generated
+    profiles: [service]
+  - path: internal/auth/statickey_test.go
+    mode: generated
+    profiles: [service]
+
+  # Reference implementation: anonymous callers on public routes.
+  - path: internal/auth/anonymous.go
+    mode: generated
+    profiles: [service]
+  - path: internal/auth/anonymous_test.go
+    mode: generated
+    profiles: [service]
+
+  # The gates: no identity provider client in the module, and no variable time
+  # comparison of secret material.
+  - path: internal/auth/deps_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/auth/secretcompare_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/auth/testdata/secretcompare/compare.go
+    mode: generated
+    profiles: [service]
+
+  # The conformance suite, and the suite's own test that a broken
+  # implementation fails it.
+  - path: internal/auth/authtest/conformance.go
+    mode: generated
+    profiles: [service]
+  - path: internal/auth/authtest/conformance_test.go
+    mode: generated
+    profiles: [service]

@@ -1,0 +1,62 @@
+# Config group: the typed configuration struct, the four-level loader, the
+# redacting secret type, and the generator behind the example environment file.
+#
+# The loader, the secret type, and the example generator are generated: the
+# template owns the precedence order, the redaction rules, and the shape of the
+# example file, and a repository that edits one of them loses the guarantee the
+# next release depends on.
+#
+# The struct itself is seed. Every service adds fields of its own on the first
+# day, and a drift-checked struct would make that an error. Its validation and
+# its log rendering live in the same file because both move with the fields. A
+# field whose type the loader does not support is reported by the loader at
+# start-up and by the example generator, not by the compiler.
+files:
+  # The configuration type, with the rules and the log rendering that follow
+  # its fields.
+  - path: internal/config/config.go
+    mode: seed
+    profiles: [service]
+  - path: internal/config/config_test.go
+    mode: seed
+    profiles: [service]
+
+  # The loader and the secret type.
+  - path: internal/config/load.go
+    mode: generated
+    profiles: [service]
+  - path: internal/config/load_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/config/secret.go
+    mode: generated
+    profiles: [service]
+  - path: internal/config/secret_test.go
+    mode: generated
+    profiles: [service]
+
+  # The example environment file and the command that writes it.
+  - path: internal/config/envexample.go
+    mode: generated
+    profiles: [service]
+  - path: internal/config/envexample_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/config/cmd/envexample/main.go
+    mode: generated
+    profiles: [service]
+  - path: internal/config/cmd/envexample/main_test.go
+    mode: generated
+    profiles: [service]
+
+  # Make targets for the example environment file.
+  - path: make/config.mk
+    mode: generated
+    profiles: [service]
+
+  # The committed environment reference. It is generated from the configuration
+  # struct, so a new setting reaches the file that documents it in the same
+  # change; the staleness gate proves the committed copy is current.
+  - path: .env.example
+    mode: generated
+    profiles: [service]

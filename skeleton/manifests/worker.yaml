@@ -1,0 +1,94 @@
+# Worker group: the background work runtime. The job interface, the execution
+# modes, the lock that keeps a scheduled job to one execution per interval, the
+# retry budget, the queue consumer shape, and the telemetry work with no request
+# behind it emits.
+#
+# Every file is gated on the background feature, because a service that runs no
+# background work has no reason to carry a job runtime.
+#
+# Every file is generated. The single-execution rule, the acknowledgement order,
+# and the attempt budget are the guarantees the template makes about work with
+# no client waiting on it, so a local edit to them is drift rather than a
+# consumer choice. A consumer supplies its own Locker and Queue implementations
+# from its own packages instead of editing this one.
+files:
+  # The job interface, the execution results, and the terminal failure.
+  - path: internal/worker/worker.go
+    mode: generated
+    profiles: [service]
+    features: [background]
+
+  # The clock the schedule, the lease, and the shutdown window read.
+  - path: internal/worker/clock.go
+    mode: generated
+    profiles: [service]
+    features: [background]
+
+  # The lock interface and its in-process implementation.
+  - path: internal/worker/lock.go
+    mode: generated
+    profiles: [service]
+    features: [background]
+
+  # Bounded exponential backoff with jitter.
+  - path: internal/worker/backoff.go
+    mode: generated
+    profiles: [service]
+    features: [background]
+
+  # The runner: registration, execution modes on one process, locking, retry,
+  # and the shutdown window.
+  - path: internal/worker/runner.go
+    mode: generated
+    profiles: [service]
+    features: [background]
+
+  # The queue and message interfaces, the consumer, and the in-process queue.
+  - path: internal/worker/queue.go
+    mode: generated
+    profiles: [service]
+    features: [background]
+
+  # The execution modes the binary selects by flag.
+  - path: internal/worker/mode.go
+    mode: generated
+    profiles: [service]
+    features: [background]
+
+  # Spans and metrics for work with no request behind it.
+  - path: internal/worker/telemetry.go
+    mode: generated
+    profiles: [service]
+    features: [background]
+
+  # The gates: one execution across replicas, release by lease expiry,
+  # acknowledgement after completion, the attempt budget, and the rising time
+  # since last success.
+  - path: internal/worker/clock_test.go
+    mode: generated
+    profiles: [service]
+    features: [background]
+  - path: internal/worker/lock_test.go
+    mode: generated
+    profiles: [service]
+    features: [background]
+  - path: internal/worker/backoff_test.go
+    mode: generated
+    profiles: [service]
+    features: [background]
+  - path: internal/worker/runner_test.go
+    mode: generated
+    profiles: [service]
+    features: [background]
+  - path: internal/worker/queue_test.go
+    mode: generated
+    profiles: [service]
+    features: [background]
+  - path: internal/worker/mode_test.go
+    mode: generated
+    profiles: [service]
+    features: [background]
+  - path: internal/worker/telemetry_test.go
+    mode: generated
+    profiles: [service]
+    features: [background]

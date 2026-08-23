@@ -1,0 +1,197 @@
+# Release group: the two build files, the deployment manifests, the live smoke
+# executable, the release tooling the pipeline calls, and the dependency update
+# policy.
+#
+# The build files and the release tooling are generated: the template owns the
+# image contract, the tag gate, the rollout rules, and the evidence format, and
+# a repository that edits them silently leaves the guarantees behind.
+#
+# The deploy tree and the smoke checks are seed. A consumer owns its
+# deployment manifests and its live smoke assertions; the template writes a
+# working starting point once, and tools/release check keeps the parts the
+# pipeline depends on honest without rewriting the file.
+files:
+  # The two build paths. They share the runtime base and the runtime stage
+  # verbatim, and tools/release check asserts they still do.
+  - path: Dockerfile
+    mode: generated
+    profiles: [service]
+  - path: Dockerfile.ci
+    mode: generated
+    profiles: [service]
+
+  # Deployment manifests. The base carries the workload; one overlay per
+  # target; the bootstrap directory holds what the pipeline must never apply.
+  - path: deploy/base/kustomization.yaml
+    mode: seed
+    profiles: [service]
+  - path: deploy/base/deployment.yaml
+    mode: seed
+    profiles: [service]
+  - path: deploy/base/service.yaml
+    mode: seed
+    profiles: [service]
+  - path: deploy/base/serviceaccount.yaml
+    mode: seed
+    profiles: [service]
+  - path: deploy/base/poddisruptionbudget.yaml
+    mode: seed
+    profiles: [service]
+  - path: deploy/production/kustomization.yaml
+    mode: seed
+    profiles: [service]
+  - path: deploy/production/patch.yaml
+    mode: seed
+    profiles: [service]
+  - path: deploy/preproduction/kustomization.yaml
+    mode: seed
+    profiles: [service]
+  - path: deploy/preproduction/patch.yaml
+    mode: seed
+    profiles: [service]
+  - path: deploy/bootstrap/namespace.yaml
+    mode: seed
+    profiles: [service]
+  - path: deploy/bootstrap/README.md
+    mode: seed
+    profiles: [service]
+
+  # The declared secret set. It is seed because the trust policy names the
+  # consumer's own repository.
+  - path: deploy/pipeline-secrets.yaml
+    mode: seed
+    profiles: [service]
+
+  # The live smoke executable. Its assertions file is seed, because the
+  # endpoints worth smoking are the consumer's.
+  - path: tools/smoke/main.go
+    mode: generated
+    profiles: [service]
+  - path: tools/smoke/config.go
+    mode: generated
+    profiles: [service]
+  - path: tools/smoke/assert.go
+    mode: generated
+    profiles: [service]
+  - path: tools/smoke/assertions.go
+    mode: generated
+    profiles: [service]
+  - path: tools/smoke/checks.go
+    mode: generated
+    profiles: [service]
+  - path: tools/smoke/evidence.go
+    mode: generated
+    profiles: [service]
+  - path: tools/smoke/config_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/smoke/assertions_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/smoke/checks_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/smoke/evidence_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/smoke/checks.yaml
+    mode: seed
+    profiles: [service]
+
+  # The release tooling. Every decision the pipeline makes lives here, so each
+  # one is covered by a test that can fail.
+  - path: tools/release/main.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/exec.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/git.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/version.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/gate.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/tag.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/preflight.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/rollout.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/kustomize.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/deploy.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/evidence.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/dockerfile.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/pins.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/secrets.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/helper_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/marshal_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/exec_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/git_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/version_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/gate_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/tag_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/preflight_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/rollout_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/kustomize_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/deploy_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/evidence_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/dockerfile_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/pins_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/secrets_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/release/main_test.go
+    mode: generated
+    profiles: [service]
+
+  # Dependency update policy. Groups keep the request count reviewable, and
+  # every action reference stays pinned by digest.
+  - path: .github/dependabot.yml
+    mode: generated

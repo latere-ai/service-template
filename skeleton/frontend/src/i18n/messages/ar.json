@@ -1,0 +1,28 @@
+{
+  "locale": "ar",
+  "identical": ["app.name", "footer.copyright"],
+  "messages": {
+    "app.name": "Service",
+    "nav.home": "الرئيسية",
+    "nav.docs": "التوثيق",
+    "nav.pricing": "الأسعار",
+    "nav.dashboard": "لوحة التحكم",
+    "home.title": "خدمة تبدأ مكتملة",
+    "home.body": "الإعداد والمراقبة وفحوص السلامة وخط البناء جاهزة بالفعل.",
+    "docs.title": "التوثيق",
+    "docs.body": "كل فحص يجريه هذا المستودع موصوف هنا.",
+    "pricing.title": "الأسعار",
+    "pricing.body": "خطة واحدة تُحاسب شهريًا.",
+    "dashboard.title": "لوحة التحكم",
+    "dashboard.body": "العمل بعد تسجيل الدخول يجري هنا.",
+    "notifications.count": {
+      "zero": "لا إشعارات",
+      "one": "إشعار واحد",
+      "two": "إشعاران",
+      "few": "{count} إشعارات",
+      "many": "{count} إشعارًا",
+      "other": "{count} إشعار"
+    },
+    "footer.copyright": "{year} {name}"
+  }
+}

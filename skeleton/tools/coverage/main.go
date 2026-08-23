@@ -10,9 +10,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -136,7 +140,7 @@ func currentModule() (string, error) {
 // relative to the repository root. A package with no test file is absent from
 // a coverage profile, so the list is what makes that absence visible.
 func modulePackages(module string) ([]string, error) {
-	out, err := exec.Command("go", "list", "-json=ImportPath,GoFiles", "./...").Output()
+	out, err := exec.Command("go", "list", "-json=ImportPath,Dir,GoFiles", "./...").Output()
 	if err != nil {
 		return nil, fmt.Errorf("list the module packages: %w", err)
 	}
@@ -145,6 +149,7 @@ func modulePackages(module string) ([]string, error) {
 	for dec.More() {
 		var pkg struct {
 			ImportPath string
+			Dir        string
 			GoFiles    []string
 		}
 		if err := dec.Decode(&pkg); err != nil {
@@ -153,8 +158,39 @@ func modulePackages(module string) ([]string, error) {
 		if len(pkg.GoFiles) == 0 {
 			continue
 		}
+		executable, err := hasStatements(pkg.Dir, pkg.GoFiles)
+		if err != nil {
+			return nil, err
+		}
+		if !executable {
+			continue
+		}
 		paths = append(paths, relativeTo(module, pkg.ImportPath))
 	}
 	sort.Strings(paths)
 	return paths, nil
+}
+
+// hasStatements reports whether a package declares a function with a body.
+//
+// A package that declares none produces no coverage data no matter how it is
+// tested, because the tool instruments statements and the package holds none.
+// Reporting it as unmeasured would be a finding no test can clear, and a gate
+// that cannot be cleared is one people learn to ignore.
+func hasStatements(dir string, files []string) (bool, error) {
+	fset := token.NewFileSet()
+	for _, name := range files {
+		path := filepath.Join(dir, name)
+		file, err := parser.ParseFile(fset, path, nil, parser.SkipObjectResolution)
+		if err != nil {
+			return false, fmt.Errorf("read %s: %w", path, err)
+		}
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if ok && fn.Body != nil && len(fn.Body.List) > 0 {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }

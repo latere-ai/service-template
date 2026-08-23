@@ -24,6 +24,37 @@ files:
     mode: seed
     profiles: [service]
 
+  # Feature wiring. Each file assigns the seam the entry point calls, so the
+  # entry point never names a package a repository did not select and compiles
+  # whatever subset of the features is on.
+  - path: cmd/service/startup_test.go
+    mode: seed
+    profiles: [service]
+  - path: cmd/service/database.go
+    mode: seed
+    profiles: [service]
+    features: [database]
+  - path: cmd/service/database_test.go
+    mode: seed
+    profiles: [service]
+    features: [database]
+  - path: cmd/service/frontend.go
+    mode: seed
+    profiles: [service]
+    features: [frontend]
+  - path: cmd/service/frontend_test.go
+    mode: seed
+    profiles: [service]
+    features: [frontend]
+  - path: cmd/service/background.go
+    mode: seed
+    profiles: [service]
+    features: [background]
+  - path: cmd/service/background_test.go
+    mode: seed
+    profiles: [service]
+    features: [background]
+
   # Build metadata compiled into the binary.
   - path: internal/version/version.go
     mode: generated

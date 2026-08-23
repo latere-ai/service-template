@@ -1,0 +1,50 @@
+# The local dependency stack.
+#
+# Every image is pinned by digest as well as by tag. The tag says which version
+# a reader is running; the digest says which bytes, so a rebuild six months from
+# now is the same stack. The versions match the ones the deployed environment
+# runs, because a version difference between local and deployed produces defects
+# that reproduce nowhere.
+#
+# The project name namespaces the containers, the network, and the volumes, so
+# two checkouts of different services run at the same time. Host ports are
+# derived from the project name for the same reason. `make dev` sets both.
+#
+# This file is generated. To add a service of your own, write
+# `compose.override.yml` beside it, which the container engine merges
+# automatically and which nothing here overwrites.
+
+name: ${DEV_PROJECT:-service}
+
+services:
+  postgres:
+    image: postgres:17.6-alpine@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
+    environment:
+      POSTGRES_USER: ${DEV_DB_USER:-service}
+      POSTGRES_PASSWORD: ${DEV_DB_PASSWORD:-service}
+      POSTGRES_DB: ${DEV_DB_NAME:-service}
+      # A local stack keeps no data worth a slow commit, and the faster
+      # settings make a test run that creates and drops schemas usable.
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    command:
+      - postgres
+      - -c
+      - fsync=off
+      - -c
+      - synchronous_commit=off
+      - -c
+      - full_page_writes=off
+    ports:
+      - "${DEV_DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # The stack is ready when the database answers, not when the container
+      # starts, so `make dev` can wait for a fact instead of for a duration.
+      test: ["CMD-SHELL", "pg_isready -U ${DEV_DB_USER:-service} -d ${DEV_DB_NAME:-service}"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  postgres-data:

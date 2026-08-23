@@ -1,0 +1,16 @@
+# Path ownership.
+#
+# The pipeline and the template pin carry owners, so the gates cannot be
+# changed by the same review that changes the code they guard. Replace the
+# placeholder with the team or the accounts that maintain this repository; the
+# settings tool checks that every path below has an owner, not who it is.
+
+* @OWNER
+
+# The pipeline, the settings declaration, and the ownership file itself.
+/.github/ @OWNER
+
+# The template pin and the generated file lock. Changing either moves every
+# generated file in the repository.
+/.template.yaml @OWNER
+/template.lock @OWNER

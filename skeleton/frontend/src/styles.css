@@ -1,0 +1,49 @@
+/* Layout uses logical properties only. A physical property names a side of
+   the viewport, which is the correct side in one writing direction and the
+   wrong side in the other, so a right-to-left locale would need a second
+   stylesheet. The test suite refuses one. */
+
+:root {
+  --space: 1rem;
+  --measure: 42rem;
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  line-height: 1.6;
+}
+
+body {
+  margin: 0;
+}
+
+.layout {
+  max-inline-size: var(--measure);
+  margin-inline: auto;
+  padding-inline: var(--space);
+  padding-block: calc(var(--space) * 2);
+}
+
+.nav {
+  display: flex;
+  gap: var(--space);
+  padding-block-end: var(--space);
+  border-block-end: 1px solid currentColor;
+}
+
+.nav a {
+  text-decoration: none;
+}
+
+.nav a[aria-current="page"] {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.content {
+  padding-block: calc(var(--space) * 2);
+}
+
+.footer {
+  padding-block-start: var(--space);
+  border-block-start: 1px solid currentColor;
+  font-size: 0.875rem;
+}

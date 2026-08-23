@@ -1,0 +1,9 @@
+{
+  "locale": "en",
+  "identical": [],
+  "messages": {
+    "app.name": "Nova",
+    "greeting.hello": "Hello {name}",
+    "only.in.base": "Only here"
+  }
+}

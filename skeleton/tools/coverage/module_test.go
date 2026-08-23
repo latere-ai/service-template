@@ -166,3 +166,38 @@ func TestRunSurfacesAnOutputError(t *testing.T) {
 		t.Fatalf("error = %v, want the report write to be named", err)
 	}
 }
+
+// A package that declares no function with a body cannot appear in a coverage
+// profile, so listing it as unmeasured produces a finding no test can clear.
+// The dependency-pinning package in the skeleton is exactly that shape.
+func TestPackagesWithoutStatementsAreNotListed(t *testing.T) {
+	dir := t.TempDir()
+	imports := filepath.Join(dir, "imports.go")
+	if err := os.WriteFile(imports, []byte("package deps\n\nimport _ \"fmt\"\n"), 0o644); err != nil {
+		t.Fatalf("write the fixture: %v", err)
+	}
+	code := filepath.Join(dir, "code.go")
+	if err := os.WriteFile(code, []byte("package deps\n\nfunc used() int { return 1 }\n"), 0o644); err != nil {
+		t.Fatalf("write the fixture: %v", err)
+	}
+
+	only, err := hasStatements(dir, []string{"imports.go"})
+	if err != nil {
+		t.Fatalf("hasStatements: %v", err)
+	}
+	if only {
+		t.Error("a package of blank imports was reported as measurable")
+	}
+
+	both, err := hasStatements(dir, []string{"imports.go", "code.go"})
+	if err != nil {
+		t.Fatalf("hasStatements: %v", err)
+	}
+	if !both {
+		t.Error("a package that declares a function body was reported as unmeasurable")
+	}
+
+	if _, err := hasStatements(dir, []string{"absent.go"}); err == nil {
+		t.Error("a missing file was read without an error")
+	}
+}

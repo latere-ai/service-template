@@ -1,0 +1,51 @@
+# Observability group: the trace, metric, and log providers, the sampling
+# policy, the dependency check metric, and the log bridge that puts trace
+# identifiers on every record emitted inside a request.
+#
+# The request chain is not here. One request middleware owns the server span
+# and the request instruments, and it lives in internal/httpx with the rest of
+# the stage order.
+#
+# Every file is generated. The template owns the telemetry shape, because the
+# value of a shared span name, a shared metric name, and a working log-to-trace
+# link comes from every service agreeing on them. A consumer that needs a
+# different span attribute adds it at the call site, not by editing this
+# package.
+files:
+  - path: internal/observability/observability.go
+    mode: generated
+    profiles: [service]
+  - path: internal/observability/resource.go
+    mode: generated
+    profiles: [service]
+  - path: internal/observability/sampler.go
+    mode: generated
+    profiles: [service]
+  - path: internal/observability/metrics.go
+    mode: generated
+    profiles: [service]
+  - path: internal/observability/logging.go
+    mode: generated
+    profiles: [service]
+
+  # The tests are shipped with the package. They are the evidence that the
+  # correlation and the route labelling still hold in the consumer repository,
+  # where the package is compiled against a different module path.
+  - path: internal/observability/observability_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/observability/resource_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/observability/sampler_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/observability/logbridge_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/observability/harness_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/observability/logging_test.go
+    mode: generated
+    profiles: [service]

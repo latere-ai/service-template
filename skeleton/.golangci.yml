@@ -76,6 +76,7 @@ linters:
           # reaching it.
           allow:
             - log/slog
+            - math/rand/v2
           deny:
             - pkg: io/ioutil
               desc: deprecated; use io and os
@@ -128,6 +129,11 @@ linters:
 
   exclusions:
     generated: lax
+    # The frontend dependency tree is inside the module directory, so the Go
+    # tool walks it. The Go files a JavaScript package happens to carry are
+    # not this repository's code and are not this repository's to fix.
+    paths:
+      - (^|/)node_modules/
     # The request-path rule is written once and anchored to the directories
     # the layout spec fixes, so the same expression holds in every consumer
     # and the rule cannot be weakened by moving code.
@@ -135,6 +141,13 @@ linters:
       - linters:
           - sloglint
         path-except: (^|/)internal/(auth|handler|httpx|server|web)/
+
+# A gate reports every finding it has. The tool truncates repeated findings by
+# default, which turns a list of twenty into a list of three and hides the rest
+# until the first three are fixed.
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
 
 formatters:
   enable:

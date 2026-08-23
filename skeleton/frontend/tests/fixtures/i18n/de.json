@@ -1,0 +1,9 @@
+{
+  "locale": "de",
+  "identical": [],
+  "messages": {
+    "app.name": "Nova",
+    "greeting.hello": "Hallo {vorname}",
+    "extra.key": "Zusätzlich"
+  }
+}

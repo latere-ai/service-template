@@ -1,0 +1,104 @@
+{
+  "comment": "Shared negotiation vectors. Both halves of the repository run these, so the interface and the server side cannot resolve the same request differently.",
+  "cases": [
+    {
+      "name": "explicit preference wins over every other source",
+      "preference": "de",
+      "cookie": "ar",
+      "acceptLanguage": "en-US,en;q=0.9",
+      "supported": ["en", "de", "ar"],
+      "defaultLocale": "en",
+      "expect": "de"
+    },
+    {
+      "name": "cookie wins when no explicit preference is given",
+      "preference": null,
+      "cookie": "ar",
+      "acceptLanguage": "en-US,en;q=0.9",
+      "supported": ["en", "de", "ar"],
+      "defaultLocale": "en",
+      "expect": "ar"
+    },
+    {
+      "name": "the header decides when preference and cookie are absent",
+      "preference": null,
+      "cookie": null,
+      "acceptLanguage": "de-AT,de;q=0.9,en;q=0.5",
+      "supported": ["en", "de", "ar"],
+      "defaultLocale": "en",
+      "expect": "de"
+    },
+    {
+      "name": "quality order beats header order",
+      "preference": null,
+      "cookie": null,
+      "acceptLanguage": "en;q=0.3,ar;q=0.8",
+      "supported": ["en", "de", "ar"],
+      "defaultLocale": "en",
+      "expect": "ar"
+    },
+    {
+      "name": "a refused language is skipped",
+      "preference": null,
+      "cookie": null,
+      "acceptLanguage": "ar;q=0,de",
+      "supported": ["en", "de", "ar"],
+      "defaultLocale": "en",
+      "expect": "de"
+    },
+    {
+      "name": "the default locale answers when nothing matches",
+      "preference": null,
+      "cookie": null,
+      "acceptLanguage": null,
+      "supported": ["en", "de", "ar"],
+      "defaultLocale": "en",
+      "expect": "en"
+    },
+    {
+      "name": "an unsupported preference falls through to the next source",
+      "preference": "fr",
+      "cookie": "de",
+      "acceptLanguage": null,
+      "supported": ["en", "de", "ar"],
+      "defaultLocale": "en",
+      "expect": "de"
+    },
+    {
+      "name": "an unsupported everything answers the default",
+      "preference": "fr",
+      "cookie": "es",
+      "acceptLanguage": "ja,ko;q=0.8",
+      "supported": ["en", "de", "ar"],
+      "defaultLocale": "en",
+      "expect": "en"
+    },
+    {
+      "name": "a region tag matches the language it belongs to",
+      "preference": "de-CH",
+      "cookie": null,
+      "acceptLanguage": null,
+      "supported": ["en", "de", "ar"],
+      "defaultLocale": "en",
+      "expect": "de"
+    },
+    {
+      "name": "case and underscore separators are normalized",
+      "preference": "AR_EG",
+      "cookie": null,
+      "acceptLanguage": null,
+      "supported": ["en", "de", "ar"],
+      "defaultLocale": "en",
+      "expect": "ar"
+    },
+    {
+      "name": "a wildcard is not a match",
+      "preference": null,
+      "cookie": null,
+      "acceptLanguage": "*",
+      "supported": ["en", "de", "ar"],
+      "defaultLocale": "en",
+      "expect": "en"
+    }
+  ]
+}

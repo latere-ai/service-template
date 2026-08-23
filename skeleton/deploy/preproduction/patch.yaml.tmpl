@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Name }}
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: {{ .Name }}
+          env:
+            - name: ENVIRONMENT
+              value: preproduction

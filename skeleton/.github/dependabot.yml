@@ -1,0 +1,104 @@
+# Dependency update policy.
+#
+# Grouping is what makes the automation survivable. One request that moves
+# twenty patch versions and passes the full verify pipeline is reviewable;
+# twenty requests are not. Every group is limited to version updates, so an
+# advisory-driven update still arrives on its own, immediately, outside the
+# weekly cadence.
+#
+# Majors are deliberately absent from every group. A major update therefore
+# arrives one per dependency and never automerges, because the change needs a
+# human to read it.
+version: 2
+
+updates:
+  # Go modules.
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: deps
+    labels:
+      - dependencies
+      - go
+    groups:
+      go-minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # Frontend packages.
+  - package-ecosystem: npm
+    directory: "/frontend"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: deps
+    labels:
+      - dependencies
+      - frontend
+    groups:
+      frontend-minor-and-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # Workflow actions. Every reference is pinned by commit digest, not by tag,
+  # because a tag on an action repository can be moved by its owner and a
+  # tag-pinned action is a mutable dependency inside the build.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+    labels:
+      - dependencies
+      - actions
+    groups:
+      actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # Container base images. They are pinned by digest for the same reason the
+  # actions are, and they move on the same weekly cadence.
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "04:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+    labels:
+      - dependencies
+      - container
+    groups:
+      base-images:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch

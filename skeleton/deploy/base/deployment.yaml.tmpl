@@ -1,0 +1,108 @@
+# The workload and its main container both carry the service name. The release
+# pipeline sets the image by that name, so no target needs a per-repository
+# mapping between a manifest and a registry reference.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Name }}
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  # A rollout that never drops below the desired count keeps the endpoint list
+  # full while the new replicas start.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  # A replica must stay ready for this long before it counts, so a pod that
+  # passes one probe and then crashes does not complete the rollout.
+  minReadySeconds: 10
+  # The pipeline waits on the rollout with its own timeout. This deadline is
+  # the server-side one and is set longer, so the pipeline reports the failure
+  # with its captured diagnostics rather than racing the controller.
+  progressDeadlineSeconds: 600
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Name }}
+    spec:
+      serviceAccountName: {{ .Name }}
+      automountServiceAccountToken: false
+      # The drain delay plus the grace period plus a margin. A shorter value
+      # than the service's own shutdown budget turns a graceful drain into a
+      # kill.
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: {{ .Name }}
+          # The overlay replaces this reference with a registry digest. The
+          # placeholder tag never resolves, so an overlay that forgets to set
+          # the image fails to pull instead of running an unknown build.
+          image: {{ .Name }}:unreleased
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: ADDR
+              value: ":8080"
+            - name: SERVICE_NAME
+              value: {{ .Name }}
+          # Liveness touches no dependency. A restart does not fix an
+          # unreachable database, and a restart loop makes the outage worse.
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          # Readiness reports every registered dependency, so a replica leaves
+          # the endpoint list when a dependency goes away.
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          # A slow first start is a start, not a failure. The startup probe
+          # holds the liveness clock until the process answers once.
+          startupProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 45
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          # The root filesystem is read only, so the temporary directory the
+          # standard library expects is supplied as a volume.
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

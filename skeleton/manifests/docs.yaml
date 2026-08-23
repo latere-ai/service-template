@@ -1,0 +1,160 @@
+# Docs group: the documentation set, the spec directory and its validator, the
+# generators that derive documents from the code, and the local development
+# environment.
+#
+# The documents are seed. Each one describes a service that the consumer
+# changes on the first day, and a drift-checked document would make writing
+# about your own service an error. Their accuracy is enforced by the check
+# targets instead: the derived documents are regenerated and compared, every
+# link is resolved, every diagram is rendered, and the published documents are
+# read for references a reader outside the team cannot resolve. A document that
+# a build cannot verify is a document that will be wrong.
+#
+# The tools, the make fragment, and the dependency stack are generated. They are
+# the mechanism behind those checks, and the pinned dependency versions are what
+# keeps a local run and a deployed run the same stack, so a local edit to them is
+# drift rather than a consumer choice. A consumer adds services of its own in
+# compose.override.yml, which the container engine merges and nothing here
+# overwrites.
+files:
+  # The documentation set. One audience per file.
+  - path: README.md
+    mode: seed
+  - path: CONTRIBUTING.md
+    mode: seed
+  - path: SECURITY.md
+    mode: seed
+  - path: docs/architecture.md
+    mode: seed
+    profiles: [service]
+  - path: docs/operations.md
+    mode: seed
+    profiles: [service]
+
+  # Derived from the code by "make docs". They are seed because they describe
+  # the consumer's own configuration struct and routes, and current because
+  # "make docs-check" regenerates and compares them.
+  - path: docs/configuration.md
+    mode: seed
+    profiles: [service]
+  - path: docs/api.md
+    mode: seed
+    profiles: [service]
+
+  # The spec directory: the example that carries the format, and the generated
+  # index.
+  - path: specs/001-service-baseline.md
+    mode: seed
+    profiles: [service, library]
+  - path: specs/README.md
+    mode: seed
+    profiles: [service, library]
+
+  # The spec validator: required frontmatter, the allowed statuses, dependency
+  # resolution across the archive, cycles, dispatch readiness, the Outcome rule,
+  # and the index.
+  - path: tools/speccheck/main.go
+    mode: generated
+    profiles: [service, library]
+  - path: tools/speccheck/spec.go
+    mode: generated
+    profiles: [service, library]
+  - path: tools/speccheck/validate.go
+    mode: generated
+    profiles: [service, library]
+  - path: tools/speccheck/index.go
+    mode: generated
+    profiles: [service, library]
+  - path: tools/speccheck/main_test.go
+    mode: generated
+    profiles: [service, library]
+  - path: tools/speccheck/validate_test.go
+    mode: generated
+    profiles: [service, library]
+  - path: tools/speccheck/index_test.go
+    mode: generated
+    profiles: [service, library]
+  - path: tools/speccheck/parse_test.go
+    mode: generated
+    profiles: [service, library]
+
+  # The document generator and the checks around it: derivation from the
+  # configuration struct and from the route table, links, diagrams, published
+  # references, and the dependency image pins.
+  - path: tools/docgen/main.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/doc.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/configdoc.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/apidoc.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/markdown.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/links.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/diagrams.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/refs.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/compose.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/main_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/doc_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/configdoc_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/apidoc_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/links_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/diagrams_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/refs_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/compose_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/devenv_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/quickstart_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/render_test.go
+    mode: generated
+    profiles: [service]
+  # The tiers that need an external dependency: a container engine for the
+  # stack, and the mermaid command line for the render.
+  - path: tools/docgen/render_diagram_test.go
+    mode: generated
+    profiles: [service]
+  - path: tools/docgen/stack_test.go
+    mode: generated
+    profiles: [service]
+
+  # The local environment: the pinned dependency stack with its deterministic
+  # seed data, and the targets that reach a serving stack in one command.
+  - path: docker-compose.yml
+    mode: generated
+    profiles: [service]
+  - path: make/dev.mk
+    mode: generated
+    profiles: [service]

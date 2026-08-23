@@ -1,0 +1,57 @@
+# Settings group: the repository configuration that makes the pipeline
+# binding, the ownership file, the tracked suppressions, and the command that
+# applies them.
+#
+# The declaration and the make targets are generated, because a repository that
+# quietly relaxes its own protection rule is the failure this group exists to
+# prevent. CODEOWNERS and the suppression file are seed: the template decides
+# which paths need an owner and how a suppression is written, the repository
+# decides who its owners are and what it suppresses.
+files:
+  # The workflow callers. They are the consumer's whole pipeline: each one
+  # calls the reusable workflow that holds the jobs, so a change to the
+  # pipeline reaches every repository without a file change here. The job id
+  # in the verify caller is the name of the required status check, which is
+  # why the caller is generated rather than seed.
+  - path: .github/workflows/verify.yml
+    mode: generated
+  - path: .github/workflows/settings.yml
+    mode: generated
+
+  # The declared settings and the ownership they require.
+  - path: .github/settings.yml
+    mode: generated
+  - path: .github/CODEOWNERS
+    mode: seed
+
+  # Tracked scanner suppressions. The verify pipeline fails on an expired
+  # entry and on an inline suppression with no entry here.
+  - path: .github/suppressions.yml
+    mode: seed
+
+  # The command that applies the declaration, reports drift, and checks that
+  # the gate is a required status check.
+  - path: tools/settings/main.go
+    mode: generated
+  - path: tools/settings/declaration.go
+    mode: generated
+  - path: tools/settings/github.go
+    mode: generated
+  - path: tools/settings/plan.go
+    mode: generated
+  - path: tools/settings/apply.go
+    mode: generated
+  - path: tools/settings/codeowners.go
+    mode: generated
+  - path: tools/settings/settings_test.go
+    mode: generated
+  - path: tools/settings/codeowners_test.go
+    mode: generated
+  - path: tools/settings/declaration_test.go
+    mode: generated
+  - path: tools/settings/failure_test.go
+    mode: generated
+
+  # Make targets.
+  - path: make/settings.mk
+    mode: generated

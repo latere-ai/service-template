@@ -1,0 +1,413 @@
+# Frontend group: the Bun, React, TypeScript, Vite, and Vitest project, the
+# build-time prerender that gives every public route a complete document, and
+# the message catalogs both halves of the repository read.
+#
+# Modes follow the contract. package.json and bun.lock are seed for the reason
+# core.yaml states for go.mod and go.sum: a repository adds a dependency on the
+# first day, and a drift-checked manifest would make that an error. Route
+# components, the route manifest, the message catalogs, the stylesheet, and the
+# entry point are seed, because they are the content a repository replaces. The
+# tests that assert that content are seed with it. Everything the template owns
+# the meaning of, which is the configuration, the libraries under src/lib, the
+# gates, and the fixtures that prove the gates still fail, is generated.
+#
+# Every entry is gated on the frontend feature. The project is one build with
+# one type check and one test run, and its scripts reference every part of it,
+# so the file set is selected by that one flag.
+files:
+  # Project configuration. The lint, format, and TypeScript configuration is
+  # generated and drift-checked for the same reason the Go lint configuration
+  # is: a rule added upstream has to reach every repository.
+  - path: frontend/package.json
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/bun.lock
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tsconfig.json
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/vite.config.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/eslint.config.js
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/.prettierrc.json
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/.prettierignore
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  # The first of the two defences against a compiled twin. It is merged
+  # because a repository owns its own ignores outside the managed region.
+  - path: frontend/.gitignore
+    mode: merged
+    profiles: [service, frontend-only]
+    features: [frontend]
+  # The document the bundler starts from. It carries the two slots the
+  # prerender writes into and the container the browser attaches to, so its
+  # structure is the template's.
+  - path: frontend/index.html
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+
+  # Make fragment.
+  - path: make/frontend.mk
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+
+  # Application entry point, tree, and presentation. Seed: this is the surface
+  # a repository replaces with its own.
+  - path: frontend/src/main.tsx
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/app.tsx
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/styles.css
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/components/layout.tsx
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/components/link.tsx
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+
+  # The route manifest and the routes it holds. The manifest is the one
+  # declaration of which routes a crawler may see, and it is content, so a
+  # repository owns it.
+  - path: frontend/src/routes/manifest.ts
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/routes/home.tsx
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/routes/docs.tsx
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/routes/pricing.tsx
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/routes/dashboard.tsx
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/routes/not-found.tsx
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+
+  # The render entry point and the libraries behind it. Logic lives here so it
+  # is testable without a render, and the template owns what these mean.
+  - path: frontend/src/entry-server.tsx
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/lib/routes.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/lib/metadata.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/lib/structured-data.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/lib/sitemap.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/lib/mount.tsx
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/lib/format.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+
+  # Internationalization. The mechanism is generated; the catalogs are the
+  # content a repository writes.
+  - path: frontend/src/i18n/locales.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/i18n/catalog.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/i18n/completeness.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/i18n/negotiate.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/i18n/provider.tsx
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  # The negotiation vectors. Both halves of the repository run them, which is
+  # what keeps one request from resolving to two different locales.
+  - path: frontend/src/i18n/negotiation-cases.json
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/i18n/messages/en.json
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/i18n/messages/de.json
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/src/i18n/messages/ar.json
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+
+  # The prerender step: the document assembly, the step itself, and the
+  # command the build runs.
+  - path: frontend/prerender/document.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/prerender/run.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/prerender/prerender.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+
+  # The gates: the compiled-twin scan, the completeness gate, the catalog
+  # reader they share, and the coverage threshold reader.
+  - path: frontend/tools/twins.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tools/check-twins.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tools/catalogs.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tools/check-i18n.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tools/threshold.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+
+  # Static assets copied verbatim into the bundle.
+  - path: frontend/public/favicon.svg
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/public/social-card.png
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+
+  # Test setup and the helper that runs a gate as a program.
+  - path: frontend/tests/setup.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/run.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+
+  # Tests of the template's own behaviour. Generated, so a repository that
+  # edits one is reported rather than silently losing the check.
+  - path: frontend/tests/gates.test.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/gitignore.test.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/threshold.test.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/twins.test.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/format.test.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/metadata.test.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/structured-data.test.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/prerender-document.test.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/i18n-completeness.test.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/i18n-negotiate.test.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+
+  # Tests of the shipped content. Seed, because a repository that replaces the
+  # routes and the catalogs replaces these with them.
+  - path: frontend/tests/app.test.tsx
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/build.test.ts
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/catalogs.test.ts
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/entry-server.test.tsx
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/i18n-catalog.test.ts
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/i18n-direction.test.tsx
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/mount.test.tsx
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/prerender-run.test.ts
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/routes.test.ts
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/sitemap.test.ts
+    mode: seed
+    profiles: [service, frontend-only]
+    features: [frontend]
+
+  # Fixtures. A gate that cannot fail proves nothing, so each one is run
+  # against a tree that breaks it.
+  - path: frontend/tests/fixtures/coverage/vitest.config.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/coverage/sample.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/coverage/sample.test.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/i18n/en.json
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/i18n/de.json
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/strict/tsconfig.json
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/strict/strict-null.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/strict/no-unchecked-index.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/strict/exact-optional.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/strict/implicit-override.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/strict/allow-js.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/strict/helper.js
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/twins/src/a.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/twins/src/a.js
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/twins/src/clean.ts
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/twins/src/standalone.js
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/twins/src/nested/b.tsx
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/twins/src/nested/b.js
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]
+  - path: frontend/tests/fixtures/twins/src/nested/b.js.map
+    mode: generated
+    profiles: [service, frontend-only]
+    features: [frontend]

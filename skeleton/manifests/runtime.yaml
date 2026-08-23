@@ -1,0 +1,36 @@
+# Runtime group: the component run group, the health and build-identity
+# endpoints, and the shutdown sequence.
+#
+# Every file is generated. The runtime contract is what the deploy pipeline,
+# the orchestrator probes, and the release evidence all depend on, so a local
+# edit to it is drift rather than a consumer choice. A service that needs a
+# different lifecycle registers components and readiness checks from its own
+# code instead of editing this package.
+files:
+  - path: internal/server/server.go
+    mode: generated
+    profiles: [service]
+  - path: internal/server/probes.go
+    mode: generated
+    profiles: [service]
+  - path: internal/server/signal.go
+    mode: generated
+    profiles: [service]
+  - path: internal/server/config.go
+    mode: generated
+    profiles: [service]
+  - path: internal/server/server_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/server/probes_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/server/signal_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/server/config_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/server/harness_test.go
+    mode: generated
+    profiles: [service]

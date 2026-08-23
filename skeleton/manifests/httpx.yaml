@@ -1,0 +1,90 @@
+# HTTP surface group: the middleware chain in its fixed order, the problem
+# details error envelope with its single writer, and the API version helpers.
+#
+# Every file is generated. The order of the chain and the shape of the error
+# body are contracts a client parses and an operator relies on, so a local
+# edit is drift rather than customization. A service extends the surface by
+# adding stages of its own around the shared chain, and by returning its own
+# problem values to the one writer.
+files:
+  # The chain: stage names, the documented order, and the assembly helpers.
+  - path: internal/httpx/chain.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/chain_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/ordering_test.go
+    mode: generated
+    profiles: [service]
+
+  # The error envelope and the only writer that renders one.
+  - path: internal/httpx/problem.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/problem_test.go
+    mode: generated
+    profiles: [service]
+
+  # Request state: the identifier and the resolved route pattern that every
+  # log record, span, metric, and error body is joined by.
+  - path: internal/httpx/context.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/requestid.go
+    mode: generated
+    profiles: [service]
+
+  # The stages, outermost first.
+  - path: internal/httpx/recover.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/trace.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/accesslog.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/metrics.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/timeout.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/bodylimit.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/cors.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/ratelimit.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/middleware_test.go
+    mode: generated
+    profiles: [service]
+
+  # The response writer the status and size reporting stages share.
+  - path: internal/httpx/responsewriter.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/writer_test.go
+    mode: generated
+    profiles: [service]
+
+  # Telemetry assertions: the span name and the metric labels follow the route
+  # pattern rather than the request path.
+  - path: internal/httpx/telemetry_test.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/testlog_test.go
+    mode: generated
+    profiles: [service]
+
+  # API versioning: the path prefix and the deprecation announcement.
+  - path: internal/httpx/versioning.go
+    mode: generated
+    profiles: [service]
+  - path: internal/httpx/versioning_test.go
+    mode: generated
+    profiles: [service]

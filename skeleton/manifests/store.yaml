@@ -1,0 +1,112 @@
+# Store group: the connection pool, the migration runner, and the migration
+# files. Every entry needs the database feature, so a service without one
+# carries none of it.
+#
+# The runner, the compatibility check, and the apply command are generated: the
+# template owns the tracking format, the lock discipline, and the rolling
+# deploy rule, and a repository that edits one of them loses the guarantee the
+# next release depends on.
+#
+# The migration files are seed. The schema is the consumer's, and the first
+# migration is an example to replace. An applied migration is immutable in
+# either case, because the tracking table records its digest.
+files:
+  # The pool and the query entry points.
+  - path: internal/store/store.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+  - path: internal/store/store_test.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+
+  # Reading the migration directory.
+  - path: internal/store/migration.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+  - path: internal/store/migration_test.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+
+  # The apply algorithm and the PostgreSQL adapter behind it.
+  - path: internal/store/migrate.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+  - path: internal/store/migrate_test.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+  - path: internal/store/pgxmigrate.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+
+  # The rolling deploy rule and the DDL reader it needs.
+  - path: internal/store/compat.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+  - path: internal/store/compat_test.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+  - path: internal/store/sqlparse.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+  - path: internal/store/sqlparse_test.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+
+  # The gate that keeps migrations out of the serving process, with the
+  # fixture that proves it fails.
+  - path: internal/store/serving_test.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+  - path: internal/store/testdata/serving/main.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+
+  # The integration tier. It fails rather than skips when the database is
+  # unreachable and CI declares the tier required.
+  - path: internal/store/integration_test.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+
+  # The apply command. It is the only caller of the runner.
+  - path: internal/store/cmd/migrate/main.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+  - path: internal/store/cmd/migrate/main_test.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+  - path: internal/store/cmd/migrate/integration_test.go
+    mode: generated
+    profiles: [service]
+    features: [database]
+
+  # The example schema, replaced by the consumer.
+  - path: migrations/0001_create_users.up.sql
+    mode: seed
+    profiles: [service]
+    features: [database]
+  - path: migrations/0001_create_users.down.sql
+    mode: seed
+    profiles: [service]
+    features: [database]
+
+  # Make targets.
+  - path: make/store.mk
+    mode: generated
+    profiles: [service]
+    features: [database]
