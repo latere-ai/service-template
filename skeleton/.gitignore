@@ -1,0 +1,26 @@
+# Repository-specific ignores go outside the managed region below.
+
+# >>> template: managed region, do not edit <<<
+# Build output. The build target writes here and the image build copies from it.
+/out/
+
+# Coverage and profiling artifacts.
+*.cover.out
+*.prof
+*.test
+
+# Local environment. Configuration reaches the process through the environment,
+# so a local override file must never be committed.
+.env
+.env.*
+!.env.example
+
+# Editor and operating system noise.
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Frontend dependency and build trees.
+node_modules/
+# >>> template: end managed region <<<

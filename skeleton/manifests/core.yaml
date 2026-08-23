@@ -1,0 +1,114 @@
+# Core group: the Go module baseline, the build entry point, formatting and
+# lint configuration, the pre-commit hook, the shared test helpers, and the
+# coverage gate.
+#
+# Modes follow the contract. go.mod and go.sum are seed because a consumer adds
+# its own requirements on the first day, and a drift-checked module file would
+# make that an error. The Makefile and .gitignore are merged because a consumer
+# owns targets and ignores outside the managed region. Everything the template
+# defines the content of is generated.
+files:
+  # Module baseline.
+  - path: go.mod
+    mode: seed
+    profiles: [service, library]
+  - path: go.sum
+    mode: seed
+    profiles: [service, library]
+
+  # Build entry point. The generator renames the directory to the service name.
+  - path: cmd/service/main.go
+    mode: seed
+    profiles: [service]
+  - path: cmd/service/main_test.go
+    mode: seed
+    profiles: [service]
+
+  # Build metadata compiled into the binary.
+  - path: internal/version/version.go
+    mode: generated
+    profiles: [service]
+  - path: internal/version/version_test.go
+    mode: generated
+    profiles: [service]
+
+  # The dependency set the runtime packages import. It holds blank imports only
+  # and is removed once every dependency has a real caller.
+  - path: internal/deps/deps.go
+    mode: seed
+    profiles: [service]
+
+  # Make entry point and the core fragment.
+  - path: Makefile
+    mode: merged
+  - path: make/core.mk
+    mode: generated
+    profiles: [service, library]
+
+  # Formatting, hooks, and ignores.
+  - path: .githooks/pre-commit
+    mode: generated
+  - path: .gitignore
+    mode: merged
+
+  # Lint baseline.
+  - path: .golangci.yml
+    mode: generated
+    profiles: [service, library]
+
+  # Shared test helpers: the required-versus-optional dependency rule, and the
+  # gates that prove the hook and the lint configuration still enforce what
+  # they claim.
+  - path: internal/testsupport/dependency.go
+    mode: generated
+    profiles: [service, library]
+  - path: internal/testsupport/dependency_test.go
+    mode: generated
+    profiles: [service, library]
+  - path: internal/testsupport/githooks_test.go
+    mode: generated
+    profiles: [service, library]
+  - path: internal/testsupport/lintconfig_test.go
+    mode: generated
+    profiles: [service, library]
+  - path: internal/testsupport/testdata/lint/go.mod
+    mode: generated
+    profiles: [service, library]
+  - path: internal/testsupport/testdata/lint/internal/handler/handler.go
+    mode: generated
+    profiles: [service, library]
+  - path: internal/testsupport/testdata/lint/internal/store/store.go
+    mode: generated
+    profiles: [service, library]
+  - path: internal/testsupport/racegate_test.go
+    mode: generated
+    profiles: [service, library]
+  - path: internal/testsupport/testdata/race/go.mod
+    mode: generated
+    profiles: [service, library]
+  - path: internal/testsupport/testdata/race/race_test.go
+    mode: generated
+    profiles: [service, library]
+
+  # Coverage gate.
+  - path: tools/coverage/main.go
+    mode: generated
+    profiles: [service, library]
+  - path: tools/coverage/flags.go
+    mode: generated
+    profiles: [service, library]
+  - path: tools/coverage/gate.go
+    mode: generated
+    profiles: [service, library]
+  - path: tools/coverage/profile.go
+    mode: generated
+    profiles: [service, library]
+  - path: tools/coverage/main_test.go
+    mode: generated
+    profiles: [service, library]
+  - path: tools/coverage/gate_test.go
+    mode: generated
+    profiles: [service, library]
+  - path: tools/coverage/module_test.go
+    mode: generated
+    profiles: [service, library]
