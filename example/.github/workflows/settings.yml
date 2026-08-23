@@ -1,0 +1,21 @@
+# The caller a consumer commits at .github/workflows/settings.yml. The weekly
+# run reports drift; applying is a deliberate act, so it is dispatched.
+name: settings
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [report, apply]
+        default: report
+permissions:
+  contents: read
+jobs:
+  settings:
+    uses: latere-ai/service-template/.github/workflows/settings.yml@v1
+    with:
+      mode: ${{ inputs.mode || 'report' }}
+    secrets:
+      settings-token: ${{ secrets.SETTINGS_TOKEN }}

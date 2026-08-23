@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Pre-commit checks. Fast and mechanical only.
+#
+# The hook checks staged content, not the working tree, so a partially staged
+# file is judged by what the commit would actually contain.
+#
+# It deliberately runs no linter binary. golangci-lint takes a module-wide
+# lock, so a hook that ran it would block a parallel build, and a hook that
+# blocks a build gets disabled. Semantic checks belong in CI, where make lint
+# and make vet run the same rules on the same tree.
+#
+# Install with: make hooks
+
+set -uo pipefail
+
+fail=0
+
+note() { printf '%s\n' "$*" >&2; }
+
+# Staged paths that exist after the commit. A deleted file has nothing to check.
+staged=()
+while IFS= read -r -d '' path; do
+	staged+=("$path")
+done < <(git diff --cached --name-only --diff-filter=ACM -z)
+
+if [ ${#staged[@]} -eq 0 ]; then
+	exit 0
+fi
+
+# 1. gofmt over staged Go content.
+#
+# gofmt reads the staged blob rather than the file on disk, and prints
+# "<standard input>" for a match, so the hook names the real path itself.
+gofmt_bad=()
+go_dirs=()
+for path in "${staged[@]}"; do
+	case "$path" in
+	*.go) ;;
+	*) continue ;;
+	esac
+	case "$path" in
+	*/testdata/* | testdata/*) continue ;;
+	esac
+
+	output=$(git show ":$path" | gofmt -l 2>&1)
+	status=$?
+	if [ $status -ne 0 ] || [ -n "$output" ]; then
+		gofmt_bad+=("$path")
+	fi
+
+	dir=$(dirname "$path")
+	found=0
+	for seen in ${go_dirs[@]+"${go_dirs[@]}"}; do
+		[ "$seen" = "$dir" ] && found=1 && break
+	done
+	[ $found -eq 0 ] && go_dirs+=("$dir")
+done
+
+if [ ${#gofmt_bad[@]} -gt 0 ]; then
+	note "gofmt: these staged files are not formatted:"
+	for path in "${gofmt_bad[@]}"; do
+		note "  $path"
+	done
+	note "run: make fmt && git add ${gofmt_bad[*]}"
+	fail=1
+fi
+
+# 2. go fix over the staged packages, reporting only.
+#
+# Some fixers emit rewrites that do not compile, and some apply partially and
+# re-propose on the next run, so the hook prints the patch and fails rather
+# than editing the tree. The developer applies the change and re-stages.
+# Only the packages that hold staged files are analyzed, which keeps the hook
+# fast on a large repository.
+if [ ${#go_dirs[@]} -gt 0 ]; then
+	packages=()
+	for dir in "${go_dirs[@]}"; do
+		packages+=("./$dir")
+	done
+	if ! diff=$(go fix -diff "${packages[@]}" 2>&1); then
+		note "go fix proposes rewrites in the staged packages:"
+		note "$diff"
+		note "apply them, then re-stage"
+		fail=1
+	fi
+fi
+
+# 3. Trailing whitespace and a missing final newline on staged text files.
+#
+# git grep -I skips binary content, and the numstat listing identifies the
+# binary paths the newline check must leave alone.
+if whitespace=$(git grep -I --cached -n -e '[[:blank:]]$' -- "${staged[@]}" 2>/dev/null); then
+	note "trailing whitespace in staged content:"
+	note "$whitespace"
+	fail=1
+fi
+
+binary=()
+while IFS=$'\t' read -r added _ path; do
+	[ "$added" = "-" ] && binary+=("$path")
+done < <(git diff --cached --numstat --diff-filter=ACM)
+
+for path in "${staged[@]}"; do
+	is_binary=0
+	for b in ${binary[@]+"${binary[@]}"}; do
+		[ "$b" = "$path" ] && is_binary=1 && break
+	done
+	[ $is_binary -eq 1 ] && continue
+
+	# Command substitution strips trailing newlines, so a file that ends with
+	# one leaves this empty. An empty file also leaves it empty and passes.
+	last=$(git show ":$path" | tail -c 1)
+	if [ -n "$last" ]; then
+		note "no final newline: $path"
+		fail=1
+	fi
+done
+
+if [ $fail -ne 0 ]; then
+	note ""
+	note "pre-commit failed. Fix the files above and stage them again."
+	note "To bypass once, commit with --no-verify; CI runs make fmt-check regardless."
+fi
+
+exit $fail

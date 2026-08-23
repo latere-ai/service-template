@@ -1,0 +1,12 @@
+# Namespaces are created once and are not part of a release. Creating a
+# namespace needs a broader grant than the rollout identity holds, and a
+# re-applied namespace with a changed label set can fight another controller.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reference-service-production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reference-service-preproduction

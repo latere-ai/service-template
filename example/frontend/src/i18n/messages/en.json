@@ -1,0 +1,24 @@
+{
+  "locale": "en",
+  "identical": [],
+  "messages": {
+    "app.name": "Service",
+    "nav.home": "Home",
+    "nav.docs": "Documentation",
+    "nav.pricing": "Pricing",
+    "nav.dashboard": "Dashboard",
+    "home.title": "A service that starts complete",
+    "home.body": "Configuration, observability, health, and a build pipeline are already wired.",
+    "docs.title": "Documentation",
+    "docs.body": "Every gate this repository runs is described here.",
+    "pricing.title": "Pricing",
+    "pricing.body": "One plan, billed per month.",
+    "dashboard.title": "Dashboard",
+    "dashboard.body": "Signed-in work happens here.",
+    "notifications.count": {
+      "one": "{count} notification",
+      "other": "{count} notifications"
+    },
+    "footer.copyright": "{year} {name}"
+  }
+}

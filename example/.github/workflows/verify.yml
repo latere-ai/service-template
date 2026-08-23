@@ -1,0 +1,15 @@
+# The caller a consumer commits at .github/workflows/verify.yml. The job id
+# decides the name of the required status check: this file makes the gate
+# report as "verify / gate", which is the context branch protection requires.
+name: verify
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+jobs:
+  verify:
+    uses: latere-ai/service-template/.github/workflows/verify.yml@v1

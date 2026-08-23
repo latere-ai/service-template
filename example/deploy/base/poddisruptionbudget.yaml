@@ -1,0 +1,12 @@
+# A voluntary disruption, such as a node drain, may never take the last ready
+# replica. Without this, a cluster upgrade and a rolling deploy together can
+# empty the endpoint list.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: reference-service
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: reference-service

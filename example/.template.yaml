@@ -1,0 +1,16 @@
+# The template declaration. Only "version" is rewritten by the generator.
+template: github.com/latere-ai/service-template
+version: v0.1.0
+module: github.com/example/reference-service
+name: reference-service
+profile: service
+features:
+  frontend: true
+  seo: true
+  i18n: true
+  database: true
+  background: true
+coverage:
+  threshold: 90
+  exclude: []
+waivers: []

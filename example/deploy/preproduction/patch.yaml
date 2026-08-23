@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reference-service
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: reference-service
+          env:
+            - name: ENVIRONMENT
+              value: preproduction

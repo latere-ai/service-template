@@ -1,0 +1,14 @@
+# Tracked suppressions for the scanners the verify pipeline runs.
+#
+# Each entry names what is silenced, the tool it silences, why, and the date
+# the silence ends. An entry past its expiry fails verify, so a suppression is
+# a decision that gets revisited rather than one that is inherited.
+#
+# An entry names either an advisory identifier, which the source repeats as
+# "suppression:<id>" when the finding has an inline comment, or a source path,
+# which covers the linter directives in that file. An inline suppression with
+# no entry here fails verify, because an inline-only silence is never read
+# again. Every value is a single line: the reader is a small parser, not a
+# YAML implementation.
+
+suppressions: []

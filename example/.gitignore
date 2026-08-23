@@ -1,0 +1,33 @@
+# Repository-specific ignores go outside the managed region below.
+
+# >>> template: managed region, do not edit <<<
+# Build output. The build target writes here and the image build copies from it.
+/out/
+
+# Coverage and profiling artifacts.
+*.cover.out
+*.prof
+*.test
+
+# Local environment. Configuration reaches the process through the environment,
+# so a local override file must never be committed.
+.env
+.env.*
+!.env.example
+
+# Editor and operating system noise.
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Frontend dependency and build trees.
+node_modules/
+
+# The embedded bundle. The frontend build copies its output here and the binary
+# embeds it, so the files are build output that happens to sit inside the Go
+# tree. The placeholder document is committed, because the embed pattern needs
+# the directory to exist.
+/internal/web/public/*
+!/internal/web/public/index.html
+# >>> template: end managed region <<<

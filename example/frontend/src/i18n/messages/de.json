@@ -1,0 +1,24 @@
+{
+  "locale": "de",
+  "identical": ["app.name", "footer.copyright"],
+  "messages": {
+    "app.name": "Service",
+    "nav.home": "Start",
+    "nav.docs": "Dokumentation",
+    "nav.pricing": "Preise",
+    "nav.dashboard": "Übersicht",
+    "home.title": "Ein Dienst, der vollständig beginnt",
+    "home.body": "Konfiguration, Observability, Health-Checks und eine Build-Pipeline sind bereits verdrahtet.",
+    "docs.title": "Dokumentation",
+    "docs.body": "Jede Prüfung, die dieses Repository ausführt, ist hier beschrieben.",
+    "pricing.title": "Preise",
+    "pricing.body": "Ein Tarif, monatlich abgerechnet.",
+    "dashboard.title": "Übersicht",
+    "dashboard.body": "Angemeldete Arbeit findet hier statt.",
+    "notifications.count": {
+      "one": "{count} Benachrichtigung",
+      "other": "{count} Benachrichtigungen"
+    },
+    "footer.copyright": "{year} {name}"
+  }
+}

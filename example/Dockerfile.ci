@@ -1,0 +1,42 @@
+# syntax=docker/dockerfile:1
+#
+# Release image. It packages the binary the verify run already compiled and
+# tested, so the bytes that passed the gate are the bytes that ship. Nothing
+# is compiled here.
+#
+# BINARY is the directory holding one prebuilt binary per platform, laid out
+# as <BINARY>/<os>-<arch>/app. It has no default, because a default would
+# silently package a stale file.
+#
+# The runtime base and the runtime stage below are the same text Dockerfile
+# carries, and tools/release asserts that. The two images differ only in how
+# the binary arrived.
+
+# >>> shared runtime base <<<
+# The base is pinned by digest, not by tag. A tag on a base repository can be
+# moved by its owner, which turns the base into a mutable input and makes the
+# provenance claim unprovable. Renovation of this line is a dependency update
+# like any other.
+ARG RUNTIME_BASE=gcr.io/distroless/static-debian12:nonroot@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab
+# >>> end shared runtime base <<<
+
+FROM ${RUNTIME_BASE} AS runtime
+
+ARG BINARY
+ARG TARGETOS
+ARG TARGETARCH
+COPY --chown=65532:65532 ${BINARY}/${TARGETOS}-${TARGETARCH}/app /app
+
+# >>> shared runtime stage <<<
+# The base is the static distroless image: a certificate bundle, a time zone
+# database, and passwd entries. There is no shell and no package manager, so
+# the most common post-compromise foothold is absent. Debugging happens
+# through an ephemeral debug container instead.
+#
+# 65532 is the nonroot user the base defines. It is written numerically
+# because a Kubernetes runAsNonRoot check cannot resolve a user name.
+USER 65532:65532
+WORKDIR /
+EXPOSE 8080
+ENTRYPOINT ["/app"]
+# >>> end shared runtime stage <<<

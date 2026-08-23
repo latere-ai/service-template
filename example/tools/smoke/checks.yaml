@@ -1,0 +1,12 @@
+# The consumer's own assertions against real endpoints. Each one names a path,
+# the status it requires, and an optional substring the body must hold. They
+# run against the live address after the rollout, alongside the readiness and
+# build-identity assertions the template always runs.
+#
+# Add the endpoints whose failure would mean the release is not serving. A
+# smoke run that only proves the process started proves very little.
+checks:
+  - name: liveness
+    path: /livez
+    status: 200
+    contains: '"status":"ok"'

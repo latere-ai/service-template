@@ -1,0 +1,16 @@
+# The base holds every resource the service needs in any target. It is not
+# applied directly; each target overlay names it and supplies the namespace,
+# the replica count, and the image.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - serviceaccount.yaml
+  - deployment.yaml
+  - service.yaml
+  - poddisruptionbudget.yaml
+
+labels:
+  - includeSelectors: true
+    pairs:
+      app.kubernetes.io/name: reference-service

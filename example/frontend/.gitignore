@@ -1,0 +1,18 @@
+# Repository-specific frontend ignores go outside the managed region below.
+
+# >>> template: managed region, do not edit <<<
+# Dependency and build trees.
+node_modules/
+dist/
+coverage/
+
+# Compiled twins. A .js beside its .ts source shadows it in module resolution,
+# so the test runner executes a stale build and reports a pass for code that is
+# not the code under review. The check target refuses a tree that holds one.
+src/**/*.js
+src/**/*.js.map
+
+# Vite caches.
+.vite/
+*.local
+# >>> template: end managed region <<<

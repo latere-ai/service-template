@@ -1,0 +1,57 @@
+# Repository settings as code.
+#
+# The verify pipeline calls its gate job the single required check, and a
+# required check is repository configuration rather than repository content. A
+# repository can hold every workflow in this template, wire the gate correctly,
+# and still merge a red branch, because nothing marked the check required. This
+# file is that declaration, and tools/settings applies it.
+#
+# The required context is "<caller job id> / gate". The caller commits its job
+# as "verify", so the context below and the job id in .github/workflows/verify.yml
+# are one decision: renaming the job unbinds the protection rule.
+repository:
+  default_branch: main
+  # Squash only, with the pull request title as the commit subject. The release
+  # version is derived from commit messages, so the merge method and the version
+  # derivation are one decision rather than two.
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: false
+  squash_merge_commit_title: PR_TITLE
+  squash_merge_commit_message: PR_BODY
+  delete_branch_on_merge: true
+  allow_auto_merge: true
+  allow_update_branch: true
+
+security:
+  # Advisories that appear after a release reach the repository through these,
+  # not through a person remembering to look.
+  vulnerability_alerts: true
+  secret_scanning: enabled
+  secret_scanning_push_protection: enabled
+
+protection:
+  branch: main
+  required_status_checks:
+    # The branch must carry the default branch's commits before it merges, so
+    # the result the gate reported is the result of the merged tree.
+    strict: true
+    contexts:
+      - verify / gate
+  required_pull_request_reviews:
+    required_approving_review_count: 1
+    dismiss_stale_reviews: true
+    require_code_owner_reviews: true
+  required_linear_history: true
+  required_conversation_resolution: true
+  allow_force_pushes: false
+  allow_deletions: false
+  enforce_admins: false
+
+codeowners:
+  # Paths that must have an owner. The pipeline and the template pin cannot be
+  # changed without an owner review, because a repository that can rewrite its
+  # own gates has none.
+  required_paths:
+    - /.github/
+    - /.template.yaml

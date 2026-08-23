@@ -1,0 +1,22 @@
+# The production target. Everything here is safe to re-apply, because the
+# release pipeline applies it on every release. A resource that cannot be
+# re-applied belongs in deploy/bootstrap/, which the pipeline never reads.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: reference-service-production
+
+resources:
+  - ../base
+
+patches:
+  - path: patch.yaml
+
+# The release pipeline rewrites this entry with the digest it built and
+# verified, so the applied manifest names an immutable image. The placeholder
+# below never resolves, which keeps an unconfigured target from starting an
+# unknown build.
+images:
+  - name: reference-service
+    newName: registry.invalid/reference-service
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
