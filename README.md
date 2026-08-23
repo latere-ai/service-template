@@ -17,8 +17,51 @@ layers, and each layer keeps working after day one:
 
 ## Status
 
-Design phase. The specs in [`specs/`](specs/README.md) define each aspect of
-the template, one aspect per spec. No implementation has landed yet.
+Implemented. The generator, the skeleton, the reusable pipelines, and a
+generated reference service are in the tree and build together.
+
+| Part | Where | State |
+| --- | --- | --- |
+| Generator and drift check | [`cmd/template/`](cmd/template), [`internal/generator/`](internal/generator) | `init`, `sync`, `check`, `upgrade`, `manifest` |
+| Skeleton | [`skeleton/`](skeleton) | 346 declared files; a compiling Go module with its own tests |
+| Reusable pipelines | [`.github/workflows/`](.github/workflows) | verify, release, deps, settings, all `workflow_call` |
+| Caller examples | [`examples/`](examples) | the thin files a consumer commits |
+| Reference service | [`example/`](example) | generated with every feature on, regenerated and diffed by `make example` |
+| Specs | [`specs/`](specs/README.md) | 30 design specs, one aspect per spec |
+
+The skeleton is a self-contained Go module under the module path
+`example.com/service`, so the shipped code compiles and its tests run in this
+repository's own CI. Generation rewrites the module path and the service name
+and renders the `.tmpl` files; it is a mechanical transform of code that was
+already verified.
+
+Run `make all` to build both modules, run both test suites, regenerate the
+reference service and diff it against the committed tree, and lint everything
+against the one `golangci-lint` configuration the skeleton ships.
+
+## Scaffolding a service
+
+```sh
+go run ./cmd/template init \
+  -C ../my-service \
+  -module github.com/acme/my-service \
+  -name my-service \
+  -profile service \
+  -features frontend,database
+```
+
+The command writes `.template.yaml`, every file the profile and the selected
+features declare, and `template.lock`. Afterwards, inside the new repository:
+
+- `template check` reports drift against the pinned version, with a distinct
+  exit code for a local edit and for being behind the template.
+- `template sync` rewrites the generated files to the pinned version.
+- `template upgrade` moves to a newer version and prints the diff.
+
+Features are additive and independent. A scaffold with no feature selected
+still builds and passes its own gates: the entry point reaches the store, the
+frontend, and the job runner through seams that only exist when the feature
+that owns them was selected.
 
 ## What a consumer service gets
 
@@ -83,21 +126,30 @@ one vendor.
 
 ## Repository layout
 
-Present today:
-
 ```
+cmd/template/        the generator and drift check
+internal/generator/  manifest loading, rendering, planning, drift verdicts
+internal/verifypipeline/  tests for the pipeline scripts and workflow structure
+skeleton/            the files a consumer materializes, as a compiling module
+  cmd/service/         the entry point, plus one wiring file per feature
+  internal/            config, observability, httpx, server, auth, store,
+                       worker, web, version, testsupport
+  frontend/            Bun, React, TypeScript, Vite, Vitest, prerender, i18n
+  tools/               coverage gate, docgen, speccheck, smoke, release, settings
+  deploy/              kustomize base and overlays
+  manifests/           one manifest fragment per content group
+  make/                make fragments the skeleton Makefile includes
+.github/workflows/   reusable pipelines consumers call
+examples/            the caller files a consumer commits
+example/             a generated reference service, regenerated and diffed in CI
+docs/contract.md     the normative template contract
 specs/               design specs, one aspect per spec
 ```
 
-Planned, each arriving with the spec that defines it:
-
-```
-.github/workflows/   reusable pipelines consumers call
-cmd/template/        the generator and drift check
-skeleton/            the files a consumer materializes
-example/             a generated reference service, kept working in CI
-docs/                the template contract and its reference documents
-```
+Every file under `skeleton/` is declared in exactly one fragment under
+`skeleton/manifests/` with its mode and its profile and feature gates. A file
+that no fragment declares fails `template manifest`, because a file the
+generator would silently drop is how a fix stops propagating.
 
 ## Contributing
 
