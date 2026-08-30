@@ -1,5 +1,5 @@
 ---
-title: Internationalization: message catalogs, completeness, and formatting
+title: "Internationalization: message catalogs, completeness, and formatting"
 status: drafted
 depends_on:
   - specs/013-frontend-baseline.md

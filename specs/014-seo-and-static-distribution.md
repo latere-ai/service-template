@@ -1,5 +1,5 @@
 ---
-title: SEO and static distribution: build-time prerender, metadata, and cache policy
+title: "SEO and static distribution: build-time prerender, metadata, and cache policy"
 status: drafted
 depends_on:
   - specs/013-frontend-baseline.md

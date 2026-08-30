@@ -1,5 +1,5 @@
 ---
-title: Frontend baseline: Bun, React, TypeScript, Vite, and Vitest
+title: "Frontend baseline: Bun, React, TypeScript, Vite, and Vitest"
 status: drafted
 depends_on:
   - specs/001-template-contract.md

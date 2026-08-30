@@ -1,5 +1,5 @@
 ---
-title: Profiles: what a service, a library, and a frontend-only repository generate
+title: "Profiles: what a service, a library, and a frontend-only repository generate"
 status: drafted
 depends_on:
   - specs/001-template-contract.md

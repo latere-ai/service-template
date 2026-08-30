@@ -22,7 +22,7 @@ func TestCommittedDiagramsRender(t *testing.T) {
 		t.Fatalf("collect the diagrams: %v", err)
 	}
 	for _, d := range diagrams {
-		if err := Render(renderer, d); err != nil {
+		if err := Render(t.Context(), renderer, d); err != nil {
 			t.Errorf("%s:%d does not render: %v", d.File, d.Line, err)
 		}
 	}
@@ -36,7 +36,7 @@ func TestTheRendererRejectsWhatMermaidCannotDraw(t *testing.T) {
 		File: "docs/broken.md", Line: 1,
 		Body: "sequenceDiagram\n  participant A\n  A->>: request",
 	}
-	if err := Render(renderer, broken); err == nil {
+	if err := Render(t.Context(), renderer, broken); err == nil {
 		t.Fatal("mermaid drew a diagram with a syntax error")
 	}
 }

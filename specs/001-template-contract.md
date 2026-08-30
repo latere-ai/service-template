@@ -1,5 +1,5 @@
 ---
-title: Template contract: layers, versioning, and the consumer agreement
+title: "Template contract: layers, versioning, and the consumer agreement"
 status: drafted
 depends_on: []
 affects: [README.md, docs/contract.md, .github/workflows/]

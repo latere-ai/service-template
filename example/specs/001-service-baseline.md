@@ -1,8 +1,8 @@
 ---
-title: Service baseline: the runtime, the surface, and the gates the service starts with
+title: "Service baseline: the runtime, the surface, and the gates the service starts with"
 status: complete
 depends_on: []
-affects: [cmd/, internal/, docs/]
+affects: ["cmd/", "internal/", "docs/"]
 created: 2026-01-01
 author: service-team
 trigger: the repository is created

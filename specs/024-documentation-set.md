@@ -1,5 +1,5 @@
 ---
-title: Documentation set: audience-separated docs and an accuracy check
+title: "Documentation set: audience-separated docs and an accuracy check"
 status: drafted
 depends_on:
   - specs/023-spec-driven-workflow.md

@@ -60,7 +60,7 @@ func Assets() fs.FS {
 func CheckRelease(fsys fs.FS) error {
 	shell, err := fs.ReadFile(fsys, ShellDocument)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrNoBundle, err)
+		return fmt.Errorf("%w: %w", ErrNoBundle, err)
 	}
 	if strings.Contains(string(shell), PlaceholderMarker) {
 		return fmt.Errorf("%w: %s carries the marker %q",
@@ -106,7 +106,7 @@ func hasHashedAsset(fsys fs.FS) (bool, error) {
 func EntryAsset(fsys fs.FS) (string, error) {
 	shell, err := fs.ReadFile(fsys, ShellDocument)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrNoBundle, err)
+		return "", fmt.Errorf("%w: %w", ErrNoBundle, err)
 	}
 	return ParseEntryAsset(shell)
 }

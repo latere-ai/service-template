@@ -1,5 +1,5 @@
 ---
-title: SPA serving and asset pinning: deep links, embedding, and build identity
+title: "SPA serving and asset pinning: deep links, embedding, and build identity"
 status: drafted
 depends_on:
   - specs/014-seo-and-static-distribution.md

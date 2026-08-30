@@ -10,7 +10,4 @@ features:
   i18n: true
   database: true
   background: true
-coverage:
-  threshold: 90
-  exclude: []
 waivers: []

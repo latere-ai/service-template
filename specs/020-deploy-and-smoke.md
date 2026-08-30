@@ -1,5 +1,5 @@
 ---
-title: Deploy and live smoke: rollout contract, health verification, and rollback
+title: "Deploy and live smoke: rollout contract, health verification, and rollback"
 status: drafted
 depends_on:
   - specs/008-service-runtime-contract.md

@@ -1,5 +1,5 @@
 ---
-title: Reference service: an end-to-end example that proves the whole template
+title: "Reference service: an end-to-end example that proves the whole template"
 status: drafted
 depends_on:
   - specs/022-generator-and-drift-check.md

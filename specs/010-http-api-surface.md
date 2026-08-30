@@ -1,5 +1,5 @@
 ---
-title: HTTP API surface: routing, middleware order, error envelope, and OpenAPI
+title: "HTTP API surface: routing, middleware order, error envelope, and OpenAPI"
 status: drafted
 depends_on:
   - specs/008-service-runtime-contract.md

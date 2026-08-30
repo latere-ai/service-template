@@ -1,5 +1,5 @@
 ---
-title: Configuration and secrets: typed config, precedence, and boot validation
+title: "Configuration and secrets: typed config, precedence, and boot validation"
 status: drafted
 depends_on:
   - specs/002-go-module-baseline.md

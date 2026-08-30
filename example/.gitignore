@@ -9,6 +9,12 @@
 *.prof
 *.test
 
+# The lint configuration is generated. golangci-lint cannot inherit a shared
+# config, so `make lint-config` renders it from the org's template on every
+# run. A committed copy would only make drift detectable; regenerating makes
+# it impossible, and the gate refuses to write over a tracked file.
+.golangci.yml
+
 # Local environment. Configuration reaches the process through the environment,
 # so a local override file must never be committed.
 .env

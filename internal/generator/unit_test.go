@@ -268,22 +268,22 @@ func TestLoadLockWithoutAFileIsEmpty(t *testing.T) {
 func TestParseConfigRejectsBadDeclarations(t *testing.T) {
 	base := "template: t\nversion: v1.0.0\nmodule: github.com/acme/widget\nname: widget\nprofile: service\n"
 	cases := map[string]string{
-		"bad version":            strings.Replace(base, "version: v1.0.0", "version: 1.0", 1),
-		"missing module":         strings.Replace(base, "module: github.com/acme/widget\n", "", 1),
-		"bad name":               strings.Replace(base, "name: widget", "name: Widget_1", 1),
-		"unknown profile":        strings.Replace(base, "profile: service", "profile: gateway", 1),
-		"unknown field":          base + "colour: red\n",
-		"unknown flag":           base + "features:\n  queue: true\n",
+		"bad version":     strings.Replace(base, "version: v1.0.0", "version: 1.0", 1),
+		"missing module":  strings.Replace(base, "module: github.com/acme/widget\n", "", 1),
+		"bad name":        strings.Replace(base, "name: widget", "name: Widget_1", 1),
+		"unknown profile": strings.Replace(base, "profile: service", "profile: gateway", 1),
+		"unknown field":   base + "colour: red\n",
+		"unknown flag":    base + "features:\n  queue: true\n",
 		// The coverage gate is configured in .lateregate.yaml now. A
 		// declaration still carrying the old block is rejected rather than
 		// ignored, so a repository cannot keep setting a threshold that
 		// nothing reads.
 		"coverage moved to .lateregate.yaml": base + "coverage:\n  threshold: 90\n",
-		"seo without frontend":   base + "features:\n  seo: true\n",
-		"waiver without reason":  base + "waivers:\n  - path: a\n    expires: 2026-01-01\n",
-		"waiver without expiry":  base + "waivers:\n  - path: a\n    reason: because\n",
-		"waiver bad expiry":      base + "waivers:\n  - path: a\n    reason: because\n    expires: soon\n",
-		"tab indentation":        base + "features:\n\tseo: true\n",
+		"seo without frontend":               base + "features:\n  seo: true\n",
+		"waiver without reason":              base + "waivers:\n  - path: a\n    expires: 2026-01-01\n",
+		"waiver without expiry":              base + "waivers:\n  - path: a\n    reason: because\n",
+		"waiver bad expiry":                  base + "waivers:\n  - path: a\n    reason: because\n    expires: soon\n",
+		"tab indentation":                    base + "features:\n\tseo: true\n",
 	}
 	for name, body := range cases {
 		t.Run(name, func(t *testing.T) {

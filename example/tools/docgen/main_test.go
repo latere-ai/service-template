@@ -10,7 +10,7 @@ import (
 func runCommand(t *testing.T, args ...string) (string, error) {
 	t.Helper()
 	var out, errOut strings.Builder
-	err := run(args, &out, &errOut)
+	err := run(t.Context(), args, &out, &errOut)
 	return out.String() + errOut.String(), err
 }
 

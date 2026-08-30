@@ -10,7 +10,7 @@
 
 PHONY_TARGETS += dev dev-up dev-wait dev-down dev-backend dev-frontend dev-seed \
                  dev-logs dev-ports dev-images \
-                 docs docs-check spec-index spec-check
+                 docs docs-check spec-check
 ALL_TARGETS += docs-check spec-check
 
 # The container engine. Docker is the default; another engine that speaks the
@@ -114,8 +114,6 @@ endef
 export DEV_SEED_SQL
 
 DOCGEN := ./tools/docgen
-SPECCHECK := ./tools/speccheck
-SPEC_DIR ?= specs
 DOCS_DIR ?= docs
 
 # One command from a clean clone to a serving stack: dependencies, migrations,
@@ -236,8 +234,9 @@ docs:
 docs-check:
 	@go run $(DOCGEN) check -root . -docs $(DOCS_DIR) -compose $(COMPOSE_FILE)
 
-spec-index:
-	@go run $(SPECCHECK) -dir $(SPEC_DIR) -write-index
-
+# The spec tree checks: frontmatter, the closed status vocabulary, stable
+# numbers, the sections each status has to carry, the dependency edges and the
+# ordering they state, and the index rows. The conventions are declared in
+# .lateregate.yaml rather than compiled into a tool this repository carries.
 spec-check:
-	@go run $(SPECCHECK) -dir $(SPEC_DIR)
+	@go tool lateregate spec-lint

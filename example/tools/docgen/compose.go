@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -83,13 +84,13 @@ func CheckImages(file, text string) []string {
 // reports every reference whose digest no longer matches. It reaches the
 // network, so it runs where the network is available rather than in every
 // build.
-func ResolveImages(file, text string, registry *Registry) []string {
+func ResolveImages(ctx context.Context, file, text string, registry *Registry) []string {
 	var problems []string
 	for _, img := range CollectImages(text) {
 		if img.Digest == "" {
 			continue
 		}
-		digest, err := registry.Digest(img.Repository, img.Tag)
+		digest, err := registry.Digest(ctx, img.Repository, img.Tag)
 		if err != nil {
 			problems = append(problems, fmt.Sprintf("%s:%d: %s: %v", file, img.Line, img.Reference, err))
 			continue
@@ -129,7 +130,7 @@ type Registry struct {
 }
 
 // Digest reports the digest a tag currently resolves to.
-func (r *Registry) Digest(repository, tag string) (string, error) {
+func (r *Registry) Digest(ctx context.Context, repository, tag string) (string, error) {
 	host, path := splitReference(repository)
 	base := r.BaseURL
 	if base == "" {
@@ -137,19 +138,19 @@ func (r *Registry) Digest(repository, tag string) (string, error) {
 	}
 	target := strings.TrimSuffix(base, "/") + "/v2/" + path + "/manifests/" + url.PathEscape(tag)
 
-	resp, err := r.request(target, "")
+	resp, err := r.request(ctx, target, "")
 	if err != nil {
 		return "", err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusUnauthorized {
-		token, err := r.token(resp.Header.Get("WWW-Authenticate"))
+		token, err := r.token(ctx, resp.Header.Get("WWW-Authenticate"))
 		if err != nil {
 			return "", err
 		}
 		_ = resp.Body.Close()
-		if resp, err = r.request(target, token); err != nil {
+		if resp, err = r.request(ctx, target, token); err != nil {
 			return "", err
 		}
 	}
@@ -164,8 +165,8 @@ func (r *Registry) Digest(repository, tag string) (string, error) {
 }
 
 // request sends one manifest request, with a bearer token when one is held.
-func (r *Registry) request(target, token string) (*http.Response, error) {
-	req, err := http.NewRequest(http.MethodHead, target, nil)
+func (r *Registry) request(ctx context.Context, target, token string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, target, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +179,7 @@ func (r *Registry) request(target, token string) (*http.Response, error) {
 
 // token completes the anonymous authentication a public registry asks for. The
 // challenge names the service that issues the token and the scope it covers.
-func (r *Registry) token(challenge string) (string, error) {
+func (r *Registry) token(ctx context.Context, challenge string) (string, error) {
 	params := challengeParams(challenge)
 	realm := params["realm"]
 	if realm == "" {
@@ -196,7 +197,11 @@ func (r *Registry) token(challenge string) (string, error) {
 	}
 	target.RawQuery = query.Encode()
 
-	resp, err := r.client().Get(target.String())
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target.String(), nil)
+	if err != nil {
+		return "", err
+	}
+	resp, err := r.client().Do(req)
 	if err != nil {
 		return "", err
 	}

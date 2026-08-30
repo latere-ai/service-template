@@ -1,5 +1,5 @@
 ---
-title: Background work runtime: scheduled jobs, queue consumers, and one-shot commands
+title: "Background work runtime: scheduled jobs, queue consumers, and one-shot commands"
 status: drafted
 depends_on:
   - specs/008-service-runtime-contract.md

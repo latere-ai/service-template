@@ -1,5 +1,5 @@
 ---
-title: Pipeline identity and secrets: federated credentials and least privilege
+title: "Pipeline identity and secrets: federated credentials and least privilege"
 status: drafted
 depends_on:
   - specs/017-container-image-and-supply-chain.md

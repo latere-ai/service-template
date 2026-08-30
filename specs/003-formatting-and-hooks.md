@@ -1,5 +1,5 @@
 ---
-title: Formatting and git hooks: gofmt, go fix, and the pre-commit contract
+title: "Formatting and git hooks: gofmt, go fix, and the pre-commit contract"
 status: drafted
 depends_on:
   - specs/002-go-module-baseline.md

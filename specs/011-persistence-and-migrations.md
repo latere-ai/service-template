@@ -1,5 +1,5 @@
 ---
-title: Persistence and migrations: schema versioning and a test database that must exist
+title: "Persistence and migrations: schema versioning and a test database that must exist"
 status: drafted
 depends_on:
   - specs/006-test-standards-and-coverage-gate.md

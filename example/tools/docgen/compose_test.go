@@ -102,13 +102,13 @@ func TestResolveReportsAStalePin(t *testing.T) {
 	registry := &Registry{Client: srv.Client(), BaseURL: srv.URL}
 
 	text := composeWith("postgres:17.6-alpine@sha256:" + pinnedDigest)
-	problems := ResolveImages("docker-compose.yml", text, registry)
+	problems := ResolveImages(t.Context(), "docker-compose.yml", text, registry)
 	if len(problems) != 1 || !strings.Contains(problems[0], current) {
 		t.Fatalf("a stale pin was not reported with the current digest: %v", problems)
 	}
 
 	text = composeWith("postgres:17.6-alpine@" + current)
-	if problems := ResolveImages("docker-compose.yml", text, registry); len(problems) != 0 {
+	if problems := ResolveImages(t.Context(), "docker-compose.yml", text, registry); len(problems) != 0 {
 		t.Fatalf("a current pin was reported: %v", problems)
 	}
 }
@@ -119,7 +119,7 @@ func TestResolveReportsARegistryFailure(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	problems := ResolveImages("docker-compose.yml",
+	problems := ResolveImages(t.Context(), "docker-compose.yml",
 		composeWith("postgres:17.6-alpine@sha256:"+pinnedDigest),
 		&Registry{Client: srv.Client(), BaseURL: srv.URL})
 	if len(problems) != 1 || !strings.Contains(problems[0], "answered 500") {

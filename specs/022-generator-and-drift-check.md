@@ -1,5 +1,5 @@
 ---
-title: Generator and drift check: materializing template files and proving they match
+title: "Generator and drift check: materializing template files and proving they match"
 status: drafted
 depends_on:
   - specs/001-template-contract.md

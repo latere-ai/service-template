@@ -1,5 +1,5 @@
 ---
-title: Dependency updates: grouped automation and an upgrade path for the template
+title: "Dependency updates: grouped automation and an upgrade path for the template"
 status: drafted
 depends_on:
   - specs/018-verify-pipeline.md

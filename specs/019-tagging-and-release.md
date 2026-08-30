@@ -1,5 +1,5 @@
 ---
-title: Tagging and release: version derivation, notes, and the evidence block
+title: "Tagging and release: version derivation, notes, and the evidence block"
 status: drafted
 depends_on:
   - specs/017-container-image-and-supply-chain.md

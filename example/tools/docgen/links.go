@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -63,7 +64,7 @@ func CollectLinks(root string) ([]Link, error) {
 // do not resolve. External links are checked only when external is true,
 // because a documentation gate that needs the network fails for reasons that
 // have nothing to do with the change under test.
-func CheckLinks(root string, external bool, client *http.Client) []string {
+func CheckLinks(ctx context.Context, root string, external bool, client *http.Client) []string {
 	links, err := CollectLinks(root)
 	if err != nil {
 		return []string{fmt.Sprintf("read the documents: %v", err)}
@@ -94,7 +95,7 @@ func CheckLinks(root string, external bool, client *http.Client) []string {
 			if !external {
 				continue
 			}
-			if err := reachable(client, target); err != nil {
+			if err := reachable(ctx, client, target); err != nil {
 				problems = append(problems, fmt.Sprintf("%s:%d: %s: %v", l.File, l.Line, target, err))
 			}
 			continue
@@ -127,12 +128,12 @@ func CheckLinks(root string, external bool, client *http.Client) []string {
 
 // reachable reports whether an external target answers. A HEAD that is refused
 // is retried as a GET, because some hosts answer only the second.
-func reachable(client *http.Client, target string) error {
+func reachable(ctx context.Context, client *http.Client, target string) error {
 	if client == nil {
 		client = &http.Client{Timeout: 10 * time.Second}
 	}
 	for _, method := range []string{http.MethodHead, http.MethodGet} {
-		req, err := http.NewRequest(method, target, nil)
+		req, err := http.NewRequestWithContext(ctx, method, target, nil)
 		if err != nil {
 			return err
 		}

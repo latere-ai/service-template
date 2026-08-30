@@ -1,5 +1,5 @@
 ---
-title: Container image and supply chain: reproducible build, SBOM, provenance, signature
+title: "Container image and supply chain: reproducible build, SBOM, provenance, signature"
 status: drafted
 depends_on:
   - specs/002-go-module-baseline.md

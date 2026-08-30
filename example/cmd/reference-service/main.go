@@ -420,6 +420,12 @@ func observedCheck(name string, fn func(context.Context) error) func(context.Con
 
 // jobComponent adapts the job runner to the component lifecycle: it starts on
 // its own goroutine and the stop waits for it to return.
+//
+// The job's context is the component's own, not the one Start is called with.
+// A job outlives the call that started it, so binding it to that call's
+// context would cancel the work the moment start-up finished.
+//
+//nolint:contextcheck // the job's lifetime is the component's, not the Start call's
 func jobComponent(work func(context.Context) error) server.Component {
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
@@ -452,13 +458,23 @@ func runNamedJob(ctx context.Context, a *assembly, name string) error {
 			return err
 		}
 	}
+	// Stopping deliberately does not take ctx: by the time this runs, ctx is
+	// usually the reason the job ended, and a component asked to shut down
+	// with an already-cancelled context has no time to do it.
+	//nolint:contextcheck // shutdown must not inherit the cancellation that triggered it
 	defer stopComponents(a.components)
 	return a.runJob(ctx, name)
 }
 
 // stopComponents stops every started component in reverse registration order.
+//
+// The stop context is a fresh one rather than the caller's. Shutdown outlives
+// whatever ended the run: a component handed the already-cancelled context
+// would be asked to shut down with no time to do it, which is the opposite of
+// a graceful stop.
 func stopComponents(components []server.Component) {
 	for _, c := range slices.Backward(components) {
+		//nolint:contextcheck // shutdown must not inherit the cancellation that triggered it
 		if err := c.Stop(context.Background()); err != nil {
 			slog.Error("component stop", "component", c.Name, "error", err)
 		}

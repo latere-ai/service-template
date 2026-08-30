@@ -20,21 +20,16 @@ EXAMPLE_PROFILE := service
 EXAMPLE_FEATURES := frontend,seo,i18n,database,background
 EXAMPLE_VERSION := v0.1.0
 
-# One lint configuration for both modules. The skeleton ships it to consumers,
-# and the template holding a second copy is how the two drift apart.
-LINT_CONFIG := $(CURDIR)/$(SKELETON)/.golangci.yml
+# Both modules render their lint configuration from the shared template in
+# latere.ai/x/ci-gate rather than committing one. golangci-lint cannot inherit
+# a config, so the only way two modules cannot drift is for neither to hold a
+# copy.
 
-# Files gofmt owns. The generated reference service is excluded: it is output,
-# and formatting it here would make it differ from what the generator writes.
-# The frontend dependency tree is excluded because the Go files a JavaScript
-# package carries are not this repository's to fix.
-GO_FILES = $(shell find . -type f -name '*.go' \
-	-not -path './$(EXAMPLE)/*' -not -path '*/node_modules/*' -not -path './*/testdata/*')
-
-.PHONY: all build test lint fmt fmt-check skeleton-test cover example example-update clean
+.PHONY: all build test lint lint-config lint-modernize fmt fmt-check \
+        skeleton-test skeleton-lint spec-check cover example example-update clean
 
 # A bare make runs every gate that needs no network and no container engine.
-all: fmt-check build test skeleton-test example lint
+all: fmt-check lint-modernize build test skeleton-test spec-check example lint
 
 build:
 	go build ./...
@@ -59,22 +54,35 @@ skeleton-test:
 cover:
 	cd $(SKELETON) && $(MAKE) cover
 
-lint:
+# Each module renders its own .golangci.yml from the shared template. Both are
+# gitignored, so the copy on disk is always what the template says.
+lint-config:
+	@go tool lateregate golangci
+	@cd $(SKELETON) && go tool lateregate golangci
+
+lint: lint-config
 	$(call require_tool,golangci-lint,go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest)
-	golangci-lint run --config $(LINT_CONFIG) ./...
+	golangci-lint run ./...
 	cd $(SKELETON) && golangci-lint run ./...
 
-fmt:
-	gofmt -w -l $(GO_FILES)
+lint-modernize:
+	@go tool lateregate modernize
+	@cd $(SKELETON) && go tool lateregate modernize
 
+fmt:
+	gofmt -w .
+
+# The file list comes from git, so the committed reference service under
+# example/ is checked as the tracked output it is, and a nested checkout
+# parked inside the tree contributes nothing.
 fmt-check:
-	@unformatted=$$(gofmt -l $(GO_FILES)); \
-	if [ -n "$$unformatted" ]; then \
-		echo "these files are not gofmt clean, run make fmt:"; \
-		echo "$$unformatted" | sed 's/^/  /'; \
-		exit 1; \
-	fi
-	@echo "gofmt: clean"
+	@go tool lateregate fmt-check
+	@cd $(SKELETON) && go tool lateregate fmt-check
+
+# Both spec trees, held to the conventions each module declares.
+spec-check:
+	@go tool lateregate spec-lint
+	@cd $(SKELETON) && go tool lateregate spec-lint
 
 # The reference service is a generated artifact that is committed, so the
 # committed tree and a fresh generation must be identical. A difference means

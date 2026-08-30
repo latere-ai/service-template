@@ -34,10 +34,10 @@ files:
     digest: sha256:520b7fd6effc6159606674554ac4d961b479cba7132fec871a2cea8367df4ca9
   - path: .gitignore
     mode: merged
-    digest: sha256:e8488b535dcef4f00622068d69b305d6068fed7b90dd8b05493c6a562c23fdf1
-  - path: .golangci.yml
+    digest: sha256:da5b8fb48770ef19202dec916aae077103445e04e8e42577c67477303c40dd7e
+  - path: .lateregate.yaml
     mode: generated
-    digest: sha256:77cd1218db43ec6f485343dbd16bfd5661e31ebc1ecc6c90ec0a0eaa20f28e7a
+    digest: sha256:93c1ba9774447d40fe4286a5ac2af73509647e72027f01daaacc809257a0db9a
   - path: CONTRIBUTING.md
     mode: seed
     digest: sha256:bd5c0fc468b14a13d0faa0971a87d928f4f904f4c25b847054fda1c26b79aa22
@@ -76,7 +76,7 @@ files:
     digest: sha256:dd87111ed634aee6707a81fe9cbaa1c05b32f2dc24a52c98d565a7d6bb3f64c7
   - path: cmd/reference-service/main.go
     mode: seed
-    digest: sha256:66bc6bfc7ecf2034248822bc7a268396bdc0fe60b9d10da220767197914d06fc
+    digest: sha256:f35d9c0738e1cc0c5b05dd7ceaa597de829ba3d446e2c126c4b729afc1466128
   - path: cmd/reference-service/main_test.go
     mode: seed
     digest: sha256:91c529d1f8d912edb13790d67fc6049a431fdf7935130991493d7b3d6f136e05
@@ -400,10 +400,10 @@ files:
     digest: sha256:e40ee4c8ecf1846f1425fa60ed29c597df1cd9859cc9f848400b889b3b0c2798
   - path: go.mod
     mode: seed
-    digest: sha256:bc8c22541d2ff7da5f4cb6aabbaaed7646ee7983bb4582d703ee1b7863e65c0c
+    digest: sha256:978e37eccc0bee48485ed4e7ac4848bd4d7d6e2e5c9dfc8816abff5e40775046
   - path: go.sum
     mode: seed
-    digest: sha256:3bf54fb34eaf1d9e2530f852132bda7b32a7ae912247849de945346654e71893
+    digest: sha256:1ca4f4ff461178c5ed00398c752d5beab83528b5feba600a33ed070c3ea822e1
   - path: internal/auth/anonymous.go
     mode: generated
     digest: sha256:6611fdb0a37cd87530e634a36cc0e7e377bd6058ce4982481b2817211aef3548
@@ -418,7 +418,7 @@ files:
     digest: sha256:c63e59e2245babdeccea93d34b8ef345d8afa87086327da7a6888deb81169648
   - path: internal/auth/authtest/conformance.go
     mode: generated
-    digest: sha256:c9d5e3c77400f347fec78bcc07bacca04a84672111ab08e40df33469efd1a2a5
+    digest: sha256:fabd525d5a9eaba4ad39156d7869c6ea5fff8d034880a87ee5f35e03daec44d5
   - path: internal/auth/authtest/conformance_test.go
     mode: generated
     digest: sha256:211578a1ee7fed528cbb73104b047729b8a32e4a1b279898232c8e3a2a75d1d8
@@ -430,7 +430,7 @@ files:
     digest: sha256:19371651681f64fe862fe348b95452c4e2432b97a7eb7978a766ced2d70d0b7d
   - path: internal/auth/deps_test.go
     mode: generated
-    digest: sha256:36f4ce733bbaed48ed083f4ca09528d62efe302da072a4d220364d3305c256b5
+    digest: sha256:a71c52d9a481e72986508c8035a17f20050d9c436fb371291bfb37bd497555dc
   - path: internal/auth/policy.go
     mode: generated
     digest: sha256:5a785331c29152ef1adba0d38f12fd718e4b495469fa8f80d375c34996a484e4
@@ -499,7 +499,7 @@ files:
     digest: sha256:7d5a7d3e7a6ee53ccb8d8f41c2204588c81bca275bde5b4c2cc73db7ee79a4f6
   - path: internal/httpx/chain_test.go
     mode: generated
-    digest: sha256:6b629d77fec58f93639ed2f81cc5929e9a550ba5d7f123e152d0e55999471614
+    digest: sha256:fd2bd2555c185bcb973849769f12ce1406c361ba4c1c2fb90a39d9749511adb1
   - path: internal/httpx/context.go
     mode: generated
     digest: sha256:e5c4ddd683dd63de5f667a23ce42a76fbe15efc2b6f859e24191509b04c78050
@@ -511,7 +511,7 @@ files:
     digest: sha256:c1a4f67d1d1c704f9f8b48c363ad9c34e11f0ac9191b2d656c1f7a582790fe7a
   - path: internal/httpx/middleware_test.go
     mode: generated
-    digest: sha256:9dc5dbe4258e884f79aec5d5578df1315c812acbaca27221bf31926cfb031856
+    digest: sha256:2bc51f0acb1954c3dbeff72639c8e93ea1a7b57a650db3f1603e6e2e5067aacf
   - path: internal/httpx/ordering_test.go
     mode: generated
     digest: sha256:74a6fe9498aa3a41ae3dee512e10ec6e0412bd529eb11b1a03e0bc9918c41cef
@@ -526,7 +526,7 @@ files:
     digest: sha256:abba67e6c41d77856b636b12be6e4219e99d3ef7ca30b4b4ee141ad1c3192cb6
   - path: internal/httpx/recover.go
     mode: generated
-    digest: sha256:0230c2895a6f808a828ce6fa12e38ef476da242722dcc11b51955fc0e80fba8b
+    digest: sha256:b3db89929c2af15ad730f9c58850e98c7f2467ad52f9d8d2da17ee87336c8878
   - path: internal/httpx/requestid.go
     mode: generated
     digest: sha256:126b7787fbcb196b76f3e64e96abf1079f4b35f713a10bba3838bb3d375653e3
@@ -535,7 +535,7 @@ files:
     digest: sha256:0b2568aa70003fd8ddedcd4147aed72dd4512bf758a280a4d08e7dbe0aadd84b
   - path: internal/httpx/telemetry_test.go
     mode: generated
-    digest: sha256:66eef8f74fa2fe14cf3bd4f7cffb7167434438eeabbee25ecbbd7b103a8054b8
+    digest: sha256:36db6c720d7d4ebd338ee4ce8df3d4877bb8f369b612866decad576f3c645288
   - path: internal/httpx/testlog_test.go
     mode: generated
     digest: sha256:f38b2968d9d1e9b81d7ecb696798544bf6fe828712367ae81fbba9b8f14e7616
@@ -604,7 +604,7 @@ files:
     digest: sha256:b4c02de2b6b8d56668aa164d6294d1243b790877c26b2d042707dc3109aa1986
   - path: internal/server/server.go
     mode: generated
-    digest: sha256:35ffa6d774bddc3e2dd409867ce946dc9e36753dcdff0aa441a807024d336a65
+    digest: sha256:c21c0af1d4ab3f8e47ea8dd824629a7ed291266526b56c5554d9cf6c315ddd88
   - path: internal/server/server_test.go
     mode: generated
     digest: sha256:576dc40c0379efb2cb353f3b1fc17e42201ed258545cba9c11c17ff5f9ebf4f2
@@ -709,7 +709,7 @@ files:
     digest: sha256:b76bcbae2eefee5c6fb2d156ae2a28b88f7471c0c7238ce0be3820a5a34e5925
   - path: internal/web/embed.go
     mode: generated
-    digest: sha256:cc22bc1887e25041e744bb715bf7cf5c321f292cb781e8151ac2fb638cd7b5f0
+    digest: sha256:2b669a354a115a478d1bba5dd5202f938d4c2e3bf1c3350acf04ade3139eb6a6
   - path: internal/web/embed_test.go
     mode: generated
     digest: sha256:0af451f89c2c1d1fff47b210514855fe5d5551e6e9453e3a6f9238506a4aec9c
@@ -721,7 +721,7 @@ files:
     digest: sha256:4d4dbd74840ae92ec765afff015428724aa4de3f921950bf7999d9c35faf9f6a
   - path: internal/web/web_test.go
     mode: generated
-    digest: sha256:ad60163853ed4605ca105d0f91aeec654e079dcb0c6c26cd39dcdf30085e78cb
+    digest: sha256:1cdf40e083c54e762119822f483b76e8cab1a97a27efb0df6a961743fb4c6b8d
   - path: internal/worker/backoff.go
     mode: generated
     digest: sha256:9cd4b7945e08d8b8cd5d0c54548cb1a8dc0b9c52079dabd5ce85bbecf62e2897
@@ -748,13 +748,13 @@ files:
     digest: sha256:6f93dab1d07423d885d4411210bb648e32c8d2610171d11c7ea94db364d0e644
   - path: internal/worker/queue.go
     mode: generated
-    digest: sha256:f1b7a7c36049c8c34ad96a606cb95ea67ca66b45c4d1a6bf33de1b93c35bcf79
+    digest: sha256:cb28e2ad877e74de3069458642e864242dd5cf7968b04b595471169b619c6d16
   - path: internal/worker/queue_test.go
     mode: generated
     digest: sha256:a78b6999441d0f0ec8ac5c8d43bbd8a2e029af76ad7aba0fffea464e599ee91a
   - path: internal/worker/runner.go
     mode: generated
-    digest: sha256:605f459d57a72c471593158654104bc7e6a38e27d09d1266395711bbfd80b871
+    digest: sha256:605eb7f7cdf8e0e48018223c675b8149ab15521ef0c336dd8b0bdd99ef25d043
   - path: internal/worker/runner_test.go
     mode: generated
     digest: sha256:11c5262b5db464da73769b6fadf22cb2d0f9faa414a0d96cc91ffd01b6b8003f
@@ -772,10 +772,10 @@ files:
     digest: sha256:86b54e8e1e27f7a3bcd7acec65ee20313ddf0e7c7c555bcc5c99b783d83ea08c
   - path: make/core.mk
     mode: generated
-    digest: sha256:206bc9d7a842ed3bf886d766da2ee531705d526e2ea39ba49abd32710ef28705
+    digest: sha256:c8fa9ace907127cb90eaacc077143a28afdaaaf5ba09d7a596904c8b54416445
   - path: make/dev.mk
     mode: generated
-    digest: sha256:a01465b9e27a8328b2d4da2e8dad13a6a98e52bed765ed7fd19e92f727e46424
+    digest: sha256:fbc6113aa52a626a9d01904b7c1dd015578007ec6ba0a5e5cad423e2a4ed4f47
   - path: make/frontend.mk
     mode: generated
     digest: sha256:1c39ce34a4e90b7d56c877328013d835721acfc195a8a1ca4d21f585170152f8
@@ -793,7 +793,7 @@ files:
     digest: sha256:13cd141267636c10dfc6c3be0e402bf586a819fc8cf471305f3c7155c18cdc7c
   - path: specs/001-service-baseline.md
     mode: seed
-    digest: sha256:0f3410f22bed2aa095bd14200c8b6cb956b011f0cd46c505b30243a28db55851
+    digest: sha256:3c66b46ddee36e09a6e8381ae838f4a6fb242bda7db63612b4d07afcb623b8f7
   - path: specs/README.md
     mode: seed
     digest: sha256:900d1d86f4b17ed3b4e1c100d6ce40a8510f4672b7ab3869d16abb07bb6e4b9c
@@ -803,27 +803,6 @@ files:
   - path: tools/assethash/main_test.go
     mode: generated
     digest: sha256:baf13296ecde1959341225c8bcb879f95c95f978cdd63ebe4ce9a35c8692cecd
-  - path: tools/coverage/flags.go
-    mode: generated
-    digest: sha256:94e9a78c8ecd9716af91224a3039e18c4dc8cb17a21335f69b835301a189e8e8
-  - path: tools/coverage/gate.go
-    mode: generated
-    digest: sha256:c2418471b335651f96ae7078d75871e976773c4277f1426799843729a73498a1
-  - path: tools/coverage/gate_test.go
-    mode: generated
-    digest: sha256:f96c333994b6c2db1734e8000ea72b0257718579f262aa5fa00cfbdd8eda20cb
-  - path: tools/coverage/main.go
-    mode: generated
-    digest: sha256:80e5298255a71a08846edb18caf4817fb5e021560b9114e580a43d9cda145182
-  - path: tools/coverage/main_test.go
-    mode: generated
-    digest: sha256:b5ff4b812dfbe8f0b9d6fcb4f7a496b66b13be03f5a45dd7f15c5aff4560a969
-  - path: tools/coverage/module_test.go
-    mode: generated
-    digest: sha256:af853fdeaf37dc8e2fbba2f17b21e9086c7c9de7691c082fb642358226bbf46a
-  - path: tools/coverage/profile.go
-    mode: generated
-    digest: sha256:49844b408d30f2acb211183210ed1fef3f4e72a8267e063fdc73b9adcb1261d2
   - path: tools/docgen/apidoc.go
     mode: generated
     digest: sha256:6dc828f0fd20e36b651b7737b49588dd426791aa1b1d3ccf4f743d0e6e7fb39e
@@ -832,10 +811,10 @@ files:
     digest: sha256:4e89570df0ba4c0dab4d45c31fb3236058efcb64e32752f4f274d34333f430a8
   - path: tools/docgen/compose.go
     mode: generated
-    digest: sha256:981ac10894cfd36f2d756bb94b365f8c37f738223837fb041798edd840a377b2
+    digest: sha256:43291b4ddf675fd14e036145fe31d4a4f06ec30246e5a2d9b460b8cc34b64a7f
   - path: tools/docgen/compose_test.go
     mode: generated
-    digest: sha256:f02dba475b2a9c9d5c72d31a07e484b87c19044ad7e6d16d2853d52c58a7458f
+    digest: sha256:7eb182849f892e9fc144a12738ab34add54342b82f92fd23dba6b3a6a656b814
   - path: tools/docgen/configdoc.go
     mode: generated
     digest: sha256:92ac238013b9a8e29d6cb0883403c7c12428ef4ad7d66abc6f81d749b938542d
@@ -847,10 +826,10 @@ files:
     digest: sha256:70d5acf3dd14301b1b86096a5b7aac1733b8e35db846eff85eae41c0268374a5
   - path: tools/docgen/diagrams.go
     mode: generated
-    digest: sha256:38e14e8b79587242eff68e6dd5ed4ccad88c708305d6d3fe7172c949d40b6db3
+    digest: sha256:f234398032bbb085e7708ce08eb9018ad0a71e160917e0fee633bf62e329df26
   - path: tools/docgen/diagrams_test.go
     mode: generated
-    digest: sha256:59d57c72b11d6f7ada07f007e36f53171161fed8f443f3a60de3b8f36719d50f
+    digest: sha256:0f4e9e2f4369506094359e1a003a8a3844100e3c998f9c05736eb2d69d7c1797
   - path: tools/docgen/doc.go
     mode: generated
     digest: sha256:7710cccc9d5a95c95371b30a4030451fdc06864c4b44662aa8b419d91c62cfdc
@@ -859,16 +838,16 @@ files:
     digest: sha256:40aff328931b061f1523bbf49b3d2abfe7dae7ba243d1462a7bee14d86b8852b
   - path: tools/docgen/links.go
     mode: generated
-    digest: sha256:e124b5febdc6565fba7148ce2bd6b4f7aa55860488a63f2a705b5d8cf632cbb4
+    digest: sha256:9e0c51508a32dc8be2adff3fc82063871d6a99f97ab15ed8d29fc6eb3af334f9
   - path: tools/docgen/links_test.go
     mode: generated
-    digest: sha256:14279d5b0d29da5d3d71107eaff4fb0a35f8a027cd675fb328ed8259aaa286a9
+    digest: sha256:1ceebb55ea3806b1b48c93f94c2b21f0e5786fffba8aaa85442d886fe2acbb58
   - path: tools/docgen/main.go
     mode: generated
-    digest: sha256:55a67b2730d04c22053cd41abff1ff7f1e395fe2b4e699b0c681c9894648533b
+    digest: sha256:20e06fedcc2b9c32b8c6f807f323f78e06422ff862cd6cd441fc0b2e98913696
   - path: tools/docgen/main_test.go
     mode: generated
-    digest: sha256:8ca86812b3b76c02211c0275481af77c49a5c2d3c2606cad77f086bf009ab5ad
+    digest: sha256:cdf8802c5a37736330093d4e653f1dd1e9451d260677d531216e6ee7137fcd5d
   - path: tools/docgen/markdown.go
     mode: generated
     digest: sha256:d7c066d21abbb470373fc3aa6c712ffa118aee59edf9dd882cca964366c30543
@@ -883,10 +862,10 @@ files:
     digest: sha256:681d182e11804e55be700b7ec07d2186e7f6f83a835bcc0154e9537a4f1d7677
   - path: tools/docgen/render_diagram_test.go
     mode: generated
-    digest: sha256:062d2f66ee1f5aca99f92941505f23e2cec09971e4485ead12f92b99231757c3
+    digest: sha256:fdf93563ed15a628f159fb93acc1fdbefb488b5072c4e358d1115cbf85f0d606
   - path: tools/docgen/render_test.go
     mode: generated
-    digest: sha256:dcf73bed95515f29c96eb948a6204d02192f0e7916af4e44e34c993e03365c10
+    digest: sha256:3756c649eeafccb5ac4cdad6f0f619cf445476328cdceb05ffdd0dddf367f7bf
   - path: tools/docgen/stack_test.go
     mode: generated
     digest: sha256:a70a5152a7ded2d4816687410a592237381af17e66d94e60ab893606e37bd7cb
@@ -1043,27 +1022,3 @@ files:
   - path: tools/smoke/main.go
     mode: generated
     digest: sha256:3c75c54ac6632e42c50d5f34a7418602156826480dcc7ed83c61a97cd20c7104
-  - path: tools/speccheck/index.go
-    mode: generated
-    digest: sha256:e281325465b27474b52cd18b0a9d06e4e1d41285aa53af12dd6a512f3da9ab47
-  - path: tools/speccheck/index_test.go
-    mode: generated
-    digest: sha256:52a5704cec6609ad5a3cd2c4f66279ec4620286973c3785d6650780d68323fb1
-  - path: tools/speccheck/main.go
-    mode: generated
-    digest: sha256:66a9143c745fe1a406ec5cde94cca6b24fd0fe9450a76be72eca492aa3d834c2
-  - path: tools/speccheck/main_test.go
-    mode: generated
-    digest: sha256:64c75518a08678aefbf71edd98baa03712b277bce4f8392839ecb865d953d985
-  - path: tools/speccheck/parse_test.go
-    mode: generated
-    digest: sha256:a08fa653f23a79d2fe5dfd5de7fdd209bd52a6de5daf74336b89a5e218a61474
-  - path: tools/speccheck/spec.go
-    mode: generated
-    digest: sha256:853061130ff42eec34ae83d2150c3df0ef3cc3de4f23c22e95b7441adb820e20
-  - path: tools/speccheck/validate.go
-    mode: generated
-    digest: sha256:a1e852051625e2df27ece80045b8a0d9f20a55b35ccfd7fe6832b7f2cdf91102
-  - path: tools/speccheck/validate_test.go
-    mode: generated
-    digest: sha256:331537a1afe06bc127d0999d9d16877c1c655bfb598cd61f9a572c4cce15b605

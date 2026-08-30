@@ -1,5 +1,5 @@
 ---
-title: Go module baseline: layout, toolchain pin, build, and version stamping
+title: "Go module baseline: layout, toolchain pin, build, and version stamping"
 status: drafted
 depends_on:
   - specs/001-template-contract.md

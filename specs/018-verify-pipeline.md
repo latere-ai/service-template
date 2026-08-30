@@ -1,5 +1,5 @@
 ---
-title: Verify pipeline: the reusable pre-merge workflow
+title: "Verify pipeline: the reusable pre-merge workflow"
 status: drafted
 depends_on:
   - specs/004-lint-baseline.md

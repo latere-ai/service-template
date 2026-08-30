@@ -1,5 +1,5 @@
 ---
-title: Authentication boundary: pluggable identity with no provider in the core
+title: "Authentication boundary: pluggable identity with no provider in the core"
 status: drafted
 depends_on:
   - specs/010-http-api-surface.md

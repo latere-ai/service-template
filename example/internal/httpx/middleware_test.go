@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -261,7 +262,7 @@ func TestTimeoutCancelsTheHandlerContext(t *testing.T) {
 
 	select {
 	case err := <-observed:
-		if err != context.DeadlineExceeded {
+		if !errors.Is(err, context.DeadlineExceeded) {
 			t.Fatalf("handler context error = %v, want %v", err, context.DeadlineExceeded)
 		}
 	case <-time.After(time.Second):

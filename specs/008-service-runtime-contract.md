@@ -1,5 +1,5 @@
 ---
-title: Service runtime contract: lifecycle, probes, drain, and /version
+title: "Service runtime contract: lifecycle, probes, drain, and /version"
 status: drafted
 depends_on:
   - specs/007-configuration-and-secrets.md

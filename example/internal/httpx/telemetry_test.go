@@ -191,6 +191,10 @@ func sumPoints(t *testing.T, reader *sdkmetric.ManualReader, name string) []metr
 	t.Helper()
 
 	var collected metricdata.ResourceMetrics
+	// Reading the collector is not part of the request under test. One call
+	// site runs inside a handler, and binding the read to that request's
+	// context would make the assertion depend on the thing it measures.
+	//nolint:contextcheck // the metric read is independent of the request being measured
 	if err := reader.Collect(context.Background(), &collected); err != nil {
 		t.Fatalf("collect metrics: %v", err)
 	}
@@ -219,6 +223,10 @@ func TestActiveRequestsRisesAndFalls(t *testing.T) {
 	var during []metricdata.DataPoint[int64]
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/items/{id}", func(w http.ResponseWriter, _ *http.Request) {
+		// The read is deliberately independent of this request: it measures
+		// the request that is in flight, so taking that request's context
+		// would make the measurement depend on what it measures.
+		//nolint:contextcheck // the metric read must not join the request it observes
 		during = sumPoints(t, reader, "http.server.active_requests")
 		w.WriteHeader(http.StatusOK)
 	})

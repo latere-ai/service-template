@@ -1,5 +1,5 @@
 ---
-title: Repository settings as code: branch protection, ownership, and merge rules
+title: "Repository settings as code: branch protection, ownership, and merge rules"
 status: drafted
 depends_on:
   - specs/018-verify-pipeline.md

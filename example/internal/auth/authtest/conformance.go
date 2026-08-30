@@ -263,7 +263,7 @@ func (s Suite) checkDenialsIdentical(r reporter) {
 		}
 		logs.Reset()
 		reached = false
-		req := httptest.NewRequest(http.MethodGet, "/v1/conformance", nil)
+		req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/v1/conformance", nil)
 		rej.cred(req)
 		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, req)
@@ -292,7 +292,7 @@ func (s Suite) checkDenialsIdentical(r reporter) {
 
 // authenticate runs the implementation against a request carrying cred.
 func (s Suite) authenticate(cred Credential) (*auth.Principal, error) {
-	req := httptest.NewRequest(http.MethodGet, "/v1/conformance", nil)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/v1/conformance", nil)
 	cred(req)
 	return s.Authenticator.Authenticate(req.Context(), req)
 }

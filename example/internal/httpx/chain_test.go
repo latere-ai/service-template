@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -169,7 +170,12 @@ func TestAbortHandlerPanicIsNotConvertedToAnEnvelope(t *testing.T) {
 	}))
 
 	defer func() {
-		if recovered := recover(); recovered != http.ErrAbortHandler {
+		// The panic value is matched rather than compared, so a handler that
+		// wraps the sentinel before re-panicking still counts as the abort it
+		// is.
+		recovered := recover()
+		err, ok := recovered.(error)
+		if !ok || !errors.Is(err, http.ErrAbortHandler) {
 			t.Fatalf("recovered = %v, want http.ErrAbortHandler", recovered)
 		}
 	}()

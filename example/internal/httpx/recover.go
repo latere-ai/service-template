@@ -53,6 +53,10 @@ func Recover() func(http.Handler) http.Handler {
 			// request when it renders a panic.
 			ctx, _ := withState(r.Context())
 			r = r.WithContext(ctx)
+			// Everything below reads the request context off r, which the
+			// line above has just replaced. The linter cannot follow that
+			// through the closure and reads it as a context being dropped.
+			//nolint:contextcheck // the request context is carried on r and read from it here
 			defer func() {
 				recovered := recover()
 				if recovered == nil {

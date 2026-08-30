@@ -1,5 +1,5 @@
 ---
-title: Test standards and coverage gate: tiers, race, and a threshold that fails
+title: "Test standards and coverage gate: tiers, race, and a threshold that fails"
 status: drafted
 depends_on:
   - specs/002-go-module-baseline.md

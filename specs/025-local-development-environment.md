@@ -1,5 +1,5 @@
 ---
-title: Local development environment: one command to a running stack
+title: "Local development environment: one command to a running stack"
 status: drafted
 depends_on:
   - specs/011-persistence-and-migrations.md

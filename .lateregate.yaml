@@ -1,0 +1,49 @@
+# The gate configuration for the template's own module.
+#
+# The skeleton carries one of these too, and it is the one consumers get. This
+# file gates the generator that produces them, which has to hold the same bar:
+# a template whose own build is looser than the build it ships is a template
+# nobody should trust.
+
+cover:
+  threshold: 90.0
+  trim_prefix: latere.ai/x/service-template/
+  exempt:
+    cmd/template: >-
+      main() is flag parsing and os.Exit around the generator's run(), which is
+      tested directly through internal/generator
+
+spec:
+  dir: specs
+  status:
+    - drafted
+    - validated
+    - dispatched
+    - in-progress
+    - testing
+    - complete
+    - superseded
+  require: [title, status, created, author, trigger]
+  index: specs/README.md
+  numbered: true
+  started: [dispatched, in-progress, testing, complete]
+  settled: [complete, superseded]
+
+hermetic:
+  # fmt-check asks git for the files this repository tracks, so the suite that
+  # exercises it needs git. Naming the directory is what keeps that dependency
+  # visible rather than ambient.
+  allow: [/usr/bin]
+
+modernize:
+  # The same list the generated .golangci.yml reads, so the toolchain's fixers
+  # and the modernize linter cannot disagree about which are on.
+  disable:
+    - newexpr
+    - errorsastype
+
+otel_client:
+  # Nothing here serves a request. This module is a code generator run from a
+  # workstation or a runner, so there is no inbound trace for an outbound call
+  # to continue.
+  skip: [cmd, internal]

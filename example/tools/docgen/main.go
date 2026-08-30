@@ -11,6 +11,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -37,14 +38,14 @@ commands:
 var mermaidCommands = []string{"mmdc", "mermaid"}
 
 func main() {
-	if err := run(os.Args[1:], os.Stdout, os.Stderr); err != nil {
+	if err := run(context.Background(), os.Args[1:], os.Stdout, os.Stderr); err != nil {
 		fmt.Fprintln(os.Stderr, "docgen:", err)
 		os.Exit(1)
 	}
 }
 
 // run holds the body so a test drives the command without starting a process.
-func run(args []string, stdout, stderr io.Writer) error {
+func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
 		write(stderr, "%s", usage)
 		return fmt.Errorf("no command given")
@@ -81,15 +82,15 @@ func run(args []string, stdout, stderr io.Writer) error {
 		write(stdout, "%s: the derived documents match the code\n", *docs)
 		return nil
 	case "links":
-		return report(stdout, "links", CheckLinks(*root, *external, nil))
+		return report(stdout, "links", CheckLinks(ctx, *root, *external, nil))
 	case "diagrams":
-		return report(stdout, "diagrams", CheckDiagrams(*root, renderer(*mermaid, stdout)))
+		return report(stdout, "diagrams", CheckDiagrams(ctx, *root, renderer(*mermaid, stdout)))
 	case "refs":
 		return report(stdout, "references", CheckReferences(*root))
 	case "images":
-		return report(stdout, "images", checkCompose(*compose, *resolve))
+		return report(stdout, "images", checkCompose(ctx, *compose, *resolve))
 	case "check":
-		return checkAll(stdout, *root, *docs, *compose, *mermaid, *external, *resolve)
+		return checkAll(ctx, stdout, *root, *docs, *compose, *mermaid, *external, *resolve)
 	default:
 		write(stderr, "%s", usage)
 		return fmt.Errorf("unknown command %q", command)
@@ -98,7 +99,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 
 // checkAll runs every check and reports every failure, because a run that
 // stops at the first one turns a review into a queue of single-fix runs.
-func checkAll(stdout io.Writer, root, docs, compose, mermaid string, external, resolve bool) error {
+func checkAll(ctx context.Context, stdout io.Writer, root, docs, compose, mermaid string, external, resolve bool) error {
 	var failures []string
 	if err := CheckDocs(docs); err != nil {
 		failures = append(failures, err.Error())
@@ -109,10 +110,10 @@ func checkAll(stdout io.Writer, root, docs, compose, mermaid string, external, r
 		name     string
 		problems []string
 	}{
-		{"links", CheckLinks(root, external, nil)},
-		{"diagrams", CheckDiagrams(root, renderer(mermaid, stdout))},
+		{"links", CheckLinks(ctx, root, external, nil)},
+		{"diagrams", CheckDiagrams(ctx, root, renderer(mermaid, stdout))},
 		{"references", CheckReferences(root)},
-		{"images", checkCompose(compose, resolve)},
+		{"images", checkCompose(ctx, compose, resolve)},
 	} {
 		if err := report(stdout, check.name, check.problems); err != nil {
 			failures = append(failures, err.Error())
@@ -125,14 +126,14 @@ func checkAll(stdout io.Writer, root, docs, compose, mermaid string, external, r
 }
 
 // checkCompose applies the image rules to the dependency stack.
-func checkCompose(path string, resolve bool) []string {
+func checkCompose(ctx context.Context, path string, resolve bool) []string {
 	text, err := readFile(path)
 	if err != nil {
 		return []string{fmt.Sprintf("read %s: %v", path, err)}
 	}
 	problems := CheckImages(path, text)
 	if resolve {
-		problems = append(problems, ResolveImages(path, text, &Registry{})...)
+		problems = append(problems, ResolveImages(ctx, path, text, &Registry{})...)
 	}
 	return problems
 }

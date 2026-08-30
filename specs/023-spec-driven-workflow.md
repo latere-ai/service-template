@@ -1,5 +1,5 @@
 ---
-title: Spec-driven workflow: the spec format, lifecycle, and validation
+title: "Spec-driven workflow: the spec format, lifecycle, and validation"
 status: drafted
 depends_on:
   - specs/001-template-contract.md

@@ -1,5 +1,5 @@
 ---
-title: Observability: traces, metrics, and trace-correlated logs
+title: "Observability: traces, metrics, and trace-correlated logs"
 status: drafted
 depends_on:
   - specs/008-service-runtime-contract.md

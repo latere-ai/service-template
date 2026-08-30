@@ -1,5 +1,5 @@
 ---
-title: Lint baseline: one canonical golangci-lint configuration
+title: "Lint baseline: one canonical golangci-lint configuration"
 status: drafted
 depends_on:
   - specs/001-template-contract.md

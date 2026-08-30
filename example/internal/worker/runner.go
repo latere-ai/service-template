@@ -365,6 +365,8 @@ func (r *Runner) runLocked(ctx context.Context, e *entry) {
 // The renewal outlives cancellation of the run context, because a job finishing
 // inside the shutdown window still holds its name. It stops when the job stops,
 // so a replica that dies frees the name by expiry.
+//
+//nolint:contextcheck // the lease must outlive the run context, or another replica takes a running job
 func (r *Runner) renewWhileRunning(lock Lock, name string, lease time.Duration) func() {
 	period := lease / renewFraction
 	if period <= 0 {
@@ -396,6 +398,7 @@ func (r *Runner) renewWhileRunning(lock Lock, name string, lease time.Duration) 
 func (r *Runner) runContinuous(ctx context.Context, e *entry) error {
 	err := r.execute(ctx, e, TriggerContinuous)
 	if ctx.Err() != nil {
+		//nolint:nilerr // the job ended because the context did, which is a clean shutdown
 		return nil
 	}
 	return err
