@@ -23,6 +23,9 @@ files:
   - path: cmd/service/main_test.go
     mode: seed
     profiles: [service]
+  - path: cmd/service/outbound_test.go
+    mode: seed
+    profiles: [service]
 
   # Feature wiring. Each file assigns the seam the entry point calls, so the
   # entry point never names a package a repository did not select and compiles
