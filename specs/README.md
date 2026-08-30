@@ -29,7 +29,7 @@ stateDiagram-v2
 ## Reading order
 
 Spec 001 defines the contract every other spec builds on. Read it first. The
-remaining 29 specs group into six sections that follow the dependency order.
+remaining 30 specs group into six sections that follow the dependency order.
 
 ## Dependency graph
 
@@ -61,6 +61,7 @@ flowchart TB
   subgraph R["Service runtime"]
     direction TB
     S007["007 config"] --> S008["008 runtime"] --> S009["009 observability"]
+    S009 --> S031["031 otel consolidation"]
     S008 --> S030["030 background work"]
     S008 --> S010["010 api surface"]
     S009 --> S010
@@ -141,6 +142,7 @@ flowchart TB
 | [011](011-persistence-and-migrations.md) | Schema versioning and a test database that must exist | drafted |
 | [012](012-authentication-boundary.md) | Pluggable identity with no provider in the core | drafted |
 | [030](030-background-work-runtime.md) | Scheduled jobs, queue consumers, one-shot commands | drafted |
+| [031](031-otel-consolidation.md) | Which telemetry the template owns and which it depends on | drafted |
 
 ## Frontend
 
