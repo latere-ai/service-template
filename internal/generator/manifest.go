@@ -253,9 +253,10 @@ func (m *Manifest) Lookup(p string) (Entry, bool) {
 // rather than template content. They are matched by base name because a
 // frontend nests its own node_modules and dist under the frontend directory.
 //
-// A directory is skipped only when its name can never be template source. The
-// coverage gate lives at tools/coverage, so "coverage" is not in this set: a
-// name that is both plausible output and real source must not be guessed at.
+// A directory is skipped only when its name can never be template source. A
+// name that is both plausible build output and plausible source, "coverage"
+// among them, is not in this set: guessing wrong here drops a shipped file
+// silently, and the file stops reaching consumers with nothing to show for it.
 var skipDirs = map[string]bool{
 	".git":         true,
 	"node_modules": true,

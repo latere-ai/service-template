@@ -12,9 +12,11 @@ or replaced becomes superseded.
 Open specs are the work queue. Terminal specs move into `.archive/`, keeping
 their number.
 
-This file is generated from the frontmatter of the files below. Run
-"make spec-index" after adding or changing a spec; "make spec-check" proves the
-committed copy is current.
+Add a row here when you add a spec. `make spec-check` proves every row agrees
+with the spec it links to, that each status comes from the vocabulary above,
+that no number is reused, and that nothing was built ahead of what it depends
+on. A row that disagrees with its file fails the build, because a status
+column a reader trusts and the code contradicts is worse than no column.
 
 ## Open
 

@@ -60,10 +60,14 @@ lint-config:
 	@go tool lateregate golangci
 	@cd $(SKELETON) && go tool lateregate golangci
 
+# Two modules means two runs, and golangci-lint holds a lock that outlives the
+# process briefly. The runs are sequential, so the flag admits what is already
+# true rather than asking for concurrency: without it the second run fails on
+# the first one's lock.
 lint: lint-config
 	$(call require_tool,golangci-lint,go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest)
-	golangci-lint run ./...
-	cd $(SKELETON) && golangci-lint run ./...
+	golangci-lint run --allow-parallel-runners ./...
+	cd $(SKELETON) && golangci-lint run --allow-parallel-runners ./...
 
 lint-modernize:
 	@go tool lateregate modernize

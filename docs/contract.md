@@ -30,12 +30,15 @@ features:
   i18n: false
   database: true
   background: false
-coverage:
-  threshold: 90          # percent of statements, unit and integration combined
-  exclude:               # explicit paths, never patterns
-    - cmd/
 waivers: []              # generated files this repo deliberately diverges on
 ```
+
+The quality gates are not declared here. Their thresholds, exemptions and
+conventions live in `.lateregate.yaml`, which every generated repository
+carries and which `latere.ai/x/ci-gate` reads. A repository has one quality
+bar, and splitting it across two files makes the bar hard to read. An
+exemption there also carries the reason it exists, which this declaration had
+no place for.
 
 A waiver entry is `{path, reason, expires}`. `template check` reports waived
 files and fails on an expired waiver.
@@ -47,7 +50,7 @@ It is written by the generator and never edited by hand.
 
 | Mode | Behaviour | Examples |
 | --- | --- | --- |
-| Generated | Rewritten by `sync`; drift is an error | `.golangci.yml`, git hooks, workflow callers |
+| Generated | Rewritten by `sync`; drift is an error | `.lateregate.yaml`, git hooks, workflow callers |
 | Seed | Written once at `init`; never rewritten, never checked | `main.go`, example handlers, `README.md` |
 | Merged | Rewritten between markers; the consumer owns the rest | `Makefile`, `.gitignore` |
 

@@ -40,7 +40,7 @@ files:
     digest: sha256:93c1ba9774447d40fe4286a5ac2af73509647e72027f01daaacc809257a0db9a
   - path: CONTRIBUTING.md
     mode: seed
-    digest: sha256:bd5c0fc468b14a13d0faa0971a87d928f4f904f4c25b847054fda1c26b79aa22
+    digest: sha256:bfabdc2443a27f6ba39b172deea0b9d02bc4634acdab567dfbfd3a8c08bd8c39
   - path: Dockerfile
     mode: generated
     digest: sha256:8e624f6bef7cfb5d36bb89287a849407bbe4706f9bc5d07faf56c2a98fd33de4
@@ -796,7 +796,7 @@ files:
     digest: sha256:3c66b46ddee36e09a6e8381ae838f4a6fb242bda7db63612b4d07afcb623b8f7
   - path: specs/README.md
     mode: seed
-    digest: sha256:900d1d86f4b17ed3b4e1c100d6ce40a8510f4672b7ab3869d16abb07bb6e4b9c
+    digest: sha256:e1d18dd76477b2ef1928238a8bb5a20b40b0d62405b7b329f7e0d0ff024555a6
   - path: tools/assethash/main.go
     mode: generated
     digest: sha256:d67c19a21b81cfde8ee59c505bf7f0c97784036d3e90e9ca7bb6df25279835e3

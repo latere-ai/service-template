@@ -81,10 +81,13 @@ Edit the source, not the output:
 | `.env.example` | The configuration struct | `make env-example` |
 | `docs/configuration.md` | The configuration struct | `make docs` |
 | `docs/api.md` | The route table and the error envelope | `make docs` |
-| `specs/README.md` | The spec frontmatter | `make spec-index` |
 
 A check target proves each committed copy is current, and the check runs in the
 pipeline. An edit to a generated file is reverted by the next regeneration.
+
+`specs/README.md` is written by hand. `make spec-check` proves every row agrees
+with the spec it links to, so a status the table claims and the file denies
+fails the build instead of misleading the next reader.
 
 ## Review
 

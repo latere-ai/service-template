@@ -12,7 +12,7 @@ layers, and each layer keeps working after day one:
 | Layer | What it is | How a consumer stays current |
 | --- | --- | --- |
 | **Workflows** | Reusable `workflow_call` pipelines for verify, release, and deploy | Consumer keeps a thin caller pinned to `@v1`; fixes land centrally |
-| **Materialized files** | `.golangci.yml`, git hooks, `Makefile` fragments, service skeleton | `template sync` rewrites them; `make template-check` fails CI on drift |
+| **Materialized files** | `.lateregate.yaml`, git hooks, `Makefile` fragments, service skeleton | `template sync` rewrites them; `make template-check` fails CI on drift |
 | **Libraries** | Small Go and TypeScript packages the skeleton imports | Ordinary dependency version bumps |
 
 ## Status
@@ -37,7 +37,8 @@ already verified.
 
 Run `make all` to build both modules, run both test suites, regenerate the
 reference service and diff it against the committed tree, and lint everything
-against the one `golangci-lint` configuration the skeleton ships.
+against the shared `golangci-lint` configuration, which both modules render on
+every run rather than commit.
 
 ## Scaffolding a service
 
@@ -69,7 +70,7 @@ that owns them was selected.
 flowchart LR
   subgraph Repo["Consumer repository"]
     SK["cmd/ internal/ frontend/"]
-    CFG[".golangci.yml<br/>.githooks/<br/>Makefile"]
+    CFG[".lateregate.yaml<br/>.githooks/<br/>Makefile"]
     CALL[".github/workflows<br/>thin callers"]
   end
   subgraph T["service-template @v1"]
@@ -86,9 +87,12 @@ flowchart LR
 - **Backend.** Go 1.27, a fixed module layout, typed configuration, graceful
   shutdown, health and readiness probes, a `/version` endpoint that reports the
   built commit, OpenTelemetry traces, metrics, and trace-correlated logs.
-- **Quality gates.** One canonical `golangci-lint` configuration, `go vet`,
-  `govulncheck`, CodeQL, race-enabled tests, and a coverage threshold that
-  fails the build instead of printing a number.
+- **Quality gates.** The shared gates from `latere.ai/x/ci-gate`, pinned in
+  `go.mod` and configured in one `.lateregate.yaml`: formatting, modernization,
+  the org's `golangci-lint` set, per-package coverage, the suite with only the
+  toolchain on `PATH`, the suite against an empty `TMPDIR`, outbound tracing,
+  and the spec tree. Plus `go vet`, `govulncheck`, CodeQL and race-enabled
+  tests. Every one of them runs on a workstation exactly as it runs in CI.
 - **Frontend.** Bun, React, TypeScript, and Vite, with Vitest, an
   internationalization baseline, and a build-time prerender that emits crawlable
   HTML, a sitemap, and structured data for the public routes.
