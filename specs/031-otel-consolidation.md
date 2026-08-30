@@ -175,23 +175,28 @@ blast radius, and it splits resource construction across two packages so the
 three signals could disagree on their attributes. The correlation between
 signals is the thing the resource exists to provide.
 
-### The released version is behind the working tree
+### Four capabilities have since been released
 
-The template pins `latere.ai/x/pkg v0.43.0`, which is what the module proxy
-serves. That release honours neither `OTEL_SDK_DISABLED` nor
-`OTEL_RESOURCE_ATTRIBUTES`, stamps no trace context on the local log stream,
-records no handler panic, and follows semantic conventions v1.26.0 against the
-template's v1.37.0. Those four capabilities exist only in commits after the tag.
-Anything this spec hands off has to be released before the template can depend
-on it, and a pseudo-version is not an option for a generator.
+This spec was written against `latere.ai/x/pkg v0.43.0`, the newest tag at the
+time, which honoured neither `OTEL_SDK_DISABLED` nor
+`OTEL_RESOURCE_ATTRIBUTES`, stamped no trace context on the local log stream,
+recorded no handler panic, and followed semantic conventions v1.26.0 against
+the template's v1.37.0. Those were the reason the switch stopped where it did:
+a generator cannot pin a pseudo-version, so the capabilities existing only in
+untagged commits were the same as not existing.
 
-The template already holds equivalents for all four:
-`skeleton/internal/observability/observability.go:314-319` honours
-`OTEL_SDK_DISABLED`, `resource.Merge(resource.Default(), ...)` at
-`skeleton/internal/observability/resource.go:46` picks up the environment
-resource through the SDK's own default detectors, `logging.go:94` stamps the
-local stream, and `skeleton/internal/httpx/trace.go:54-59` records handler
-panics with a stack.
+`v0.44.0` released all four, and moved semantic conventions to v1.41.0, which
+is ahead of the template. The template's own equivalents
+(`observability.go:314-319` for the kill switch, `resource.go:46` for the
+environment resource, `logging.go:94` for the local stream, and
+`httpx/trace.go:54-59` for panics) are therefore no longer the only source, and
+those four are candidates for deletion in a follow-up.
+
+That does not unblock the rest. The two P0 items below are untouched by
+`v0.44.0`, and they are what the remaining code exists for: without a
+span-processor seam there is no way to express error and slow-trace retention,
+and without explicit endpoint and header fields a collector credential mounted
+as a file cannot reach the exporter.
 
 ## Recommended porting order for `latere.ai/x/pkg/otel`
 
