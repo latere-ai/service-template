@@ -8,7 +8,7 @@ import (
 
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	otellog "go.opentelemetry.io/otel/log"
-	"go.opentelemetry.io/otel/trace"
+	pkgotel "latere.ai/x/pkg/otel"
 )
 
 // Log record keys for the correlation identifiers. They are the field names a
@@ -77,6 +77,11 @@ func (h levelHandler) WithGroup(name string) slog.Handler {
 // local stream has no such mechanism, and a local line without them cannot be
 // joined to the request it describes, which is the failure this package exists
 // to prevent.
+//
+// The identifiers are read through the shared telemetry package, so the local
+// stream, the browser, and every other service state the same two values in the
+// same form. A backend joins a log line to a trace by exact match, so a second
+// rendering of the same identifier is a join that silently returns nothing.
 type traceContextHandler struct {
 	next slog.Handler
 }
@@ -86,11 +91,11 @@ func (h traceContextHandler) Enabled(ctx context.Context, level slog.Level) bool
 }
 
 func (h traceContextHandler) Handle(ctx context.Context, rec slog.Record) error {
-	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
+	if traceID, spanID := pkgotel.TraceIDs(ctx); traceID != "" {
 		rec = rec.Clone()
 		rec.AddAttrs(
-			slog.String(traceIDKey, sc.TraceID().String()),
-			slog.String(spanIDKey, sc.SpanID().String()),
+			slog.String(traceIDKey, traceID),
+			slog.String(spanIDKey, spanID),
 		)
 	}
 	return h.next.Handle(ctx, rec)
