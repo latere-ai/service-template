@@ -170,14 +170,29 @@ jobs:
           cache-dependency-path: go.sum
       - name: Formatting
         run: make fmt-check
+      # Code a standard library call already covers. Each disabled fixer is
+      # verified to still exist, so one the toolchain drops fails loudly
+      # instead of turning the check green over a gate that never ran.
+      - name: Modernization
+        run: make lint-modernize
       - name: Generated files match the template
         run: make template-check
       # Ownership coverage needs no credentials, so it runs on every pull
       # request rather than only where an administrative token exists.
       - name: Settings and ownership
         run: make settings-verify
+      - name: Spec tree
+        run: make spec-check
+      # An outbound client with no tracing transport loses the trace at the
+      # boundary, silently: no client span, no traceparent, nothing logged.
+      - name: Outbound instrumentation
+        run: make lint-otel
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+      # The configuration is rendered from the shared template rather than
+      # committed, so the runner lints against exactly what a workstation does.
+      - name: Render the lint configuration
+        run: make lint-config
       # The exit code is kept and re-raised by the summary step, so a run
       # always produces the report a reviewer reads.
       - name: Lint
@@ -321,6 +336,16 @@ jobs:
           cache-dependency-path: go.sum
       - name: Unit tests with the race detector
         run: make test
+      # The suite again with only the Go toolchain on PATH. A test that
+      # depends on what happens to be installed passes on a workstation and
+      # fails on a runner, and this is the job that finds out which.
+      - name: Tests without a developer PATH
+        run: make test-hermetic
+      # And again against an empty TMPDIR, failing on whatever survives. A
+      # test that leaks a temporary directory leaks it for the life of the
+      # machine, and nothing else in the suite ever goes red for it.
+      - name: Tests leave no temporary directories
+        run: make test-tempdir
 
   integration:
     name: integration
