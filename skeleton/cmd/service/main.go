@@ -18,6 +18,8 @@ import (
 	"slices"
 	"time"
 
+	"latere.ai/x/pkg/otel"
+
 	"example.com/service/internal/auth"
 	"example.com/service/internal/config"
 	"example.com/service/internal/httpx"
@@ -33,6 +35,12 @@ const (
 	exitError = 1
 	exitUsage = 2
 )
+
+// outboundTimeout bounds one call this service makes to another. A client
+// without a deadline holds a request open for as long as the peer keeps the
+// connection, which turns one unhealthy dependency into an exhausted goroutine
+// pool here.
+const outboundTimeout = 30 * time.Second
 
 func main() {
 	os.Exit(main1(context.Background(), os.Args[1:], os.Stdout, os.Stderr))
@@ -162,6 +170,14 @@ type assembly struct {
 	// until the frontend feature replaces it with the application shell.
 	fallback http.Handler
 
+	// client is the client every outbound call this service makes goes
+	// through. Its transport opens a client span per request and writes the
+	// trace context headers, so the service on the other side continues this
+	// trace instead of starting a second, unlinked one. A handler that calls
+	// out with http.DefaultClient produces two traces for one request, and
+	// the gap between them is invisible in the backend.
+	client *http.Client
+
 	// components are started in registration order and stopped in reverse.
 	components []server.Component
 	// ready maps a dependency name to its readiness check.
@@ -262,7 +278,7 @@ func run(ctx context.Context, inv invocation, logOutput io.Writer) error {
 
 // newAssembly builds the parts every configuration has.
 func newAssembly(cfg *config.Config) *assembly {
-	a := &assembly{cfg: cfg, logger: slog.Default()}
+	a := &assembly{cfg: cfg, logger: slog.Default(), client: outboundClient()}
 	a.guard = &auth.Guard{
 		// The scaffold identifies every caller as anonymous, so a public route
 		// serves and a guarded route is denied. A service replaces this with
@@ -280,9 +296,26 @@ func newAssembly(cfg *config.Config) *assembly {
 	return a
 }
 
+// outboundClient builds the instrumented HTTP client the assembly hands to
+// every caller that reaches another service.
+//
+// The transport comes from the shared telemetry package rather than from a
+// local wrapper, so trace propagation is one implementation across the estate
+// and a change of backend is a change of that dependency. The deadline is set
+// here because the shared client carries none, and an unbounded client is a
+// liveness failure rather than a slow response.
+func outboundClient() *http.Client {
+	c := otel.HTTPClient()
+	c.Timeout = outboundTimeout
+	return c
+}
+
 // registerRoutes registers the application routes. It is the one place a
 // service adds its own surface, and every route states its policy, because an
 // undecided route fails Validate before the listener binds.
+//
+// A handler that calls another service takes a.client rather than building its
+// own, which is what keeps an outbound call inside the request trace.
 //
 // The probe paths are not here: the runtime owns /livez, /readyz, and /version
 // and serves them outside this chain, so a probe is answered while the
