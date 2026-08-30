@@ -30,7 +30,7 @@ func TestABrokenInternalLinkFails(t *testing.T) {
 		"README.md":            "# Title\n\nSee [the guide](docs/guide.md).\n",
 		"docs/architecture.md": "# Architecture\n",
 	})
-	problems := CheckLinks(dir, false, nil)
+	problems := CheckLinks(t.Context(), dir, false, nil)
 	if len(problems) != 1 {
 		t.Fatalf("want one problem, got %v", problems)
 	}
@@ -44,7 +44,7 @@ func TestAResolvingLinkPasses(t *testing.T) {
 		"README.md":     "# Title\n\nSee [the guide](docs/guide.md#a-section).\n",
 		"docs/guide.md": "# Guide\n\n## A section\n\nBack to the [README](../README.md).\n",
 	})
-	if problems := CheckLinks(dir, false, nil); len(problems) != 0 {
+	if problems := CheckLinks(t.Context(), dir, false, nil); len(problems) != 0 {
 		t.Fatalf("a resolving link was reported: %v", problems)
 	}
 }
@@ -54,7 +54,7 @@ func TestAMissingAnchorFails(t *testing.T) {
 		"README.md":     "# Title\n\n[gone](docs/guide.md#not-here) and [local](#title)\n",
 		"docs/guide.md": "# Guide\n",
 	})
-	problems := CheckLinks(dir, false, nil)
+	problems := CheckLinks(t.Context(), dir, false, nil)
 	if len(problems) != 1 || !strings.Contains(problems[0], "not-here") {
 		t.Fatalf("want the missing anchor reported once, got %v", problems)
 	}
@@ -64,7 +64,7 @@ func TestALinkInsideACodeBlockIsAnExampleNotAReference(t *testing.T) {
 	dir := writeDocs(t, map[string]string{
 		"README.md": "# Title\n\n```md\n[example](does-not-exist.md)\n```\n",
 	})
-	if problems := CheckLinks(dir, false, nil); len(problems) != 0 {
+	if problems := CheckLinks(t.Context(), dir, false, nil); len(problems) != 0 {
 		t.Fatalf("a link inside a code block was checked: %v", problems)
 	}
 }
@@ -85,10 +85,10 @@ func TestExternalLinksAreCheckedOnlyWhenAsked(t *testing.T) {
 		"README.md": "# Title\n\n[here](" + srv.URL + "/here) and [gone](" + srv.URL + "/gone)\n",
 	})
 
-	if problems := CheckLinks(dir, false, nil); len(problems) != 0 || served != 0 {
+	if problems := CheckLinks(t.Context(), dir, false, nil); len(problems) != 0 || served != 0 {
 		t.Fatalf("external links were checked without being asked: %v, %d requests", problems, served)
 	}
-	problems := CheckLinks(dir, true, srv.Client())
+	problems := CheckLinks(t.Context(), dir, true, srv.Client())
 	if len(problems) != 1 || !strings.Contains(problems[0], "/gone") {
 		t.Fatalf("want the unreachable target reported once, got %v", problems)
 	}
@@ -98,7 +98,7 @@ func TestMailtoAndTelTargetsAreLeftAlone(t *testing.T) {
 	dir := writeDocs(t, map[string]string{
 		"SECURITY.md": "# Security\n\nWrite to [us](mailto:security@example.com).\n",
 	})
-	if problems := CheckLinks(dir, false, nil); len(problems) != 0 {
+	if problems := CheckLinks(t.Context(), dir, false, nil); len(problems) != 0 {
 		t.Fatalf("an address was treated as a path: %v", problems)
 	}
 }
@@ -106,7 +106,7 @@ func TestMailtoAndTelTargetsAreLeftAlone(t *testing.T) {
 // The documents committed in this repository resolve, which is the case the
 // check exists to keep true.
 func TestCommittedLinksResolve(t *testing.T) {
-	if problems := CheckLinks(repoRoot, false, nil); len(problems) != 0 {
+	if problems := CheckLinks(t.Context(), repoRoot, false, nil); len(problems) != 0 {
 		t.Fatalf("the committed documents hold broken links:\n  %s", strings.Join(problems, "\n  "))
 	}
 }

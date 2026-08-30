@@ -102,7 +102,7 @@ func diagramsIn(file, text string) ([]Diagram, []string) {
 // CheckDiagrams validates every mermaid block under root. The structural rules
 // run always. When mermaid is on PATH the block is also rendered, which is the
 // only check that proves the whole grammar.
-func CheckDiagrams(root string, renderer string) []string {
+func CheckDiagrams(ctx context.Context, root string, renderer string) []string {
 	diagrams, problems, err := CollectDiagrams(root)
 	if err != nil {
 		return []string{fmt.Sprintf("read the documents: %v", err)}
@@ -115,7 +115,7 @@ func CheckDiagrams(root string, renderer string) []string {
 		if renderer == "" {
 			continue
 		}
-		if err := Render(renderer, d); err != nil {
+		if err := Render(ctx, renderer, d); err != nil {
 			problems = append(problems, fmt.Sprintf("%s:%d: %v", d.File, d.Line, err))
 		}
 	}
@@ -211,7 +211,7 @@ func brackets(body string) (int, string) {
 
 // Render draws the diagram with the mermaid command line. A diagram mermaid
 // refuses to draw is reported with the message mermaid produced.
-func Render(renderer string, d Diagram) error {
+func Render(ctx context.Context, renderer string, d Diagram) error {
 	dir, err := os.MkdirTemp("", "mermaid")
 	if err != nil {
 		return fmt.Errorf("create a working directory: %w", err)
@@ -222,7 +222,7 @@ func Render(renderer string, d Diagram) error {
 	if err := os.WriteFile(input, []byte(d.Body+"\n"), 0o600); err != nil {
 		return fmt.Errorf("write the diagram: %w", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, renderer, "-i", input, "-o", filepath.Join(dir, "diagram.svg"))

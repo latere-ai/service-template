@@ -194,7 +194,11 @@ func (s *Server) Run(ctx context.Context) error {
 
 	srv := s.httpServer(requestCtx)
 
-	ln, err := net.Listen("tcp", s.listenTarget())
+	// The bind honours the run context, so a shutdown signal that arrives
+	// while the address is still resolving stops here rather than after the
+	// socket is open and the process is accepting connections it will drop.
+	var lc net.ListenConfig
+	ln, err := lc.Listen(runCtx, "tcp", s.listenTarget())
 	if err != nil {
 		return errors.Join(fmt.Errorf("listen on %s: %w", s.listenTarget(), err),
 			s.stopComponents(shutdownCtx, started))

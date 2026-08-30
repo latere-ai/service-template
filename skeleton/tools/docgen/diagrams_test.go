@@ -45,7 +45,7 @@ func TestAMalformedDiagramFailsWithItsFileAndLine(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			dir := writeDocs(t, map[string]string{"docs/architecture.md": c.doc})
-			problems := CheckDiagrams(dir, "")
+			problems := CheckDiagrams(t.Context(), dir, "")
 			if len(problems) != 1 {
 				t.Fatalf("want one problem, got %v", problems)
 			}
@@ -65,7 +65,7 @@ func TestAValidDiagramPasses(t *testing.T) {
 		"docs/b.md": wrap("sequenceDiagram\n  participant A\n  A->>B: request\n  B-->>A: response"),
 		"docs/c.md": wrap("%%{init: {\"theme\": \"neutral\"}}%%\nstateDiagram-v2\n  [*] --> drafted"),
 	})
-	if problems := CheckDiagrams(dir, ""); len(problems) != 0 {
+	if problems := CheckDiagrams(t.Context(), dir, ""); len(problems) != 0 {
 		t.Fatalf("a valid diagram was reported: %v", problems)
 	}
 }
@@ -74,7 +74,7 @@ func TestANonMermaidFenceIsNotADiagram(t *testing.T) {
 	dir := writeDocs(t, map[string]string{
 		"docs/a.md": "# Title\n\n```sh\nmake dev [\n```\n",
 	})
-	if problems := CheckDiagrams(dir, ""); len(problems) != 0 {
+	if problems := CheckDiagrams(t.Context(), dir, ""); len(problems) != 0 {
 		t.Fatalf("a shell block was checked as a diagram: %v", problems)
 	}
 }
@@ -91,7 +91,7 @@ func TestCommittedDiagramsAreWellFormed(t *testing.T) {
 	if len(problems) != 0 {
 		t.Fatalf("the committed diagrams are malformed:\n  %s", strings.Join(problems, "\n  "))
 	}
-	if problems := CheckDiagrams(repoRoot, ""); len(problems) != 0 {
+	if problems := CheckDiagrams(t.Context(), repoRoot, ""); len(problems) != 0 {
 		t.Fatalf("the committed diagrams failed the check:\n  %s", strings.Join(problems, "\n  "))
 	}
 }

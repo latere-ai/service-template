@@ -95,11 +95,11 @@ func TestARendererThatRefusesIsReported(t *testing.T) {
 	dir := writeDocs(t, map[string]string{
 		"docs/a.md": wrap("flowchart LR\n  a --> b"),
 	})
-	problems := CheckDiagrams(dir, "/usr/bin/false")
+	problems := CheckDiagrams(t.Context(), dir, "/usr/bin/false")
 	if len(problems) != 1 || !strings.Contains(problems[0], "did not render") {
 		t.Fatalf("a refused diagram was not reported: %v", problems)
 	}
-	if problems := CheckDiagrams(dir, "/nonexistent/renderer"); len(problems) != 1 {
+	if problems := CheckDiagrams(t.Context(), dir, "/nonexistent/renderer"); len(problems) != 1 {
 		t.Fatalf("a missing renderer was not reported: %v", problems)
 	}
 }
@@ -130,7 +130,7 @@ func TestAHeadRefusalIsRetriedAsAGet(t *testing.T) {
 	defer srv.Close()
 
 	dir := writeDocs(t, map[string]string{"README.md": "# T\n\n[here](" + srv.URL + ")\n"})
-	if problems := CheckLinks(dir, true, srv.Client()); len(problems) != 0 {
+	if problems := CheckLinks(t.Context(), dir, true, srv.Client()); len(problems) != 0 {
 		t.Fatalf("a host that answers only GET was reported: %v", problems)
 	}
 	if len(methods) != 2 || methods[0] != http.MethodHead || methods[1] != http.MethodGet {
@@ -144,7 +144,7 @@ func TestAnUnreachableHostIsReported(t *testing.T) {
 	srv.Close()
 
 	dir := writeDocs(t, map[string]string{"README.md": "# T\n\n[gone](" + target + ")\n"})
-	if problems := CheckLinks(dir, true, nil); len(problems) != 1 {
+	if problems := CheckLinks(t.Context(), dir, true, nil); len(problems) != 1 {
 		t.Fatalf("an unreachable host was not reported: %v", problems)
 	}
 }
@@ -154,13 +154,13 @@ func TestALinkToADirectoryOrANonDocumentResolves(t *testing.T) {
 		"README.md":      "# T\n\n[dir](docs) and [file](docs/data.json#fragment)\n",
 		"docs/data.json": "{}\n",
 	})
-	if problems := CheckLinks(dir, false, nil); len(problems) != 0 {
+	if problems := CheckLinks(t.Context(), dir, false, nil); len(problems) != 0 {
 		t.Fatalf("a directory or a data file was reported: %v", problems)
 	}
 }
 
 func TestAMissingComposeFileIsReported(t *testing.T) {
-	if problems := checkCompose(filepath.Join(t.TempDir(), "absent.yml"), false); len(problems) != 1 {
+	if problems := checkCompose(t.Context(), filepath.Join(t.TempDir(), "absent.yml"), false); len(problems) != 1 {
 		t.Fatalf("a missing compose file was not reported: %v", problems)
 	}
 }
@@ -206,7 +206,7 @@ func TestAReferenceStyleLinkIsResolved(t *testing.T) {
 	dir := writeDocs(t, map[string]string{
 		"README.md": "# T\n\nSee [the guide][guide].\n\n[guide]: docs/guide.md\n",
 	})
-	if problems := CheckLinks(dir, false, nil); len(problems) != 1 {
+	if problems := CheckLinks(t.Context(), dir, false, nil); len(problems) != 1 {
 		t.Fatalf("a reference definition was not checked: %v", problems)
 	}
 }
@@ -250,7 +250,7 @@ func TestTheTokenExchangeFailuresAreReported(t *testing.T) {
 			srv := httptest.NewServer(handler)
 			defer srv.Close()
 			registry := &Registry{Client: srv.Client(), BaseURL: srv.URL}
-			if _, err := registry.Digest("library/postgres", "17.6-alpine"); err == nil {
+			if _, err := registry.Digest(t.Context(), "library/postgres", "17.6-alpine"); err == nil {
 				t.Fatal("the exchange was reported as successful")
 			}
 		})
@@ -276,7 +276,7 @@ func TestAnIssuedAccessTokenIsAccepted(t *testing.T) {
 	// A registry with no client of its own uses the default one, which is the
 	// path a command takes.
 	registry := &Registry{BaseURL: srv.URL}
-	got, err := registry.Digest("library/postgres", "17.6-alpine")
+	got, err := registry.Digest(t.Context(), "library/postgres", "17.6-alpine")
 	if err != nil {
 		t.Fatalf("read the digest: %v", err)
 	}
@@ -290,10 +290,10 @@ func srvURL(r *http.Request) string { return "http://" + r.Host }
 
 func TestAnUnreachableRegistryIsReported(t *testing.T) {
 	registry := &Registry{BaseURL: "http://127.0.0.1:1"}
-	if _, err := registry.Digest("library/postgres", "17.6"); err == nil {
+	if _, err := registry.Digest(t.Context(), "library/postgres", "17.6"); err == nil {
 		t.Fatal("an unreachable registry was reported as successful")
 	}
-	if _, err := (&Registry{BaseURL: "://broken"}).Digest("library/postgres", "17.6"); err == nil {
+	if _, err := (&Registry{BaseURL: "://broken"}).Digest(t.Context(), "library/postgres", "17.6"); err == nil {
 		t.Fatal("an unusable base URL was accepted")
 	}
 }

@@ -94,6 +94,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 		// The context is checked between messages, so a cancelled consumer
 		// takes no new work even when the queue has a message ready.
 		if ctx.Err() != nil {
+			//nolint:nilerr // a cancelled consumer stopping is a clean shutdown
 			return nil
 		}
 
@@ -103,6 +104,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 			return nil
 		case err != nil:
 			if ctx.Err() != nil {
+				//nolint:nilerr // the receive failed because the context ended, not the queue
 				return nil
 			}
 			return fmt.Errorf("worker: consumer %q receive: %w", c.ConsumerName, err)

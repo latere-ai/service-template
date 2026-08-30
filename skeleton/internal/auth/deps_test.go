@@ -126,6 +126,7 @@ func TestNoPackageImportsAnIdentityProvider(t *testing.T) {
 		if parseErr != nil {
 			// A file that does not parse fails the build on its own, and this
 			// gate has nothing to say about it.
+			//nolint:nilerr // the build reports the parse failure; this gate does not
 			return nil
 		}
 		scanned++

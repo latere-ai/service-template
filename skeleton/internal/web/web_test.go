@@ -42,6 +42,10 @@ func newTestHandler(t *testing.T) http.Handler {
 }
 
 // do runs one request against a handler and returns the response.
+//
+// The body is closed on cleanup rather than by each caller. A response body
+// nobody closes is the same defect in a test as in production code, and one
+// owner here is what keeps every call site from having to remember it.
 func do(t *testing.T, h http.Handler, method, target string, header http.Header) *http.Response {
 	t.Helper()
 	r := httptest.NewRequest(method, target, nil)
@@ -52,16 +56,19 @@ func do(t *testing.T, h http.Handler, method, target string, header http.Header)
 	}
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
-	return w.Result()
+	res := w.Result()
+	t.Cleanup(func() {
+		if err := res.Body.Close(); err != nil {
+			t.Errorf("close the body: %v", err)
+		}
+	})
+	return res
 }
 
+// body reads a response that do returned. Closing belongs to do, so this
+// reads and nothing else.
 func body(t *testing.T, res *http.Response) string {
 	t.Helper()
-	defer func() {
-		if err := res.Body.Close(); err != nil {
-			t.Fatalf("close the body: %v", err)
-		}
-	}()
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("read the body: %v", err)
