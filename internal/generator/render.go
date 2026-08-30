@@ -43,8 +43,6 @@ type Data struct {
 	// Features maps a flag name to whether it is on, for example
 	// {{ if .Features.database }}.
 	Features map[string]bool
-	// Coverage is the statement coverage gate.
-	Coverage Coverage
 }
 
 // NewData builds the render input for a declaration.
@@ -53,7 +51,6 @@ func NewData(cfg *Config) Data {
 	for _, f := range AllFeatures {
 		features[f] = cfg.Features[f]
 	}
-	exclude := append([]string(nil), cfg.Coverage.Exclude...)
 	return Data{
 		Template: cfg.Template,
 		Version:  cfg.Version,
@@ -61,7 +58,6 @@ func NewData(cfg *Config) Data {
 		Name:     cfg.Name,
 		Profile:  cfg.Profile,
 		Features: features,
-		Coverage: Coverage{Threshold: cfg.Coverage.Threshold, Exclude: exclude},
 	}
 }
 

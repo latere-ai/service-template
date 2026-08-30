@@ -1,0 +1,156 @@
+# The shared gate configuration, read by `go tool lateregate`.
+#
+# Every gate the service runs is declared here rather than in a tool this
+# repository carries. The gates themselves live in latere.ai/x/ci-gate, pinned
+# in go.mod, so they run identically on a workstation and on a runner and are
+# upgraded by bumping one version.
+#
+# Repository-specific values belong here. A gate whose behaviour has to change
+# belongs upstream, so every service gets the change at once.
+
+cover:
+  # Statement coverage every package clears, judged per package rather than as
+  # a repository average. An average lets a well-tested package carry an
+  # untested one and reports a number nobody can act on.
+  threshold: 90.0
+  trim_prefix: example.com/service/
+  # A package that genuinely cannot be measured is exempted with the reason
+  # attached, because the value is the reason. An empty one fails the load.
+  #
+  # An exemption also covers a package with no test file at all: those produce
+  # no coverage data, and the gate reports them rather than letting them clear
+  # the floor by being absent.
+  exempt: {}
+
+spec:
+  dir: specs
+  # The lifecycle states in order. A state outside this set is a typo, and a
+  # typo in a status is how a spec leaves the work queue without anyone
+  # deciding it should.
+  status:
+    - drafted
+    - validated
+    - dispatched
+    - in-progress
+    - testing
+    - complete
+    - superseded
+  # depends_on and affects may be empty lists, so they are required to be
+  # present rather than non-empty; these are the keys that must carry a value.
+  require: [title, status, created, author, trigger]
+  index: specs/README.md
+  wikilinks: true
+  # The number in the file name is a stable identifier: never reused and never
+  # reassigned, so a reference keeps resolving after the file is archived.
+  numbered: true
+  # Work starts when what it depends on has closed. A superseded spec closes
+  # because its work moved to the spec that replaced it.
+  started: [dispatched, in-progress, testing, complete]
+  settled: [complete, superseded]
+  require_section:
+    - Problem
+    - Scope
+    - Design
+    - Acceptance criteria
+  require_section_by_status:
+    # A spec that claims to be built and does not say what happened leaves the
+    # claim unchecked, which is how a status column stops being trusted.
+    complete: [Outcome]
+
+hermetic:
+  # The suite runs with only the Go toolchain on PATH. A test that depends on
+  # what happens to be installed passes on a workstation and fails on a
+  # runner, which is the worst order to find out.
+  #
+  # Start at empty and name only what fails. A directory here is an ambient
+  # dependency made visible, which is the point of naming it.
+  allow: []
+
+tempdir:
+  # The suite runs against an empty TMPDIR and nothing may survive it. A test
+  # that makes a directory and does not remove it leaks it for the life of the
+  # machine, and nothing else in the suite ever goes red for it.
+  #
+  # command is unset, so the default `go test ./...` runs. A service whose real
+  # coverage sits behind the integration tag names that target here: a leak the
+  # gate never executes is a leak it reports as absent.
+  allow: {}
+
+otel_client:
+  # An outbound client built without a tracing transport calls out on the
+  # stdlib one, so no client span is recorded and no traceparent is sent. The
+  # service on the other end opens a fresh trace, and the hop between them is
+  # gone with nothing logged.
+  #
+  # tools/ is skipped because nothing under it serves a request. The document
+  # generator resolves links, the settings tool calls the repository API and
+  # the smoke tool probes a deployment: each runs from a workstation or a
+  # runner with no inbound trace to continue, so an instrumented client there
+  # would start a trace nobody reads. Everything the service itself calls out
+  # with is covered.
+  skip: [tools]
+
+modernize:
+  # Read by two gates: `go fix` through `make lint-modernize`, and the
+  # modernize linter in the generated .golangci.yml. They are the same
+  # analyzers, so a fixer turned off for one and left on for the other is this
+  # repository disagreeing with itself.
+  disable:
+    # newexpr rewrites pointer helpers such as func ptr(v T) *T to new(v), then
+    # inlines call sites unevenly: the helper is left with no callers, which
+    # trips unused, and an untyped constant argument takes the wrong default
+    # type.
+    - newexpr
+    # errorsastype rewrites errors.As to errors.AsType[T], whose type parameter
+    # is constrained to [E error]. A local non-error interface target does not
+    # satisfy it, so the rewrite does not compile.
+    - errorsastype
+
+golangci:
+  # A log record on the request path without the request context carries no
+  # trace or span identifier, so it cannot be correlated with the request that
+  # produced it. The scope is the one part no shared template can know: every
+  # repository's request path is its own.
+  sloglint:
+    context: all
+    request_paths: (^|/)internal/(auth|handler|httpx|server|web)/
+  # The layering this repository fixes. It is here rather than upstream
+  # because the directories are this service's, and the rule is written once
+  # and anchored to them, so it cannot be weakened by moving code.
+  extra:
+    linters:
+      settings:
+        depguard:
+          rules:
+            # Persistence and background work sit below transport. A package
+            # that reaches upward couples the storage schema to the HTTP
+            # surface and cannot be exercised without a server.
+            below-transport:
+              list-mode: lax
+              files:
+                - '**/internal/store/**'
+                - '**/internal/worker/**'
+              deny:
+                - pkg: net/http
+                  desc: the storage and worker layers sit below transport
+                - pkg: example.com/service/internal/httpx
+                  desc: the storage and worker layers sit below transport
+                - pkg: example.com/service/internal/handler
+                  desc: the storage and worker layers sit below transport
+                - pkg: example.com/service/internal/server
+                  desc: the storage and worker layers sit below transport
+                - pkg: example.com/service/internal/web
+                  desc: the storage and worker layers sit below transport
+            # Configuration is read before anything else is constructed, so it
+            # depends on nothing this repository owns.
+            configuration:
+              list-mode: lax
+              files:
+                - '**/internal/config/**'
+              deny:
+                - pkg: example.com/service/internal/store
+                  desc: configuration is loaded before any component exists
+                - pkg: example.com/service/internal/server
+                  desc: configuration is loaded before any component exists
+                - pkg: example.com/service/internal/handler
+                  desc: configuration is loaded before any component exists

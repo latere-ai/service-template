@@ -1,9 +1,16 @@
 # Core Go targets: build, formatting, lint, static analysis, tests, coverage,
 # and the template drift check.
+#
+# The gates themselves are not written here. They live in latere.ai/x/ci-gate,
+# pinned in go.mod as a tool dependency and configured in .lateregate.yaml, so
+# a gate runs the same on a workstation as on a runner and every service gets
+# a fix to one by bumping a version. What stays here is the wiring: which
+# gates this repository runs, and which of them a bare `make` performs.
 
-PHONY_TARGETS += build fmt fmt-check hooks lint lint-fix vet vuln \
-                 test test-integration cover template-check
-ALL_TARGETS += fmt-check vet lint test
+PHONY_TARGETS += build fmt fmt-check hooks lint lint-config lint-fix \
+                 lint-modernize vet vuln test test-integration cover \
+                 test-hermetic test-tempdir lint-otel template-check
+ALL_TARGETS += fmt-check lint-modernize vet lint test lint-otel
 
 # The module path is read from go.mod rather than restated, so the link-time
 # variable paths below stay correct whatever the repository is called.
@@ -67,28 +74,45 @@ build:
 fmt:
 	gofmt -w -l $(GO_FILES)
 
+# The file list comes from git rather than from walking the tree, so a nested
+# checkout parked inside the repository cannot contribute a file this
+# repository neither owns nor can fix.
 fmt-check:
-	@unformatted=$$(gofmt -l $(GO_FILES)); \
-	if [ -n "$$unformatted" ]; then \
-		echo "these files are not gofmt clean, run make fmt:"; \
-		echo "$$unformatted" | sed 's/^/  /'; \
-		exit 1; \
-	fi
-	@echo "gofmt: clean"
-	go fix -diff ./...
+	@go tool lateregate fmt-check
+
+# Code a standard library call already covers. The disabled fixers are named
+# in .lateregate.yaml, and each one is verified to still exist before the flag
+# is trusted: `go fix` rejects an unknown -name=false, so a fixer dropped by
+# the toolchain would otherwise turn the whole check green over nothing.
+lint-modernize:
+	@go tool lateregate modernize
 
 hooks:
 	chmod +x .githooks/*
 	git config core.hooksPath .githooks
 	@echo "git hooks installed from .githooks"
 
-lint:
+# .golangci.yml is generated and gitignored. golangci-lint cannot inherit a
+# shared configuration, so the file is rendered from the org's template on
+# every run. Regenerating rather than committing is what makes drift
+# impossible instead of merely detectable.
+lint-config:
+	@go tool lateregate golangci
+
+lint: lint-config
 	$(call require_tool,golangci-lint,go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest)
 	golangci-lint run ./...
 
-lint-fix:
+lint-fix: lint-config
 	$(call require_tool,golangci-lint,go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest)
 	golangci-lint run --fix ./...
+
+# An outbound HTTP client built without a tracing transport calls out on the
+# stdlib one: no client span is recorded, no traceparent is sent, and the
+# service on the other end opens a fresh trace. Nothing fails and nothing is
+# logged; the gap only shows up later as a trace that stops at a boundary.
+lint-otel:
+	@go tool lateregate otel-client
 
 vet:
 	go vet ./...
@@ -118,13 +142,29 @@ test-integration:
 # understates a service whose logic sits behind a database boundary.
 # -coverpkg covers every package so one with no test of its own still appears
 # in the denominator instead of vanishing from the report.
+# The two profiles merge as a union of statement blocks rather than a sum: with
+# -coverpkg the same block appears in both tiers, so a block either tier
+# covered is covered. The gate judges every package against the floor in
+# .lateregate.yaml, and reports a package that produced no data at all rather
+# than letting it clear the floor by being absent.
 cover:
 	@mkdir -p $(OUT_DIR)
 	go test -race -covermode=atomic -coverpkg=./... \
 		-coverprofile=$(COVER_UNIT) -count=1 ./...
 	go test -race -covermode=atomic -coverpkg=./... \
 		-coverprofile=$(COVER_INTEGRATION) -count=1 -tags=$(INTEGRATION_TAGS) ./...
-	go run ./tools/coverage -profile=$(COVER_UNIT) -profile=$(COVER_INTEGRATION)
+	@go tool lateregate cover -profile=$(COVER_UNIT) -profile=$(COVER_INTEGRATION)
+
+# The suite with only the Go toolchain on PATH. A test that depends on what
+# happens to be installed passes on a workstation and fails on a runner.
+test-hermetic:
+	@go tool lateregate hermetic
+
+# The suite against an empty TMPDIR, failing on whatever is left behind. A
+# test that makes a temporary directory and does not remove it leaks it for
+# the life of the machine, and nothing else in the suite goes red for it.
+test-tempdir:
+	@go tool lateregate tempdir
 
 template-check:
 	$(call require_tool,template,go install github.com/latere-ai/service-template/cmd/template@v1)

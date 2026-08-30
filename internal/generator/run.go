@@ -110,7 +110,6 @@ func runInit(env Env, args []string) error {
 		"comma separated feature flags to enable: "+strings.Join(AllFeatures, ", "))
 	version := set.String("version", env.Version, "template version to record")
 	origin := set.String("template", DefaultTemplate, "template identity to record")
-	threshold := set.Int("coverage", 90, "statement coverage threshold")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -127,7 +126,6 @@ func runInit(env Env, args []string) error {
 		Name:     *name,
 		Profile:  *profile,
 		Features: map[string]bool{},
-		Coverage: Coverage{Threshold: *threshold},
 	}
 	for f := range strings.SplitSeq(*features, ",") {
 		f = strings.TrimSpace(f)

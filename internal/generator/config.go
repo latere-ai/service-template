@@ -70,13 +70,13 @@ type Waiver struct {
 	Expires time.Time
 }
 
-// Coverage is the statement coverage gate the generated pipeline enforces.
-type Coverage struct {
-	Threshold int
-	Exclude   []string
-}
-
 // Config is the parsed consumer declaration.
+//
+// The coverage gate is not declared here. Its threshold and its exemptions
+// live in .lateregate.yaml beside every other gate's configuration, because a
+// repository has one quality bar and splitting it across two files makes the
+// bar hard to read. An exemption there also carries the reason it exists,
+// which this file had no place for.
 type Config struct {
 	Template string
 	Version  string
@@ -84,7 +84,6 @@ type Config struct {
 	Name     string
 	Profile  string
 	Features map[string]bool
-	Coverage Coverage
 	Waivers  []Waiver
 }
 
@@ -117,7 +116,7 @@ func ParseConfig(file string, data []byte) (*Config, error) {
 	cfg := &Config{Features: map[string]bool{}}
 	for _, key := range root.keys {
 		switch key {
-		case "template", "version", "module", "name", "profile", "features", "coverage", "waivers":
+		case "template", "version", "module", "name", "profile", "features", "waivers":
 		default:
 			return nil, errAt(file, root.get(key).line, "unknown field %q", key)
 		}
@@ -141,9 +140,6 @@ func ParseConfig(file string, data []byte) (*Config, error) {
 		return nil, err
 	}
 	if err := readFeatures(file, root, cfg); err != nil {
-		return nil, err
-	}
-	if err := readCoverage(file, root, cfg); err != nil {
 		return nil, err
 	}
 	if err := readWaivers(file, root, cfg); err != nil {
@@ -170,26 +166,6 @@ func readFeatures(file string, root *node, cfg *Config) error {
 		}
 		cfg.Features[key] = v
 	}
-	return nil
-}
-
-func readCoverage(file string, root *node, cfg *Config) error {
-	c := root.get("coverage")
-	if c == nil {
-		return nil
-	}
-	if c.kind != kindMapping {
-		return errAt(file, c.line, "\"coverage\" must be a mapping")
-	}
-	threshold, err := c.integer(file, "threshold", 0)
-	if err != nil {
-		return err
-	}
-	exclude, err := c.strings(file, "exclude")
-	if err != nil {
-		return err
-	}
-	cfg.Coverage = Coverage{Threshold: threshold, Exclude: exclude}
 	return nil
 }
 
@@ -251,9 +227,6 @@ func (c *Config) Validate(file string) error {
 	if !ok {
 		return errAt(file, 0, "\"profile\" must be one of %s, found %q", strings.Join(AllProfiles, ", "), c.Profile)
 	}
-	if c.Coverage.Threshold < 0 || c.Coverage.Threshold > 100 {
-		return errAt(file, 0, "\"coverage.threshold\" must be between 0 and 100, found %d", c.Coverage.Threshold)
-	}
 	names := make([]string, 0, len(c.Features))
 	for k := range c.Features {
 		names = append(names, k)
@@ -312,16 +285,6 @@ func (c *Config) Marshal() []byte {
 	b.WriteString("features:\n")
 	for _, f := range AllFeatures {
 		fmt.Fprintf(&b, "  %s: %t\n", f, c.Features[f])
-	}
-	b.WriteString("coverage:\n")
-	fmt.Fprintf(&b, "  threshold: %d\n", c.Coverage.Threshold)
-	if len(c.Coverage.Exclude) == 0 {
-		b.WriteString("  exclude: []\n")
-	} else {
-		b.WriteString("  exclude:\n")
-		for _, e := range c.Coverage.Exclude {
-			fmt.Fprintf(&b, "    - %s\n", e)
-		}
 	}
 	if len(c.Waivers) == 0 {
 		b.WriteString("waivers: []\n")

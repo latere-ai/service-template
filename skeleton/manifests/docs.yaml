@@ -41,41 +41,14 @@ files:
     mode: seed
     profiles: [service]
 
-  # The spec directory: the example that carries the format, and the generated
-  # index.
+  # The spec directory: the example that carries the format, and the index.
+  # The rules the tree is held to are declared in .lateregate.yaml and checked
+  # by `make spec-check`.
   - path: specs/001-service-baseline.md
     mode: seed
     profiles: [service, library]
   - path: specs/README.md
     mode: seed
-    profiles: [service, library]
-
-  # The spec validator: required frontmatter, the allowed statuses, dependency
-  # resolution across the archive, cycles, dispatch readiness, the Outcome rule,
-  # and the index.
-  - path: tools/speccheck/main.go
-    mode: generated
-    profiles: [service, library]
-  - path: tools/speccheck/spec.go
-    mode: generated
-    profiles: [service, library]
-  - path: tools/speccheck/validate.go
-    mode: generated
-    profiles: [service, library]
-  - path: tools/speccheck/index.go
-    mode: generated
-    profiles: [service, library]
-  - path: tools/speccheck/main_test.go
-    mode: generated
-    profiles: [service, library]
-  - path: tools/speccheck/validate_test.go
-    mode: generated
-    profiles: [service, library]
-  - path: tools/speccheck/index_test.go
-    mode: generated
-    profiles: [service, library]
-  - path: tools/speccheck/parse_test.go
-    mode: generated
     profiles: [service, library]
 
   # The document generator and the checks around it: derivation from the

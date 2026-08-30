@@ -85,8 +85,15 @@ files:
   - path: .gitignore
     mode: merged
 
-  # Lint baseline.
-  - path: .golangci.yml
+  # The gate configuration. The gates themselves are latere.ai/x/ci-gate,
+  # pinned in go.mod as a tool dependency; this file declares what they assert
+  # for this repository.
+  #
+  # .golangci.yml is deliberately not here. golangci-lint cannot inherit a
+  # shared configuration, so `make lint-config` renders it on every run and it
+  # is gitignored: a committed copy makes drift detectable, regenerating makes
+  # it impossible.
+  - path: .lateregate.yaml
     mode: generated
     profiles: [service, library]
 
@@ -121,28 +128,5 @@ files:
     mode: generated
     profiles: [service, library]
   - path: internal/testsupport/testdata/race/race_test.go
-    mode: generated
-    profiles: [service, library]
-
-  # Coverage gate.
-  - path: tools/coverage/main.go
-    mode: generated
-    profiles: [service, library]
-  - path: tools/coverage/flags.go
-    mode: generated
-    profiles: [service, library]
-  - path: tools/coverage/gate.go
-    mode: generated
-    profiles: [service, library]
-  - path: tools/coverage/profile.go
-    mode: generated
-    profiles: [service, library]
-  - path: tools/coverage/main_test.go
-    mode: generated
-    profiles: [service, library]
-  - path: tools/coverage/gate_test.go
-    mode: generated
-    profiles: [service, library]
-  - path: tools/coverage/module_test.go
     mode: generated
     profiles: [service, library]

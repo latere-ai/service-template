@@ -59,7 +59,6 @@ func testConfig() *Config {
 		Name:     "widget",
 		Profile:  ProfileService,
 		Features: map[string]bool{FeatureFrontend: true, FeatureDatabase: true},
-		Coverage: Coverage{Threshold: 90, Exclude: []string{"cmd/"}},
 	}
 }
 
