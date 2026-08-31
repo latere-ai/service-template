@@ -289,8 +289,15 @@ func isBuildOutput(p string) bool {
 // skipFiles names artifacts a working tree carries and the skeleton never
 // ships. Without them a local build makes the coverage check fail on files
 // that are not template content.
+//
+// .golangci.yml is one of them because the shared lint set cannot be inherited
+// and is therefore rendered, not committed: every module gitignores the file
+// and `make lint-config` writes it before each run. Declaring it would ship a
+// copy that drifts, and reporting it would make running lint break the
+// manifest check.
 var skipFiles = map[string]bool{
 	".DS_Store":     true,
+	".golangci.yml": true,
 	"coverage.out":  true,
 	"coverage.html": true,
 }

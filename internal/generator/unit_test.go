@@ -110,6 +110,21 @@ func TestVerifyCoverageIgnoresTheEmbeddedBundle(t *testing.T) {
 	mustContain(t, err.Error(), dir+"/index.html", "the declared path with no file")
 }
 
+// The lint configuration is rendered before every lint run and gitignored, so
+// it is present in any working tree where `make lint` has run and is declared
+// by no fragment. Reporting it would mean linting the skeleton breaks the
+// manifest check.
+func TestVerifyCoverageIgnoresTheRenderedLintConfig(t *testing.T) {
+	fixture := fstest.MapFS{
+		"manifests/core.yaml": {Data: []byte("files:\n  - path: a.txt\n    mode: generated\n")},
+		"a.txt":               {Data: []byte("a\n")},
+		".golangci.yml":       {Data: []byte("version: \"2\"\n")},
+	}
+	if err := VerifyCoverage(fixture); err != nil {
+		t.Fatalf("the rendered lint configuration was reported as undeclared: %v", err)
+	}
+}
+
 func TestSplitRegionRejectsBrokenMarkers(t *testing.T) {
 	cases := []struct {
 		name string
@@ -166,7 +181,7 @@ func TestTargetPathRenamesOnlyTheCommandDirectory(t *testing.T) {
 		"cmd/service/main.go":    "cmd/widget/main.go",
 		"cmd/servicebus/main.go": "cmd/servicebus/main.go",
 		"internal/service.go":    "internal/service.go",
-		".golangci.yml":          ".golangci.yml",
+		".lateregate.yaml":       ".lateregate.yaml",
 	}
 	for in, want := range cases {
 		if got := TargetPath(in, "widget"); got != want {
