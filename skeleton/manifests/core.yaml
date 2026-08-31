@@ -1,6 +1,5 @@
-# Core group: the Go module baseline, the build entry point, formatting and
-# lint configuration, the pre-commit hook, the shared test helpers, and the
-# coverage gate.
+# Core group: the Go module baseline, the build entry point, the quality-gate
+# configuration, the pre-commit hook, and the shared test helpers.
 #
 # Modes follow the contract. go.mod and go.sum are seed because a consumer adds
 # its own requirements on the first day, and a drift-checked module file would

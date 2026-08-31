@@ -44,8 +44,9 @@ green local run is evidence rather than a hope.
 Every change carries its tests. A defect fix carries the test that reproduces
 the defect: a fix with no failing test to prove it is a claim, not a fix.
 
-Coverage is gated. The threshold is in `.template.yaml`, and the gate fails when
-the figure is below it or when one package sits far below it.
+Coverage is gated. The floor every package has to clear is in `.lateregate.yaml`,
+and the gate fails when a package is below it or when a package produced no
+coverage data at all.
 
 Handle every error. Return it with context, or log it. A discarded error is a
 failure that reappears later without its cause.
