@@ -23,11 +23,11 @@ generated reference service are in the tree and build together.
 | Part | Where | State |
 | --- | --- | --- |
 | Generator and drift check | [`cmd/template/`](cmd/template), [`internal/generator/`](internal/generator) | `init`, `sync`, `check`, `upgrade`, `manifest` |
-| Skeleton | [`skeleton/`](skeleton) | 346 declared files; a compiling Go module with its own tests |
+| Skeleton | [`skeleton/`](skeleton) | 338 declared files; a compiling Go module with its own tests |
 | Reusable pipelines | [`.github/workflows/`](.github/workflows) | verify, release, deps, settings, all `workflow_call` |
 | Caller examples | [`examples/`](examples) | the thin files a consumer commits |
 | Reference service | [`example/`](example) | generated with every feature on, regenerated and diffed by `make example` |
-| Specs | [`specs/`](specs/README.md) | 30 design specs, one aspect per spec |
+| Specs | [`specs/`](specs/README.md) | 31 design specs, one aspect per spec |
 
 The skeleton is a self-contained Go module under the module path
 `example.com/service`, so the shipped code compiles and its tests run in this
@@ -139,7 +139,7 @@ skeleton/            the files a consumer materializes, as a compiling module
   internal/            config, observability, httpx, server, auth, store,
                        worker, web, version, testsupport
   frontend/            Bun, React, TypeScript, Vite, Vitest, prerender, i18n
-  tools/               coverage gate, docgen, speccheck, smoke, release, settings
+  tools/               assethash, docgen, release, settings, smoke
   deploy/              kustomize base and overlays
   manifests/           one manifest fragment per content group
   make/                make fragments the skeleton Makefile includes

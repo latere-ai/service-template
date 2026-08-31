@@ -26,8 +26,8 @@ EXAMPLE_VERSION := v0.1.0
 # copy.
 
 .PHONY: all build test test-race test-hermetic validate lint lint-config \
-        lint-modernize lint-otel fmt fmt-check skeleton-test skeleton-lint \
-        skeleton-cover spec-lint example example-update clean
+        lint-modernize lint-otel fmt fmt-check manifest skeleton-test \
+        skeleton-lint skeleton-cover spec-lint example example-update clean
 
 # A bare make runs every gate that needs no network and no container engine.
 all: fmt-check lint-modernize build test test-hermetic spec-lint validate lint
@@ -130,11 +130,18 @@ lint-otel:
 	@go tool lateregate otel-client
 	@cd $(SKELETON) && go tool lateregate otel-client
 
+# Every skeleton file is declared in exactly one manifest fragment. An
+# undeclared file is one the generator drops without saying so, which is how a
+# fix stops reaching consumers, and a declared path with no file behind it
+# fails generation in the first repository that scaffolds.
+manifest:
+	@go run ./cmd/template manifest -skeleton $(SKELETON)
+
 # Everything about this repository that the shared Go pipeline cannot host: the
 # shipped skeleton compiled and tested as source, linted as its own module, its
-# outbound clients checked, and the committed reference service diffed against
-# a fresh generation.
-validate: skeleton-test skeleton-lint lint-otel example
+# outbound clients checked, the manifest proved complete, and the committed
+# reference service diffed against a fresh generation.
+validate: skeleton-test skeleton-lint lint-otel manifest example
 
 # The reference service is a generated artifact that is committed, so the
 # committed tree and a fresh generation must be identical. A difference means
