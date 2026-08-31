@@ -13,7 +13,7 @@ func TestInitWritesTheSelectedFiles(t *testing.T) {
 
 	for _, want := range []string{
 		ConfigFile, LockFile,
-		".golangci.yml", ".githooks/pre-commit", "Makefile", "README.md",
+		".lateregate.yaml", ".githooks/pre-commit", "Makefile", "README.md",
 		"cmd/widget/main.go", "internal/version/version.go",
 		"deploy/service.yaml", "internal/store/store.go", "frontend/index.html",
 	} {
@@ -144,21 +144,21 @@ func TestCheckIsCleanAfterInit(t *testing.T) {
 func TestEditedGeneratedFileExitsThreeWithADiff(t *testing.T) {
 	src := skeletonFS(t)
 	dir := initRepo(t, src, testConfig())
-	write(t, dir, ".golangci.yml", "version: \"2\"\nlinters:\n  default: all\n")
+	write(t, dir, ".lateregate.yaml", "cover:\n  threshold: 50.0\n")
 
 	code, _, errOut := runCLI(t, src, "check", "-C", dir)
 	if code != ExitEdited {
 		t.Fatalf("check exited %d, want %d\n%s", code, ExitEdited, errOut)
 	}
-	mustContain(t, errOut, "edited: .golangci.yml", "the edited verdict")
-	mustContain(t, errOut, "+  default: all", "the diff of the local edit")
+	mustContain(t, errOut, "edited: .lateregate.yaml", "the edited verdict")
+	mustContain(t, errOut, "+  threshold: 50.0", "the diff of the local edit")
 	mustContain(t, errOut, "revert the change or send it upstream", "the remedy")
 }
 
 func TestDeletedGeneratedFileIsEdited(t *testing.T) {
 	src := skeletonFS(t)
 	dir := initRepo(t, src, testConfig())
-	if err := os.Remove(filepath.Join(dir, ".golangci.yml")); err != nil {
+	if err := os.Remove(filepath.Join(dir, ".lateregate.yaml")); err != nil {
 		t.Fatalf("remove: %v", err)
 	}
 	code, _, errOut := runCLI(t, src, "check", "-C", dir)
@@ -172,8 +172,8 @@ func TestBehindTemplateExitsFour(t *testing.T) {
 	dir := initRepo(t, skeletonFS(t), testConfig())
 
 	moved := mutableSkeleton(t)
-	if err := os.WriteFile(filepath.Join(moved, ".golangci.yml"),
-		[]byte("version: \"2\"\nlinters:\n  default: none\n  enable:\n    - errcheck\n    - gosec\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(moved, ".lateregate.yaml"),
+		[]byte("cover:\n  threshold: 95.0\nspec:\n  dir: specs\n  status: [drafted, complete]\n"), 0o644); err != nil {
 		t.Fatalf("move the template forward: %v", err)
 	}
 
@@ -181,7 +181,7 @@ func TestBehindTemplateExitsFour(t *testing.T) {
 	if code != ExitBehind {
 		t.Fatalf("check exited %d, want %d\n%s", code, ExitBehind, errOut)
 	}
-	mustContain(t, errOut, "behind: .golangci.yml", "the behind verdict")
+	mustContain(t, errOut, "behind: .lateregate.yaml", "the behind verdict")
 	mustContain(t, errOut, "run template upgrade", "the remedy")
 }
 
@@ -207,11 +207,11 @@ func TestANewTemplateFileIsBehindNotEdited(t *testing.T) {
 
 func TestEditedAndBehindReportsEdited(t *testing.T) {
 	dir := initRepo(t, skeletonFS(t), testConfig())
-	write(t, dir, ".golangci.yml", "version: \"2\"\nlinters:\n  default: all\n")
+	write(t, dir, ".lateregate.yaml", "cover:\n  threshold: 50.0\n")
 
 	moved := mutableSkeleton(t)
-	if err := os.WriteFile(filepath.Join(moved, ".golangci.yml"),
-		[]byte("version: \"2\"\nlinters:\n  default: none\n  enable:\n    - gosec\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(moved, ".lateregate.yaml"),
+		[]byte("cover:\n  threshold: 95.0\nspec:\n  dir: specs\n  status: [drafted, complete]\n"), 0o644); err != nil {
 		t.Fatalf("move the template forward: %v", err)
 	}
 
@@ -302,37 +302,37 @@ func TestMergedFileWithoutMarkersFailsTheCheck(t *testing.T) {
 func TestWaiverSuppressesTheEditedVerdict(t *testing.T) {
 	src := skeletonFS(t)
 	dir := initRepo(t, src, testConfig())
-	write(t, dir, ".golangci.yml", "version: \"2\"\nlinters:\n  default: all\n")
-	addWaiver(t, dir, ".golangci.yml", "one rule this repository cannot satisfy yet", "2026-12-01")
+	write(t, dir, ".lateregate.yaml", "cover:\n  threshold: 50.0\n")
+	addWaiver(t, dir, ".lateregate.yaml", "one rule this repository cannot satisfy yet", "2026-12-01")
 
 	code, out, errOut := runCLI(t, src, "check", "-C", dir)
 	if code != ExitOK {
 		t.Fatalf("a waived file exited %d, want %d\n%s", code, ExitOK, errOut)
 	}
-	mustContain(t, out, "waived: .golangci.yml", "the waiver report")
+	mustContain(t, out, "waived: .lateregate.yaml", "the waiver report")
 	mustContain(t, out, "one rule this repository cannot satisfy yet", "the waiver reason")
 }
 
 func TestExpiredWaiverFails(t *testing.T) {
 	src := skeletonFS(t)
 	dir := initRepo(t, src, testConfig())
-	write(t, dir, ".golangci.yml", "version: \"2\"\nlinters:\n  default: all\n")
-	addWaiver(t, dir, ".golangci.yml", "one rule this repository cannot satisfy yet", "2026-01-01")
+	write(t, dir, ".lateregate.yaml", "cover:\n  threshold: 50.0\n")
+	addWaiver(t, dir, ".lateregate.yaml", "one rule this repository cannot satisfy yet", "2026-01-01")
 
 	code, _, errOut := runCLI(t, src, "check", "-C", dir)
 	if code != ExitError {
 		t.Fatalf("an expired waiver exited %d, want %d\n%s", code, ExitError, errOut)
 	}
-	mustContain(t, errOut, "expired waiver: .golangci.yml", "the expiry failure")
+	mustContain(t, errOut, "expired waiver: .lateregate.yaml", "the expiry failure")
 }
 
 func TestWaiverDoesNotSuppressBehind(t *testing.T) {
 	dir := initRepo(t, skeletonFS(t), testConfig())
-	addWaiver(t, dir, ".golangci.yml", "a rule this repository cannot satisfy yet", "2026-12-01")
+	addWaiver(t, dir, ".lateregate.yaml", "a rule this repository cannot satisfy yet", "2026-12-01")
 
 	moved := mutableSkeleton(t)
-	if err := os.WriteFile(filepath.Join(moved, ".golangci.yml"),
-		[]byte("version: \"2\"\nlinters:\n  default: none\n  enable:\n    - gosec\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(moved, ".lateregate.yaml"),
+		[]byte("cover:\n  threshold: 95.0\nspec:\n  dir: specs\n  status: [drafted, complete]\n"), 0o644); err != nil {
 		t.Fatalf("move the template forward: %v", err)
 	}
 
@@ -391,8 +391,8 @@ func TestUpgradeMovesTheVersionAndPrintsTheDiff(t *testing.T) {
 	seedAfterEdit := read(t, dir, "README.md")
 
 	moved := mutableSkeleton(t)
-	if err := os.WriteFile(filepath.Join(moved, ".golangci.yml"),
-		[]byte("version: \"2\"\nlinters:\n  default: none\n  enable:\n    - errcheck\n    - gosec\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(moved, ".lateregate.yaml"),
+		[]byte("cover:\n  threshold: 95.0\nspec:\n  dir: specs\n  status: [drafted, complete]\n"), 0o644); err != nil {
 		t.Fatalf("move the template forward: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(moved, "README.md.tmpl"),
@@ -405,7 +405,7 @@ func TestUpgradeMovesTheVersionAndPrintsTheDiff(t *testing.T) {
 		t.Fatalf("upgrade exited %d\n%s", code, errOut)
 	}
 	mustContain(t, out, "from v1.4.0 to v1.5.0", "the version move")
-	mustContain(t, out, "+    - gosec", "the diff of the upgraded file")
+	mustContain(t, out, "+  threshold: 95.0", "the diff of the upgraded file")
 
 	cfg, err := LoadConfig(dir)
 	if err != nil {
@@ -414,7 +414,7 @@ func TestUpgradeMovesTheVersionAndPrintsTheDiff(t *testing.T) {
 	if cfg.Version != "v1.5.0" {
 		t.Errorf("the declaration records %s, want v1.5.0", cfg.Version)
 	}
-	mustContain(t, read(t, dir, ".golangci.yml"), "gosec", "the upgraded generated file")
+	mustContain(t, read(t, dir, ".lateregate.yaml"), "95.0", "the upgraded generated file")
 	if got := read(t, dir, "README.md"); got != seedAfterEdit {
 		t.Errorf("upgrade rewrote a seed file:\n%s", got)
 	}

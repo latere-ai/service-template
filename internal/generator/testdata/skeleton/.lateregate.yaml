@@ -1,7 +1,5 @@
-version: "2"
-linters:
-  default: none
-  enable:
-    - errcheck
-    - govet
-    - staticcheck
+cover:
+  threshold: 90.0
+spec:
+  dir: specs
+  status: [drafted, complete]

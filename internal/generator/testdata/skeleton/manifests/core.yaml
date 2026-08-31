@@ -1,5 +1,5 @@
 files:
-  - path: .golangci.yml
+  - path: .lateregate.yaml
     mode: generated
   - path: .githooks/pre-commit
     mode: generated

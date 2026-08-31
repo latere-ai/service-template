@@ -1,3 +1,3 @@
 files:
-  - path: .golangci.yml
+  - path: .lateregate.yaml
     mode: seed
