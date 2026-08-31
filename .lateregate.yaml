@@ -56,3 +56,13 @@ otel_client:
   # file cannot see. Scanning them from here would judge their code by this
   # module's rules, so they are skipped and gated where they live.
   skip: [skeleton, example]
+
+contract:
+  # The gates this repository does not hold yet. Every entry is temporary by
+  # construction: lateregate fails once the date passes, so an exemption has to
+  # be retired or argued for again rather than quietly becoming permanent.
+  exempt:
+    cover:
+      reason: >-
+        the tree is at 85.8% against a 90% per-package floor; the generator's own skeleton and example trees carry the untested weight
+      until: 2026-12-01
