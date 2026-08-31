@@ -55,16 +55,23 @@ accident.
 
 Coverage is measured across unit and integration tiers combined, because a
 unit-only figure understates a service whose logic lives behind a database
-boundary. The threshold is a value in `.template.yaml`, defaulting to 90 percent
-of statements. The gate compares the measured value and exits non-zero below the
-threshold.
+boundary. Both tiers build with `-coverpkg=./...`, so the same statement block
+appears in both profiles; the gate takes the union of the blocks either tier
+covered rather than a sum, which would double-count.
 
-Generated code, the `cmd` wiring file, and mock files are excluded from the
-denominator by an explicit path list, not by a pattern that could silently grow.
+The floor is judged per package, not as a repository average, and its value is
+`cover.threshold` in `.lateregate.yaml`, set to 90 percent of statements. An
+average lets a well-tested package carry an untested one and reports a number
+nobody can act on.
 
-The gate also reports the per-package figure and fails when any non-excluded
-package sits more than 20 points below the threshold, so a high overall number
-cannot hide one untested package.
+A package that genuinely cannot be measured is named in `cover.exempt` with the
+reason attached. An empty reason fails the load, because the value is the whole
+point of the entry.
+
+`-coverpkg=./...` also means a package with no test file of its own still
+appears in the profile at zero. A package that produces no coverage data at all
+is reported as unmeasured and fails, so a package cannot clear the floor by
+being absent from the profile.
 
 ### Flake policy
 
@@ -78,11 +85,12 @@ real race into a slow build.
 2. In required mode, a missing database makes the integration tier fail with a
    message naming the missing dependency, and never skip.
 3. The CI verify job fails when a required-tier test skips.
-4. The coverage gate fails below the configured threshold and passes at or above
-   it; both directions are tested.
-5. A package far below the threshold fails the build even when the overall
-   figure passes.
-6. The exclusion list is explicit; adding a path to it shows in the diff.
+4. The coverage gate fails a package below the configured floor and passes one
+   at or above it; both directions are tested.
+5. A package that produced no coverage data fails the build rather than being
+   treated as passing.
+6. The exemption list is explicit and each entry carries a reason; adding a
+   package to it shows in the diff.
 
 ## Out of scope
 

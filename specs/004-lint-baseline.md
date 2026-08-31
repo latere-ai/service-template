@@ -4,7 +4,7 @@ status: drafted
 depends_on:
   - specs/001-template-contract.md
   - specs/003-formatting-and-hooks.md
-affects: [skeleton/.golangci.yml, skeleton/Makefile]
+affects: [skeleton/.lateregate.yaml, skeleton/make/core.mk]
 created: 2026-08-23
 author: changkun
 trigger: foundation spec
@@ -24,10 +24,19 @@ service and not in another.
 
 ## Scope
 
-Layer 2. The generated `.golangci.yml`, the rule set, the exclusion mechanism,
+Layer 2. The rendered `.golangci.yml`, the rule set, the exclusion mechanism,
 and the lint targets.
 
 ## Design
+
+### Rendered, not committed
+
+`golangci-lint` cannot inherit a configuration, so a shared rule set reaches a
+repository only as a copy, and a committed copy is a copy that drifts. The set
+therefore lives in `latere.ai/x/ci-gate`, and `make lint-config` renders it on
+every run into a gitignored `.golangci.yml`. A repository adds what only it
+needs through `golangci.extra` in `.lateregate.yaml`. It cannot weaken what the
+shared set asserts, because it never holds the file that states it.
 
 ### Explicit, not additive
 
@@ -51,14 +60,13 @@ explicit assignment with a comment, never as a silent drop.
 ### Scoped rules
 
 A rule that applies to one package, such as the request-path logging rule, is
-expressed once in the generated configuration with a `path-except` exclusion
-anchored to a directory the layout spec fixes. Because the layout is fixed, the
-same expression works in every consumer, and the rule cannot be quietly
-weakened by moving code.
+expressed once with an exclusion anchored to a directory the layout spec fixes.
+Because the layout is fixed, the same expression works in every consumer, and
+the rule cannot be quietly weakened by moving code.
 
 ### Configuration timeouts
 
-The generated file sets an explicit run timeout and includes test files.
+The rendered file sets an explicit run timeout and includes test files.
 Excluding tests from lint produces a second, lower standard for the code that
 proves the first one.
 
@@ -74,7 +82,7 @@ hook that blocks a parallel build gets disabled.
 
 ## Acceptance criteria
 
-1. The generated `.golangci.yml` sets `default: none` and enables the listed
+1. The rendered `.golangci.yml` sets `default: none` and enables the listed
    linters and no others.
 2. A fixture package with an unchecked error, a dead assignment, a stale idiom,
    a forbidden import, and a non-context log call produces exactly five findings,
@@ -82,8 +90,9 @@ hook that blocks a parallel build gets disabled.
 3. The scoped logging rule fires inside the request-path package and stays quiet
    outside it; a fixture proves both directions.
 4. `make lint` is clean on the scaffold.
-5. A drift test compares the consumer copy against the template copy and fails
-   on a mismatch.
+5. No repository commits a `.golangci.yml`. Every module gitignores it and
+   renders it before the lint run, so the copy on disk is always what the
+   shared set says and there is no drift for a check to find.
 
 ## Out of scope
 

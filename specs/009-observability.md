@@ -4,7 +4,7 @@ status: drafted
 depends_on:
   - specs/008-service-runtime-contract.md
   - specs/004-lint-baseline.md
-affects: [skeleton/internal/observability/, skeleton/.golangci.yml]
+affects: [skeleton/internal/observability/, skeleton/.lateregate.yaml]
 created: 2026-08-23
 author: changkun
 trigger: foundation spec
