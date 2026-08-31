@@ -4,8 +4,13 @@
 # are the pipelines a consumer repository calls. None of them runs here, so
 # without this file the template ships gates it never runs against itself.
 #
-# It runs one target. The Makefile decides what a gate is, so the pipeline and
-# a developer's machine cannot disagree about what passing means.
+# The gates are the shared ones from latere-ai/ci, reached through this
+# repository's Makefile: go-verify probes the Makefile and runs the targets it
+# finds, so the pipeline and a developer's machine cannot disagree about what
+# passing means. What is specific to a template rather than to a Go repository
+# -- the skeleton compiled and linted as source, and the committed reference
+# service diffed against a fresh generation -- is the `validate` target, which
+# go-verify runs as a job of its own.
 name: template
 
 on:
@@ -23,18 +28,4 @@ concurrency:
 
 jobs:
   verify:
-    name: verify
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-
-      - name: Set up Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
-        with:
-          go-version-file: go.mod
-
-      - name: Install golangci-lint
-        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.1
-
-      - name: Build, test, generate, and lint
-        run: make all
+    uses: latere-ai/ci/.github/workflows/go-verify.yml@v1

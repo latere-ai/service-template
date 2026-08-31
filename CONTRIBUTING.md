@@ -20,8 +20,9 @@ spec is a reasonable first contribution on its own.
 The template holds itself to the standards it ships, so CI checks the same
 things a consumer's CI would:
 
-- `make fmt-check lint test` is what CI runs. Running it first saves you a
-  round trip.
+- `make all` is what CI runs, target for target: the pipeline probes this
+  repository's Makefile and runs what it finds, so there is no second list of
+  commands anywhere. Running it first saves you a round trip.
 - A bug fix wants a test that fails without the fix. That test is how the fix
   stays fixed.
 - Coverage has a threshold, and the build reports where you landed.

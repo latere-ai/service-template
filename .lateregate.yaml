@@ -30,10 +30,13 @@ spec:
   settled: [complete, superseded]
 
 hermetic:
-  # fmt-check asks git for the files this repository tracks, so the suite that
-  # exercises it needs git. Naming the directory is what keeps that dependency
-  # visible rather than ambient.
-  allow: [/usr/bin]
+  # Two directories, each for one named binary. /usr/bin is git: fmt-check asks
+  # git for the files this repository tracks, so the suite that exercises it
+  # needs git. /bin is sh: internal/verifypipeline drives the pipeline's shell
+  # scripts as real programs, because a gate written in shell is only proved by
+  # running it with the inputs a real run would produce. Naming the directories
+  # is what keeps both dependencies visible rather than ambient.
+  allow: [/usr/bin, /bin]
 
 modernize:
   # The same list the generated .golangci.yml reads, so the toolchain's fixers
@@ -43,7 +46,13 @@ modernize:
     - errorsastype
 
 otel_client:
-  # Nothing here serves a request. This module is a code generator run from a
-  # workstation or a runner, so there is no inbound trace for an outbound call
-  # to continue.
-  skip: [cmd, internal]
+  # This module builds no outbound HTTP client at all: it is a code generator
+  # run from a workstation or a runner, so there is no inbound trace for an
+  # outbound call to continue. The gate is kept anyway, because the cheapest
+  # moment to catch the first client is the one that adds it.
+  #
+  # skeleton and example are separate modules with their own otel_client
+  # configuration, and their tools/ trees are exempt there for reasons this
+  # file cannot see. Scanning them from here would judge their code by this
+  # module's rules, so they are skipped and gated where they live.
+  skip: [skeleton, example]

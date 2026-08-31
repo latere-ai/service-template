@@ -25,17 +25,37 @@ EXAMPLE_VERSION := v0.1.0
 # a config, so the only way two modules cannot drift is for neither to hold a
 # copy.
 
-.PHONY: all build test lint lint-config lint-modernize fmt fmt-check \
-        skeleton-test skeleton-lint spec-check cover example example-update clean
+.PHONY: all build test test-race test-hermetic validate lint lint-config \
+        lint-modernize lint-otel fmt fmt-check skeleton-test skeleton-lint \
+        skeleton-cover spec-lint example example-update clean
 
 # A bare make runs every gate that needs no network and no container engine.
-all: fmt-check lint-modernize build test skeleton-test spec-check example lint
+all: fmt-check lint-modernize build test test-hermetic spec-lint validate lint
 
 build:
 	go build ./...
 
+# go vet and then the suite, without the race detector. The shared pipeline
+# runs this target on both runners in its matrix and runs test-race as a job of
+# its own, so the fast signal and the expensive one are not the same wait. The
+# target never depends on lint: a failing lint that hides a failing test costs
+# a second push to learn the second fact.
 test:
+	go vet ./...
+	go test ./...
+
+# The generator is concurrent where it walks the skeleton, and the reference
+# service it produces is exercised under -race by skeleton-test.
+test-race:
 	go test -race ./...
+
+# Both modules with only the Go toolchain on PATH. A test that depends on what
+# happens to be installed passes on a workstation and fails on a runner, which
+# is the worst order to find out. .lateregate.yaml names the two directories
+# each module admits and why.
+test-hermetic:
+	@go tool lateregate hermetic
+	@cd $(SKELETON) && go tool lateregate hermetic
 
 # The skeleton is compiled and tested as source, before generation, so a defect
 # in shipped code fails here rather than in the first repository that scaffolds.
@@ -46,12 +66,17 @@ test:
 skeleton-test:
 	cd $(SKELETON) && go build ./... && go test -race ./...
 
+# The skeleton's coverage gate, reachable from here so a developer need not
+# change directory. It is named for the module it measures rather than `cover`,
+# because the shared pipeline probes for `cover` and would run this one with
+# neither of the dependencies below present.
+#
 # The coverage gate runs the unit tier and the integration tier and holds the
 # combined figure to the threshold. It is not part of `all`, because the
 # integration tier requires the dependencies it exists to exercise: a reachable
 # database, and a browser for the diagram renderer. The pipeline runs it where
 # those are provided.
-cover:
+skeleton-cover:
 	cd $(SKELETON) && $(MAKE) cover
 
 # Each module renders its own .golangci.yml from the shared template. Both are
@@ -64,10 +89,20 @@ lint-config:
 # process briefly. The runs are sequential, so the flag admits what is already
 # true rather than asking for concurrency: without it the second run fails on
 # the first one's lock.
-lint: lint-config
-	$(call require_tool,golangci-lint,go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest)
-	golangci-lint run --allow-parallel-runners ./...
-	cd $(SKELETON) && golangci-lint run --allow-parallel-runners ./...
+# The version is pinned rather than `latest`, so a run cannot pick up a build
+# published after this Makefile was reviewed, and `go run` fetches it, so the
+# gate needs no separately installed binary to be a gate.
+GOLANGCI_VERSION ?= v2.13.1
+GOLANGCI = go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_VERSION)
+
+lint: lint-config skeleton-lint
+	$(GOLANGCI) run --allow-parallel-runners ./...
+
+# The skeleton's half, as a target of its own because the shared pipeline lints
+# only the module at the repository root. Without a name of its own the shipped
+# code would be linted on a workstation and nowhere else, so validate runs it.
+skeleton-lint: lint-config
+	cd $(SKELETON) && $(GOLANGCI) run --allow-parallel-runners ./...
 
 lint-modernize:
 	@go tool lateregate modernize
@@ -84,9 +119,22 @@ fmt-check:
 	@cd $(SKELETON) && go tool lateregate fmt-check
 
 # Both spec trees, held to the conventions each module declares.
-spec-check:
+spec-lint:
 	@go tool lateregate spec-lint
 	@cd $(SKELETON) && go tool lateregate spec-lint
+
+# An outbound client with no tracing transport loses the trace at the boundary,
+# silently: no client span, no traceparent, nothing logged. This module builds
+# no client today, which is exactly when the gate is cheapest to add.
+lint-otel:
+	@go tool lateregate otel-client
+	@cd $(SKELETON) && go tool lateregate otel-client
+
+# Everything about this repository that the shared Go pipeline cannot host: the
+# shipped skeleton compiled and tested as source, linted as its own module, its
+# outbound clients checked, and the committed reference service diffed against
+# a fresh generation.
+validate: skeleton-test skeleton-lint lint-otel example
 
 # The reference service is a generated artifact that is committed, so the
 # committed tree and a fresh generation must be identical. A difference means
@@ -126,14 +174,3 @@ generate-example:
 
 clean:
 	rm -rf $(EXAMPLE).check
-
-# A gate that cannot run is a failed gate, never a pass. Every target that
-# shells out to a tool asserts the tool is present and names the install
-# command, so a missing tool fails loudly instead of reporting nothing.
-define require_tool
-@command -v $(1) >/dev/null 2>&1 || { \
-	echo "$(1) is not installed."; \
-	echo "install it with: $(2)"; \
-	exit 1; \
-}
-endef
