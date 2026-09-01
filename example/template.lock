@@ -976,13 +976,13 @@ files:
     digest: sha256:4aad5152fb9e97b14bdf2dccb4e995d6eb32b5805135fbce9f5e7d8fe5b82ebc
   - path: tools/settings/failure_test.go
     mode: generated
-    digest: sha256:887d2a6559d53d5d73086fd716b409501afd757fa12fb4595e5b0df633f54711
+    digest: sha256:4a9f1ccb25cfb3969e3198965bf1f6e7fcae0e338f7072b960d8178734a000d8
   - path: tools/settings/github.go
     mode: generated
     digest: sha256:7e3e0a33583015e4ae88dd8ef7f95cce5deaf26c29741d075c8b3091e35b7c53
   - path: tools/settings/main.go
     mode: generated
-    digest: sha256:e37d051fc96d1461e9ca224773cee9cb7eeadc88d7536ea53cecc3b3a108766d
+    digest: sha256:341905b63284d24bc303ef6be7cb0941215b999a926153df49caa47609d4ab95
   - path: tools/settings/plan.go
     mode: generated
     digest: sha256:cd3735a8464f639cce2091bdcb0e2e65b41836ddbbcb89d081eb051d715e0d3b

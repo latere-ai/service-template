@@ -167,15 +167,3 @@ func TestReportWithoutDrift(t *testing.T) {
 		t.Fatalf("the summary does not state the match\n%s", data)
 	}
 }
-
-// The endpoint is read from the environment when the flag is absent, which is
-// how the tool reaches an enterprise host.
-func TestEnvironmentDefaults(t *testing.T) {
-	if got := envOr("SETTINGS_TEST_ABSENT", "fallback"); got != "fallback" {
-		t.Errorf("envOr returned %q, want the fallback", got)
-	}
-	t.Setenv("SETTINGS_TEST_PRESENT", "value")
-	if got := envOr("SETTINGS_TEST_PRESENT", "fallback"); got != "value" {
-		t.Errorf("envOr returned %q, want the environment value", got)
-	}
-}

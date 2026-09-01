@@ -14,6 +14,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"flag"
 	"fmt"
@@ -51,7 +52,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	file := fs.String("file", ".github/settings.yml", "the settings declaration")
 	owners := fs.String("codeowners", ".github/CODEOWNERS", "the ownership file")
 	repo := fs.String("repo", os.Getenv("GITHUB_REPOSITORY"), "the repository, as owner/name")
-	apiURL := fs.String("api-url", envOr("GITHUB_API_URL", "https://api.github.com"),
+	apiURL := fs.String("api-url", cmp.Or(os.Getenv("GITHUB_API_URL"), "https://api.github.com"),
 		"the repository API endpoint")
 	token := fs.String("token", os.Getenv("GITHUB_TOKEN"), "an authenticated token")
 	failOnDrift := fs.Bool("fail-on-drift", false, "exit non-zero when the live configuration differs")
@@ -206,11 +207,4 @@ func report(d Declaration, live Live, changes []Change, stdout, stderr io.Writer
 		return exitError
 	}
 	return exitOK
-}
-
-func envOr(name, fallback string) string {
-	if value := os.Getenv(name); value != "" {
-		return value
-	}
-	return fallback
 }
