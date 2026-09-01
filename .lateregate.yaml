@@ -28,6 +28,13 @@ spec:
   numbered: true
   started: [dispatched, in-progress, testing, complete]
   settled: [complete, superseded]
+  # `superseded` is the one status whose work is over rather than paused:
+  # it moved to the spec that replaced it, which carries its own edges.
+  # `complete` is not terminal, because a shipped spec is the live record of
+  # what the template does and belongs where a reader will find it.
+  archive:
+    dir: .archive
+    statuses: [superseded]
 
 hermetic:
   # Two directories, each for one named binary. /usr/bin is git: fmt-check asks
