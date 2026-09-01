@@ -400,10 +400,10 @@ files:
     digest: sha256:e40ee4c8ecf1846f1425fa60ed29c597df1cd9859cc9f848400b889b3b0c2798
   - path: go.mod
     mode: seed
-    digest: sha256:978e37eccc0bee48485ed4e7ac4848bd4d7d6e2e5c9dfc8816abff5e40775046
+    digest: sha256:b18c887046377c8d81e5716e6fa95d19b0d5ab0bb35c670dd5b3012888fa9fce
   - path: go.sum
     mode: seed
-    digest: sha256:1ca4f4ff461178c5ed00398c752d5beab83528b5feba600a33ed070c3ea822e1
+    digest: sha256:5c5d83f7607248628aa9c045973db10a6b6cb4078cdf70412afa90643a98b845
   - path: internal/auth/anonymous.go
     mode: generated
     digest: sha256:6611fdb0a37cd87530e634a36cc0e7e377bd6058ce4982481b2817211aef3548
