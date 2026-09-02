@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: MIT
+
 // Package verifypipeline holds the tests for the reusable verify workflow and
 // the shell steps it runs.
 //

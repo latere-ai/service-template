@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: MIT
+
 // Command template materializes the files a service template owns and proves
 // that a consumer repository still matches the version it claims.
 package main
