@@ -6,7 +6,6 @@
 # nobody should trust.
 
 cover:
-  threshold: 90.0
   trim_prefix: latere.ai/x/service-template/
   exempt:
     cmd/template: >-
@@ -14,7 +13,6 @@ cover:
       tested directly through internal/generator
 
 spec:
-  dir: specs
   status:
     - drafted
     - validated
@@ -24,7 +22,6 @@ spec:
     - complete
     - superseded
   require: [title, status, created, author, trigger]
-  index: specs/README.md
   numbered: true
   started: [dispatched, in-progress, testing, complete]
   settled: [complete, superseded]
@@ -45,13 +42,6 @@ hermetic:
   # is what keeps both dependencies visible rather than ambient.
   allow: [/usr/bin, /bin]
 
-modernize:
-  # The same list the generated .golangci.yml reads, so the toolchain's fixers
-  # and the modernize linter cannot disagree about which are on.
-  disable:
-    - newexpr
-    - errorsastype
-
 otel_client:
   # This module builds no outbound HTTP client at all: it is a code generator
   # run from a workstation or a runner, so there is no inbound trace for an
@@ -64,12 +54,20 @@ otel_client:
   # module's rules, so they are skipped and gated where they live.
   skip: [skeleton, example]
 
-contract:
-  # The gates this repository does not hold yet. Every entry is temporary by
-  # construction: lateregate fails once the date passes, so an exemption has to
-  # be retired or argued for again rather than quietly becoming permanent.
-  exempt:
-    cover:
-      reason: >-
-        the tree is at 85.8% against a 90% per-package floor; the generator's own skeleton and example trees carry the untested weight
-      until: 2026-12-01
+license:
+  # The generator's own files. The skeleton and the example are what a new
+  # service starts from, and the licence a service is released under is that
+  # service's decision, so they are skipped here.
+  spdx: MIT
+  holder: Latere AI
+  extensions: ['.go']
+  names: [Makefile]
+  skip: [skeleton, example]
+
+# Gates this repository does not run yet. Each entry is temporary by
+# construction: after the date the gate runs and fails on its own terms.
+waive:
+  cover:
+    reason: >-
+      the tree is at 85.8% against a 90% per-package floor; the generator's own skeleton and example trees carry the untested weight
+    until: 2026-12-01

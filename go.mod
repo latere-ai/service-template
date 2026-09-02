@@ -6,5 +6,5 @@ tool latere.ai/x/ci-gate/cmd/lateregate
 
 require (
 	github.com/goccy/go-yaml v1.19.2 // indirect
-	latere.ai/x/ci-gate v0.25.2 // indirect
+	latere.ai/x/ci-gate v0.27.4 // indirect
 )

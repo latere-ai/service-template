@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Latere AI
+# SPDX-License-Identifier: MIT
+
 # The template's own build. It verifies three things that have to stay in step:
 # the generator, the skeleton it ships, and the reference service the two
 # produce together.
@@ -41,13 +44,12 @@ build:
 # target never depends on lint: a failing lint that hides a failing test costs
 # a second push to learn the second fact.
 test:
-	go vet ./...
-	go test ./...
+	@go tool lateregate test
 
 # The generator is concurrent where it walks the skeleton, and the reference
 # service it produces is exercised under -race by skeleton-test.
 test-race:
-	go test -race ./...
+	@go tool lateregate race
 
 # Both modules with only the Go toolchain on PATH. A test that depends on what
 # happens to be installed passes on a workstation and fails on a runner, which
@@ -95,8 +97,8 @@ lint-config:
 GOLANGCI_VERSION ?= v2.13.1
 GOLANGCI = go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_VERSION)
 
-lint: lint-config skeleton-lint
-	$(GOLANGCI) run --allow-parallel-runners ./...
+lint: skeleton-lint
+	@go tool lateregate lint
 
 # The skeleton's half, as a target of its own because the shared pipeline lints
 # only the module at the repository root. Without a name of its own the shipped
@@ -181,3 +183,9 @@ generate-example:
 
 clean:
 	rm -rf $(EXAMPLE).check
+
+# The whole shared bar. Every gate lives in lateregate, pinned as a tool in
+# go.mod; this target is a name for `go tool lateregate` and nothing else.
+# The plan: `go tool lateregate list`. One gate: `go tool lateregate <gate>`.
+check:
+	@go tool lateregate
