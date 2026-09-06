@@ -105,7 +105,7 @@ gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c/go.mod h1:JHkPIbrfpd72SG/EV
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
-latere.ai/x/ci-gate v0.24.0 h1:+3JWga93U/TQB9Bw83797DDyJuHOtYRovNicrNLxHJM=
-latere.ai/x/ci-gate v0.24.0/go.mod h1:Iw6RuLhPgpP+hRfVTb0UxnygMyZIi1U7E0/iM5fbAhA=
-latere.ai/x/pkg v0.50.0 h1:SwzOz+rawDgedmE8LtYDJT/l5IbCB26JVDVFuyB4XRk=
-latere.ai/x/pkg v0.50.0/go.mod h1:bb5bOZNIH1LUGie0l09SFKwA1JOFNaIzTFy9pK2akQY=
+latere.ai/x/ci-gate v0.29.1 h1:kUwv2uoVmo2UfxqaT/IlUm5GtGO+wevH93sM+pv3fYs=
+latere.ai/x/ci-gate v0.29.1/go.mod h1:q2A9P8rq93BL+RO/JHxpXwnTuP2pb9xFoGo5jFVxUYk=
+latere.ai/x/pkg v0.58.0 h1:qnskmxwTQ5S7OIWFa127CdlaX6BbR4QmYM0ZsimoK+U=
+latere.ai/x/pkg v0.58.0/go.mod h1:nLBu/entEtshydcnUXeDQ5tMwmjocPtbocAROR8qPqc=
