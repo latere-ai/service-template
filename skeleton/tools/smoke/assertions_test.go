@@ -16,7 +16,7 @@ import (
 // test states the fault it wants and reads the assertion that catches it.
 type service struct {
 	readyStatus  int
-	readyBody    readyBody
+	readyBody    string
 	versionBody  versionBody
 	document     string
 	failReadyFor int32
@@ -28,17 +28,17 @@ func (s *service) handler() http.Handler {
 	mux.HandleFunc(readyPath, func(w http.ResponseWriter, r *http.Request) {
 		if s.readyCalls.Add(1) <= s.failReadyFor {
 			w.WriteHeader(http.StatusServiceUnavailable)
-			_ = json.NewEncoder(w).Encode(readyBody{Status: "fail"})
+			_, _ = fmt.Fprint(w, "not ready: postgres: starting\n")
 			return
 		}
 		w.WriteHeader(s.readyStatus)
-		_ = json.NewEncoder(w).Encode(s.readyBody)
+		_, _ = fmt.Fprint(w, s.readyBody)
 	})
 	mux.HandleFunc(versionPath, func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(s.versionBody)
 	})
 	mux.HandleFunc("/livez", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = fmt.Fprint(w, `{"status":"ok"}`)
+		_, _ = fmt.Fprint(w, "ok\n")
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
@@ -51,15 +51,8 @@ func (s *service) handler() http.Handler {
 func healthy() *service {
 	return &service{
 		readyStatus: http.StatusOK,
-		readyBody: readyBody{
-			Status: "ok",
-			Checks: []struct {
-				Name   string `json:"name"`
-				Status string `json:"status"`
-				Error  string `json:"error,omitempty"`
-			}{{Name: "postgres", Status: "ok"}},
-		},
-		versionBody: versionBody{Version: "v1.2.3", Commit: "abc123", AssetHash: "index-C3xK9pQ2.js"},
+		readyBody:   "ok\n",
+		versionBody: versionBody{Version: "v1.2.3", Commit: "abc123"},
 		document:    `<html><body><script src="/assets/index-C3xK9pQ2.js"></script></body></html>`,
 	}
 }
@@ -130,15 +123,13 @@ func TestHealthyTargetPassesEveryAssertion(t *testing.T) {
 func TestReadinessNamesTheFailingDependency(t *testing.T) {
 	s := healthy()
 	s.readyStatus = http.StatusServiceUnavailable
-	s.readyBody.Status = "fail"
-	s.readyBody.Checks[0].Status = "fail"
-	s.readyBody.Checks[0].Error = "dial tcp: connection refused"
+	s.readyBody = "not ready: postgres: dial tcp: connection refused\n"
 
 	r := find(t, runAssertions(t, start(t, s)), "readiness")
 	if r.OK() {
 		t.Fatal("readiness passed while a dependency was down")
 	}
-	if !strings.Contains(r.Observed, "postgres=fail") {
+	if !strings.Contains(r.Observed, "postgres: dial tcp: connection refused") {
 		t.Errorf("observed value %q does not name the failing dependency", r.Observed)
 	}
 }
@@ -168,7 +159,7 @@ func TestStaleCommitFailsBuildIdentity(t *testing.T) {
 	}
 }
 
-// The binary reports the released asset but the document still references the
+// The binary is the released build but the document still references the
 // previous bundle. Everything else about this deploy looks successful.
 func TestPreviousBundleServedFailsTheServedBundleAssertion(t *testing.T) {
 	s := healthy()
@@ -187,21 +178,11 @@ func TestPreviousBundleServedFailsTheServedBundleAssertion(t *testing.T) {
 	}
 }
 
-func TestReportedAssetHashMismatchFails(t *testing.T) {
-	s := healthy()
-	s.versionBody.AssetHash = "index-OTHER123.js"
-
-	r := find(t, runAssertions(t, start(t, s)), "build identity: entry asset")
-	if r.OK() || r.Observed != "index-OTHER123.js" {
-		t.Fatalf("entry asset assertion = %+v, want a failure naming the observed asset", r)
-	}
-}
-
 func TestNoFrontendOmitsTheBundleAssertions(t *testing.T) {
 	cfg := start(t, healthy())
 	cfg.ExpectAsset = NoFrontend
 	for _, r := range runAssertions(t, cfg) {
-		if r.Name == "served bundle" || r.Name == "build identity: entry asset" {
+		if r.Name == "served bundle" {
 			t.Errorf("assertion %q ran for a service with no frontend", r.Name)
 		}
 	}

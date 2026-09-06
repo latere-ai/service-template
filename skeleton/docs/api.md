@@ -35,7 +35,7 @@ service registers it in its route table.
 | --- | --- | --- | --- |
 | GET | `/livez` | public | Reports that the process is running. It answers while the process is draining. |
 | GET | `/readyz` | public | Reports that every registered dependency is reachable. It answers 503 while the process is draining or while a dependency is down, and names the failing dependency in the body. |
-| GET | `/version` | public | Reports the build identity of the running binary: version, commit, build time, and asset hash. |
+| GET | `/version` | public | Reports the build identity of the running binary: version, commit, and build time. |
 
 ## Request identification
 

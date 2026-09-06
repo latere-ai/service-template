@@ -38,7 +38,7 @@ func operationalRoutes() []Route {
 		},
 		{
 			Method: http.MethodGet, Path: server.VersionPath, Access: "public",
-			Summary: "Reports the build identity of the running binary: version, commit, build time, and asset hash.",
+			Summary: "Reports the build identity of the running binary: version, commit, and build time.",
 		},
 	}
 }

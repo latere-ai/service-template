@@ -9,4 +9,4 @@ checks:
   - name: liveness
     path: /livez
     status: 200
-    contains: '"status":"ok"'
+    contains: ok
