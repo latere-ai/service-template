@@ -229,7 +229,7 @@ func TestTheCatchAllDoesNotConflictWithRegisteredRoutes(t *testing.T) {
 	mux.HandleFunc("POST /v1/things", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 	})
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("GET /livez", func(w http.ResponseWriter, _ *http.Request) {
 		if _, err := io.WriteString(w, "ok"); err != nil {
 			t.Errorf("write the probe body: %v", err)
 		}
@@ -241,7 +241,7 @@ func TestTheCatchAllDoesNotConflictWithRegisteredRoutes(t *testing.T) {
 		status               int
 	}{
 		{http.MethodGet, "/v1/things", "api", http.StatusOK},
-		{http.MethodGet, "/healthz", "ok", http.StatusOK},
+		{http.MethodGet, "/livez", "ok", http.StatusOK},
 		{http.MethodGet, "/dashboard", shell, http.StatusOK},
 	}
 	for _, c := range cases {

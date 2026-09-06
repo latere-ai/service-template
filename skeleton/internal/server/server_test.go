@@ -147,8 +147,8 @@ func TestDrainMarksUnreadyBeforeItStopsAccepting(t *testing.T) {
 	// The listener is still open here, which is the whole point of the delay:
 	// a request the load balancer already dispatched still gets a response.
 	body := h.waitStatus(ReadyPath, http.StatusServiceUnavailable)
-	if !strings.Contains(body, statusDraining) {
-		t.Errorf("body = %q, want it to report %q", body, statusDraining)
+	if !strings.Contains(body, errDraining.Error()) {
+		t.Errorf("body = %q, want it to report %q", body, errDraining.Error())
 	}
 	if resp, _ := h.get(LivePath); resp.StatusCode != http.StatusOK {
 		t.Errorf("GET %s during drain = %d, want 200", LivePath, resp.StatusCode)
