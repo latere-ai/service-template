@@ -10,10 +10,14 @@ back to a known state.
 | --- | --- | --- |
 | `/livez` | The process is running. | Liveness. Restart when it stops answering. |
 | `/readyz` | Every registered dependency is reachable and the process is not draining. | Readiness. Remove from the load balancer when it fails. |
-| `/version` | The build identity: version, commit, build time, and asset hash. | Deployment evidence. |
+| `/version` | The build identity: version, commit, and build time. | Deployment evidence. |
 
 `/readyz` names the failing dependency in its body, so a failing probe
 identifies what is down and not only which replica noticed.
+
+`/healthz` answers as `/livez` for one release, so a manifest that still
+probes the old path keeps working while it is moved. It is removed in the
+release after.
 
 Do not use `/readyz` for liveness. A dependency outage would restart every
 replica, which turns a recoverable outage into a restart loop.

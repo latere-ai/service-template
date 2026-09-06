@@ -27,22 +27,12 @@ const maxBody = 512 << 10
 // bodyExcerpt is how much of a body the evidence block prints.
 const bodyExcerpt = 160
 
-// readyBody is the readiness response the runtime contract defines.
-type readyBody struct {
-	Status string `json:"status"`
-	Checks []struct {
-		Name   string `json:"name"`
-		Status string `json:"status"`
-		Error  string `json:"error,omitempty"`
-	} `json:"checks"`
-}
-
-// versionBody is the build identity the runtime contract defines.
+// versionBody is the build identity the runtime contract (pkg/health)
+// defines.
 type versionBody struct {
 	Version   string `json:"version"`
 	Commit    string `json:"commit"`
 	BuildTime string `json:"build_time"`
-	AssetHash string `json:"asset_hash"`
 }
 
 // response is one fetched HTTP response, already read.
@@ -73,7 +63,7 @@ func fetch(ctx context.Context, client *http.Client, method, base, p string, hea
 	return response{status: resp.StatusCode, body: body}, nil
 }
 
-// Assertions builds the list the run executes: readiness, the three build
+// Assertions builds the list the run executes: readiness, the build
 // identity fields, the entry asset the live document references, and the
 // consumer's own checks.
 func Assertions(cfg Config, client *http.Client) ([]Assertion, error) {
@@ -94,38 +84,20 @@ func Assertions(cfg Config, client *http.Client) ([]Assertion, error) {
 }
 
 // readiness asserts the service reports every registered dependency healthy.
+// A failing probe names each dependency that is down in its body, and the
+// observed value carries that body so the evidence says what was down.
 func readiness(cfg Config, client *http.Client) Assertion {
 	return Assertion{
 		Name:     "readiness",
-		Expected: "200 with every dependency ok",
+		Expected: "200 ok",
 		Check: func(ctx context.Context) (string, error) {
 			resp, err := fetch(ctx, client, http.MethodGet, cfg.BaseURL, readyPath, nil)
 			if err != nil {
 				return "no response", err
 			}
-			var body readyBody
-			if err := json.Unmarshal(resp.body, &body); err != nil {
-				return fmt.Sprintf("%d %s", resp.status, excerpt(resp.body)),
-					fmt.Errorf("parse %s body: %w", readyPath, err)
-			}
-			states := make([]string, 0, len(body.Checks))
-			var failing []string
-			for _, c := range body.Checks {
-				state := c.Name + "=" + c.Status
-				if c.Error != "" {
-					state += " (" + c.Error + ")"
-				}
-				states = append(states, state)
-				if c.Status != "ok" {
-					failing = append(failing, c.Name)
-				}
-			}
-			observed := fmt.Sprintf("%d status=%s checks=[%s]", resp.status, body.Status, strings.Join(states, ", "))
-			switch {
-			case resp.status != http.StatusOK:
-				return observed, fmt.Errorf("%s returned %d", readyPath, resp.status)
-			case len(failing) > 0:
-				return observed, fmt.Errorf("dependencies not ready: %s", strings.Join(failing, ", "))
+			observed := fmt.Sprintf("%d %s", resp.status, excerpt(resp.body))
+			if resp.status != http.StatusOK {
+				return observed, fmt.Errorf("%s returned %d: %s", readyPath, resp.status, excerpt(resp.body))
 			}
 			return observed, nil
 		},
@@ -133,9 +105,9 @@ func readiness(cfg Config, client *http.Client) Assertion {
 }
 
 // buildIdentity asserts the live service reports the build the release made.
-// The three fields are separate assertions because each one fails for its own
-// reason: a stale replica, a tag on the wrong commit, and a binary carrying
-// the previous bundle are three different faults.
+// The two fields are separate assertions because each one fails for its own
+// reason: a stale replica and a tag on the wrong commit are two different
+// faults. The bundle is asserted from the served document, by servedBundle.
 func buildIdentity(cfg Config, client *http.Client) []Assertion {
 	read := func(ctx context.Context) (versionBody, string, error) {
 		resp, err := fetch(ctx, client, http.MethodGet, cfg.BaseURL, versionPath, nil)
@@ -171,23 +143,19 @@ func buildIdentity(cfg Config, client *http.Client) []Assertion {
 		}
 	}
 
-	list := []Assertion{
+	return []Assertion{
 		field("version", cfg.ExpectVersion, func(b versionBody) string { return b.Version }),
 		field("commit", cfg.ExpectCommit, func(b versionBody) string { return b.Commit }),
 	}
-	if cfg.HasFrontend() {
-		list = append(list, field("entry asset", cfg.ExpectAsset, func(b versionBody) string { return b.AssetHash }))
-	}
-	return list
 }
 
 // assetRef matches a script or stylesheet reference in the served document.
 var assetRef = regexp.MustCompile(`(?:src|href)=["']([^"']+)["']`)
 
 // servedBundle asserts the document the target serves references the entry
-// asset the release embedded. A binary can report the right asset hash and
-// still serve a cached document from a previous release, and that state looks
-// like a successful deploy everywhere else.
+// asset the release embedded. A binary can carry the right bundle and still
+// serve a cached document from a previous release, and that state looks like
+// a successful deploy everywhere else.
 func servedBundle(cfg Config, client *http.Client) Assertion {
 	return Assertion{
 		Name:     "served bundle",

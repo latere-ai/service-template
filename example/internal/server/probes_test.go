@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"latere.ai/x/pkg/health"
+
 	"github.com/example/reference-service/internal/version"
 )
 
@@ -22,16 +24,6 @@ func probe(t *testing.T, s *Server, path string) (int, string) {
 	return rec.Code, rec.Body.String()
 }
 
-// decodeReady reads the readiness body.
-func decodeReady(t *testing.T, body string) readyResponse {
-	t.Helper()
-	var got readyResponse
-	if err := json.Unmarshal([]byte(body), &got); err != nil {
-		t.Fatalf("decode %q: %v", body, err)
-	}
-	return got
-}
-
 // TestLiveStaysUpWhileADependencyIsDown covers acceptance criterion 1. A
 // restart does not fix an unreachable database, so liveness ignores it.
 func TestLiveStaysUpWhileADependencyIsDown(t *testing.T) {
@@ -40,49 +32,47 @@ func TestLiveStaysUpWhileADependencyIsDown(t *testing.T) {
 	s.AddReadyCheck("database", func(context.Context) error { return errors.New("connection refused") })
 	s.AddReadyCheck("cache", func(context.Context) error { return nil })
 
-	if code, _ := probe(t, s, LivePath); code != http.StatusOK {
-		t.Fatalf("GET %s = %d, want 200", LivePath, code)
+	if code, body := probe(t, s, LivePath); code != http.StatusOK || body != "ok\n" {
+		t.Fatalf("GET %s = %d %q, want 200 ok", LivePath, code, body)
 	}
 
 	code, body := probe(t, s, ReadyPath)
 	if code != http.StatusServiceUnavailable {
 		t.Fatalf("GET %s = %d, want 503", ReadyPath, code)
 	}
-	got := decodeReady(t, body)
-	if got.Status != statusFail {
-		t.Errorf("status = %q, want %q", got.Status, statusFail)
-	}
-	if len(got.Checks) != 2 {
-		t.Fatalf("checks = %v, want two entries", got.Checks)
-	}
-	// Sorted by name, so the body is byte-identical between requests.
-	if got.Checks[0].Name != "cache" || got.Checks[0].Status != statusOK {
-		t.Errorf("checks[0] = %+v, want cache ok", got.Checks[0])
-	}
-	if got.Checks[1].Name != "database" || got.Checks[1].Status != statusFail {
-		t.Errorf("checks[1] = %+v, want database fail", got.Checks[1])
-	}
-	if !strings.Contains(got.Checks[1].Error, "connection refused") {
-		t.Errorf("database error = %q, want the reason the dependency gave", got.Checks[1].Error)
+	// The body names the failing dependency and the reason it gave, and
+	// says nothing about the one that passed.
+	if body != "not ready: database: connection refused\n" {
+		t.Errorf("body = %q, want the failing dependency named", body)
 	}
 }
 
 // TestReadyWithoutChecksIsReady fixes the state of a service that registered
-// no dependency: ready, with an empty list rather than a missing field.
+// no dependency: ready.
 func TestReadyWithoutChecksIsReady(t *testing.T) {
 	s := newServer(nil)
 	s.ready.Store(true)
 
+	if code, body := probe(t, s, ReadyPath); code != http.StatusOK || body != "ok\n" {
+		t.Fatalf("GET %s = %d %q, want 200 ok", ReadyPath, code, body)
+	}
+}
+
+// TestReadyNamesEveryFailingDependency proves the body lists each failure,
+// in registration order, so one probe read says what is down.
+func TestReadyNamesEveryFailingDependency(t *testing.T) {
+	s := newServer(nil)
+	s.ready.Store(true)
+	s.AddReadyCheck("database", func(context.Context) error { return errors.New("refused") })
+	s.AddReadyCheck("cache", func(context.Context) error { return errors.New("timeout") })
+	s.AddReadyCheck("noop", nil)
+
 	code, body := probe(t, s, ReadyPath)
-	if code != http.StatusOK {
-		t.Fatalf("GET %s = %d, want 200", ReadyPath, code)
+	if code != http.StatusServiceUnavailable {
+		t.Fatalf("GET %s = %d, want 503", ReadyPath, code)
 	}
-	got := decodeReady(t, body)
-	if got.Status != statusOK {
-		t.Errorf("status = %q, want %q", got.Status, statusOK)
-	}
-	if len(got.Checks) != 0 {
-		t.Errorf("checks = %v, want none", got.Checks)
+	if body != "not ready: database: refused\ncache: timeout\n" {
+		t.Errorf("body = %q, want both failures named", body)
 	}
 }
 
@@ -95,12 +85,10 @@ func TestReadyCheckHonoursItsTimeout(t *testing.T) {
 	s := newServer(nil)
 	s.ready.Store(true)
 	s.ReadyCheckTimeout = 20 * time.Millisecond
-	s.AddReadyCheck("slow", func(ctx context.Context) error {
-		select {
-		case <-release:
-		case <-ctx.Done():
-		}
-		return ctx.Err()
+	// The check ignores its context, which is the case the bound exists for.
+	s.AddReadyCheck("slow", func(context.Context) error {
+		<-release
+		return nil
 	})
 
 	start := time.Now()
@@ -111,12 +99,8 @@ func TestReadyCheckHonoursItsTimeout(t *testing.T) {
 	if code != http.StatusServiceUnavailable {
 		t.Fatalf("GET %s = %d, want 503", ReadyPath, code)
 	}
-	got := decodeReady(t, body)
-	if len(got.Checks) != 1 || got.Checks[0].Name != "slow" || got.Checks[0].Status != statusFail {
-		t.Fatalf("checks = %+v, want the slow check failed", got.Checks)
-	}
-	if !strings.Contains(got.Checks[0].Error, context.DeadlineExceeded.Error()) {
-		t.Errorf("error = %q, want the deadline named", got.Checks[0].Error)
+	if !strings.HasPrefix(body, "not ready: slow: ") || !strings.Contains(body, context.DeadlineExceeded.Error()) {
+		t.Errorf("body = %q, want the slow check failed with the deadline named", body)
 	}
 }
 
@@ -134,8 +118,8 @@ func TestReadyReportsDrainingWithoutRunningChecks(t *testing.T) {
 	if code != http.StatusServiceUnavailable {
 		t.Fatalf("GET %s = %d, want 503", ReadyPath, code)
 	}
-	if got := decodeReady(t, body); got.Status != statusDraining {
-		t.Errorf("status = %q, want %q", got.Status, statusDraining)
+	if body != "not ready: draining\n" {
+		t.Errorf("body = %q, want draining reported", body)
 	}
 }
 
@@ -147,14 +131,26 @@ func TestVersionReportsTheCompiledBuild(t *testing.T) {
 	if code != http.StatusOK {
 		t.Fatalf("GET %s = %d, want 200", VersionPath, code)
 	}
-	var got versionResponse
+	var got health.Build
 	if err := json.Unmarshal([]byte(body), &got); err != nil {
 		t.Fatalf("decode %q: %v", body, err)
 	}
 	b := version.Info()
-	want := versionResponse{Version: b.Version, Commit: b.Commit, BuildTime: b.BuildTime, AssetHash: b.AssetHash}
+	want := health.Build{Version: b.Version, Commit: b.Commit, BuildTime: b.BuildTime}
 	if got != want {
 		t.Fatalf("body = %+v, want %+v", got, want)
+	}
+}
+
+// TestLegacyHealthzAliasesLivez holds the old liveness path up for one
+// release while manifests move to /livez. It answers 200 whatever readiness
+// says, because it is liveness and not readiness.
+func TestLegacyHealthzAliasesLivez(t *testing.T) {
+	s := newServer(nil)
+	s.ready.Store(false)
+
+	if code, body := probe(t, s, legacyHealthPath); code != http.StatusOK || body != "ok\n" {
+		t.Fatalf("GET %s = %d %q, want 200 ok", legacyHealthPath, code, body)
 	}
 }
 
@@ -166,7 +162,7 @@ func TestProbesAnswerAheadOfTheApplicationHandler(t *testing.T) {
 	}))
 	s.ready.Store(true)
 
-	for _, path := range []string{LivePath, ReadyPath, VersionPath} {
+	for _, path := range []string{LivePath, ReadyPath, VersionPath, legacyHealthPath} {
 		if code, _ := probe(t, s, path); code != http.StatusOK {
 			t.Errorf("GET %s = %d, want 200", path, code)
 		}
