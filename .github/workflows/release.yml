@@ -787,15 +787,18 @@ jobs:
           JSON
           go run ./tools/release evidence -in evidence.json -live smoke-evidence.md -out evidence.md
 
+      # A tag is a release, and a release has notes. The body is the
+      # CHANGELOG.md section for the tag, read by the lateregate the repo
+      # pins; no section fails here, before anything is created. The
+      # pre-push hook refuses the tag with the same reader.
+      - name: read the release note for this tag
+        run: go tool lateregate release-notes '${{ needs.gate.outputs.version }}' > notes.md
+
       - name: publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
-            -f tag_name='${{ needs.gate.outputs.version }}' \
-            -f target_commitish='${{ needs.gate.outputs.commit }}' \
-            --jq .body > notes.md
           cat notes.md evidence.md > release-notes.md
           flags=""
           if [ '${{ needs.gate.outputs.prerelease }}' = 'true' ]; then
