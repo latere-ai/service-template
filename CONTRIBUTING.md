@@ -36,6 +36,31 @@ rather than working around the check.
 
 `scope: lowercase description`. One logical change per commit.
 
+## Writing
+
+Every sentence a service built from the template emits or carries is written
+for one reader, and the register follows the reader:
+
+- User, a person or a coding harness: API error `message`, the frontend copy
+  in every locale, the docs. Short and plain: what happened and what to do
+  next, naming a command or a page, never a package, a function, a table, or
+  a Kubernetes object.
+- Contributor, someone changing a service built from the template: specs,
+  this file, package documentation, commit messages, source comments.
+  Precise, in the project's own terms, with the reason a design is what it
+  is.
+- Developer, someone debugging a running system: logs, traces, startup
+  failures. Exact and complete: object, operation, observed value, expected
+  value, and the underlying error.
+
+An error has one code, one fixed user sentence in `message`, and one
+developer detail in a separate field shown only on request. The canonical
+statement, worked examples, and the review checklist are in the registers
+document in pkg:
+https://github.com/latere-ai/pkg/blob/main/docs/writing/registers.md
+The rule applies to new text and to reviews; existing text is fixed as it is
+touched.
+
 ## Reporting problems
 
 Use GitHub issues for defects and proposals. Use the process in
