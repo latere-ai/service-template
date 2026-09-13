@@ -71,3 +71,7 @@ waive:
     reason: >-
       the tree is at 85.8% against a 90% per-package floor; the generator's own skeleton and example trees carry the untested weight
     until: 2026-12-01
+
+# The identity shape of the family: specs/infrastructure/identity.md in latere-ai/specs
+identity:
+  role: none
