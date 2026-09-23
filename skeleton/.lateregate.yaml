@@ -5,7 +5,7 @@
 # in go.mod, so they run identically on a workstation and on a runner and are
 # upgraded by bumping one version.
 #
-# Repository-specific values belong here. A gate whose behaviour has to change
+# Repository-specific values belong here. A gate whose behavior has to change
 # belongs upstream, so every service gets the change at once.
 
 cover:

@@ -6,7 +6,7 @@
 # Every file is gated on the background feature, because a service that runs no
 # background work has no reason to carry a job runtime.
 #
-# Every file is generated. The single-execution rule, the acknowledgement order,
+# Every file is generated. The single-execution rule, the acknowledgment order,
 # and the attempt budget are the guarantees the template makes about work with
 # no client waiting on it, so a local edit to them is drift rather than a
 # consumer choice. A consumer supplies its own Locker and Queue implementations
@@ -62,7 +62,7 @@ files:
     features: [background]
 
   # The gates: one execution across replicas, release by lease expiry,
-  # acknowledgement after completion, the attempt budget, and the rising time
+  # acknowledgment after completion, the attempt budget, and the rising time
   # since last success.
   - path: internal/worker/clock_test.go
     mode: generated

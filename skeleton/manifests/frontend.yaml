@@ -46,7 +46,7 @@ files:
     mode: generated
     profiles: [service, frontend-only]
     features: [frontend]
-  # The first of the two defences against a compiled twin. It is merged
+  # The first of the two defenses against a compiled twin. It is merged
   # because a repository owns its own ignores outside the managed region.
   - path: frontend/.gitignore
     mode: merged
@@ -247,7 +247,7 @@ files:
     profiles: [service, frontend-only]
     features: [frontend]
 
-  # Tests of the template's own behaviour. Generated, so a repository that
+  # Tests of the template's own behavior. Generated, so a repository that
   # edits one is reported rather than silently losing the check.
   - path: frontend/tests/gates.test.ts
     mode: generated

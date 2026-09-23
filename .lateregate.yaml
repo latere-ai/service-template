@@ -56,7 +56,7 @@ otel_client:
 
 license:
   # The generator's own files. The skeleton and the example are what a new
-  # service starts from, and the licence a service is released under is that
+  # service starts from, and the license a service is released under is that
   # service's decision, so they are skipped here.
   spdx: MIT
   holder: Latere AI

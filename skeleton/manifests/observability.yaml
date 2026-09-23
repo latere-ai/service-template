@@ -29,7 +29,7 @@ files:
     profiles: [service]
 
   # The tests are shipped with the package. They are the evidence that the
-  # correlation and the route labelling still hold in the consumer repository,
+  # correlation and the route labeling still hold in the consumer repository,
   # where the package is compiled against a different module path.
   - path: internal/observability/observability_test.go
     mode: generated

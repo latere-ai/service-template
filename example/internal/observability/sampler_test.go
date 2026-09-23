@@ -101,9 +101,9 @@ func TestFullRatioSamplesEverything(t *testing.T) {
 	}
 }
 
-// TestRemoteSampledParentIsHonoured covers the parent-based half of the
+// TestRemoteSampledParentIsHonored covers the parent-based half of the
 // policy: a trace another service decided to keep is not truncated here.
-func TestRemoteSampledParentIsHonoured(t *testing.T) {
+func TestRemoteSampledParentIsHonored(t *testing.T) {
 	provider, recorder := testTracerProvider(0, DefaultSlowRequest)
 	defer func() {
 		if err := provider.Shutdown(context.Background()); err != nil {

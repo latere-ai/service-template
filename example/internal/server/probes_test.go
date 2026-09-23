@@ -76,9 +76,9 @@ func TestReadyNamesEveryFailingDependency(t *testing.T) {
 	}
 }
 
-// TestReadyCheckHonoursItsTimeout proves a hanging dependency fails the probe
+// TestReadyCheckHonorsItsTimeout proves a hanging dependency fails the probe
 // instead of holding the response open until the orchestrator gives up.
-func TestReadyCheckHonoursItsTimeout(t *testing.T) {
+func TestReadyCheckHonorsItsTimeout(t *testing.T) {
 	release := make(chan struct{})
 	defer close(release)
 
