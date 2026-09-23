@@ -16,6 +16,6 @@ must not carry a working exploit until a fix ships.
 
 ## Response
 
-- Acknowledgement within three working days.
+- Acknowledgment within three working days.
 - An assessment and a planned fix date within ten working days.
 - Public disclosure after the fix is released, with credit if you want it.

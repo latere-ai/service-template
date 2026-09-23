@@ -73,7 +73,7 @@ type Options struct {
 	// the observability setup replaces with the exporting one.
 	Logger *slog.Logger
 	// Router resolves the route pattern for telemetry labels. Passing the
-	// service's http.ServeMux here is what keeps a metric labelled by route
+	// service's http.ServeMux here is what keeps a metric labeled by route
 	// instead of by path.
 	Router Router
 	// Timeout is the per-request budget. Zero selects DefaultTimeout; a

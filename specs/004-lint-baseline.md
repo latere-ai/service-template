@@ -72,7 +72,7 @@ proves the first one.
 
 ### Targets
 
-| Target | Behaviour |
+| Target | Behavior |
 | --- | --- |
 | `make lint` | Full run, exits non-zero on any finding |
 | `make lint-fix` | Applies auto-fixable findings |

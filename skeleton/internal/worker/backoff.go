@@ -17,7 +17,7 @@ const (
 	DefaultBaseDelay = time.Second
 	// DefaultMaxDelay caps the exponential growth.
 	DefaultMaxDelay = 30 * time.Second
-	// DefaultJitter is the fraction of a computed delay that is randomised.
+	// DefaultJitter is the fraction of a computed delay that is randomized.
 	// Without it, replicas that failed together retry together.
 	DefaultJitter = 0.2
 )
@@ -35,7 +35,7 @@ type RetryPolicy struct {
 	Base time.Duration
 	// Max caps the delay. Zero or less means DefaultMaxDelay.
 	Max time.Duration
-	// Jitter is the fraction of the delay that is randomised downward, between
+	// Jitter is the fraction of the delay that is randomized downward, between
 	// 0 and 1. A negative value means DefaultJitter; zero means no jitter.
 	Jitter float64
 }
@@ -67,7 +67,7 @@ func (p RetryPolicy) max() time.Duration {
 	return p.Max
 }
 
-// jitter reports the randomised fraction, clamped to the unit interval.
+// jitter reports the randomized fraction, clamped to the unit interval.
 func (p RetryPolicy) jitter() float64 {
 	switch {
 	case p.Jitter < 0:

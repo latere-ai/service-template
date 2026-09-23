@@ -2,7 +2,7 @@
 // health and build-identity endpoints, and the shutdown sequence.
 //
 // It exists so the lifecycle is written once. A service that wires its own
-// goroutines and channels in main gets a different drain behaviour per
+// goroutines and channels in main gets a different drain behavior per
 // repository, and the failure modes, dropped requests during a rolling update
 // and a replica marked ready before its dependencies answer, are invisible
 // until they happen in production.
@@ -194,7 +194,7 @@ func (s *Server) Run(ctx context.Context) error {
 
 	srv := s.httpServer(requestCtx)
 
-	// The bind honours the run context, so a shutdown signal that arrives
+	// The bind honors the run context, so a shutdown signal that arrives
 	// while the address is still resolving stops here rather than after the
 	// socket is open and the process is accepting connections it will drop.
 	var lc net.ListenConfig

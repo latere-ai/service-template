@@ -75,7 +75,7 @@ transport, so a scaffolded service calling another service produced two traces
 with no edge between them. Spec 009 already promised client spans for outbound
 calls and nothing implemented them. The assembly now carries a client built by
 `otel.HTTPClient`, at `skeleton/cmd/service/main.go:307`, with the deadline set
-at the call site because the shared client carries none. The behaviour is
+at the call site because the shared client carries none. The behavior is
 asserted end to end in `skeleton/cmd/service/outbound_test.go`: a recorded
 client span, a `traceparent` the receiving server can extract, and the received
 parent span identifier equal to the client span.
@@ -131,7 +131,7 @@ emits nothing. The template treats that as a start-up failure.
 **4. Server request metrics.**
 `skeleton/internal/httpx/metrics.go:23` records `http.server.request.duration`
 with explicit bucket boundaries and `metrics.go:36` records
-`http.server.active_requests`, both labelled by the route pattern the span stage
+`http.server.active_requests`, both labeled by the route pattern the span stage
 resolved rather than by the request path.
 
 The shared package's `Handler` takes a caller-supplied `WithMetricsHook`
@@ -178,7 +178,7 @@ signals is the thing the resource exists to provide.
 ### Four capabilities have since been released
 
 This spec was written against `latere.ai/x/pkg v0.43.0`, the newest tag at the
-time, which honoured neither `OTEL_SDK_DISABLED` nor
+time, which honored neither `OTEL_SDK_DISABLED` nor
 `OTEL_RESOURCE_ATTRIBUTES`, stamped no trace context on the local log stream,
 recorded no handler panic, and followed semantic conventions v1.26.0 against
 the template's v1.37.0. Those were the reason the switch stopped where it did:

@@ -14,7 +14,7 @@ import (
 // Metrics records the request rate, the error rate, the duration distribution,
 // and the number of requests in flight.
 //
-// Every series is labelled with the route pattern the span stage resolved, so
+// Every series is labeled with the route pattern the span stage resolved, so
 // the label set is bounded by the route table rather than by the paths clients
 // send.
 func Metrics() func(http.Handler) http.Handler {

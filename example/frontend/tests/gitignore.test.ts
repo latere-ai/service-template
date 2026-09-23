@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-// The first of the two defences against a compiled twin. The second is the
+// The first of the two defenses against a compiled twin. The second is the
 // check target, which is proved in the gates suite.
 describe("the ignore list", () => {
   const ignores = readFileSync(".gitignore", "utf8");

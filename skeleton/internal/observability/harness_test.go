@@ -16,7 +16,7 @@ import (
 )
 
 // widgetRoute is the parameterized route the sampler and logging tests
-// exercise. It is the case route labelling exists for: the path holds an
+// exercise. It is the case route labeling exists for: the path holds an
 // identifier and the pattern does not.
 const widgetRoute = "/widgets/{id}"
 

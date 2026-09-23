@@ -41,7 +41,7 @@ type Lock interface {
 
 // MemoryLocker is an in-process [Locker].
 //
-// It serialises executions inside one process only. It is the right choice for
+// It serializes executions inside one process only. It is the right choice for
 // a single-replica deployment and for tests. Two replicas each holding their
 // own MemoryLocker produce two executions per interval, which is the failure
 // the lock exists to prevent, so a multi-replica deployment supplies an

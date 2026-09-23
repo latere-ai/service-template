@@ -56,7 +56,7 @@ silent shadow.
 
 ### The compiled-twin guard
 
-Two defences, because the failure is quiet:
+Two defenses, because the failure is quiet:
 
 1. `.gitignore` excludes `src/**/*.js` and `src/**/*.js.map`.
 2. A check target fails when any `.js` file exists beside a `.ts` or `.tsx` file
@@ -68,8 +68,8 @@ instead of producing misleading results.
 ### Testing
 
 Vitest with the DOM environment and the React testing library. Tests assert
-behaviour through the accessible interface rather than through implementation
-details, so a refactor that preserves behaviour does not rewrite the suite.
+behavior through the accessible interface rather than through implementation
+details, so a refactor that preserves behavior does not rewrite the suite.
 Coverage is measured and gated with the same threshold mechanism the Go side
 uses.
 
@@ -81,7 +81,7 @@ drift-checked like the Go lint configuration.
 
 ### Targets
 
-| Target | Behaviour |
+| Target | Behavior |
 | --- | --- |
 | `make frontend-install` | Installs from the lockfile, frozen |
 | `make frontend-typecheck` | Type check with no emit |

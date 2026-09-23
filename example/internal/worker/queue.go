@@ -15,7 +15,7 @@ const (
 	// shutdown starts. It is shorter than the runner's shutdown window, so the
 	// consumer returns before the runner gives up on it.
 	DefaultFinishTimeout = 15 * time.Second
-	// DefaultAckTimeout bounds one acknowledgement.
+	// DefaultAckTimeout bounds one acknowledgment.
 	DefaultAckTimeout = 5 * time.Second
 )
 
@@ -44,12 +44,12 @@ type Queue interface {
 }
 
 // Handler processes one message. It returns nil only when the work is complete,
-// because completion is what the acknowledgement asserts.
+// because completion is what the acknowledgment asserts.
 type Handler func(ctx context.Context, m Message) error
 
 // Consumer is a [Job] that receives from a queue until the context ends.
 //
-// Acknowledgement always follows completion. A message acknowledged before its
+// Acknowledgment always follows completion. A message acknowledged before its
 // work finishes is lost when the process stops halfway through, and it is lost
 // silently: the queue has no record and the work has no result. On shutdown the
 // consumer stops receiving and gives the message in hand a bounded window to
@@ -65,9 +65,9 @@ type Consumer struct {
 	// FinishTimeout is the window the message in hand gets after shutdown
 	// starts. Zero means DefaultFinishTimeout.
 	FinishTimeout time.Duration
-	// AckTimeout bounds one acknowledgement. Zero means DefaultAckTimeout.
+	// AckTimeout bounds one acknowledgment. Zero means DefaultAckTimeout.
 	AckTimeout time.Duration
-	// Logger receives acknowledgement failures. It defaults to slog.Default().
+	// Logger receives acknowledgment failures. It defaults to slog.Default().
 	Logger *slog.Logger
 
 	// clock drives the finish window. It is a field so a test drives shutdown
@@ -181,7 +181,7 @@ func (c *Consumer) finishTimeout() time.Duration {
 	return c.FinishTimeout
 }
 
-// ackTimeout reports the configured acknowledgement bound or the default.
+// ackTimeout reports the configured acknowledgment bound or the default.
 func (c *Consumer) ackTimeout() time.Duration {
 	if c.AckTimeout <= 0 {
 		return DefaultAckTimeout
@@ -261,7 +261,7 @@ func (q *MemoryQueue) Close() {
 	close(q.messages)
 }
 
-// MemoryMessage is a message held in memory. It records its acknowledgement, so
+// MemoryMessage is a message held in memory. It records its acknowledgment, so
 // a test asserts that work completed before the message was released.
 type MemoryMessage struct {
 	body []byte

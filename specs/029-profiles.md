@@ -69,7 +69,7 @@ left alone. The live check fetches the published entry document and asserts the
 referenced asset hash matches the build, which is the same asset-pinning idea
 the serving spec applies to an embedded bundle.
 
-### Generator behaviour
+### Generator behavior
 
 The generator writes only what the profile selects. `template check` in a
 library repository does not look for deploy manifests, and enabling a flag a

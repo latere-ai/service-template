@@ -2,7 +2,7 @@
 
 ## Workflow
 
-Work in this repository is spec-driven. Before you change behaviour, there is a
+Work in this repository is spec-driven. Before you change behavior, there is a
 spec in [`specs/`](specs/README.md) that describes the problem, the design, and
 the acceptance criteria. Read it, then implement it.
 

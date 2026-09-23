@@ -30,7 +30,7 @@ func TestConsumerAcknowledgesAfterTheWorkCompletes(t *testing.T) {
 	var ackedDuringWork atomic.Bool
 
 	cons := newTestConsumer(t, queue, func(_ context.Context, m Message) error {
-		// Acknowledgement asserts completion, so nothing may be acknowledged
+		// Acknowledgment asserts completion, so nothing may be acknowledged
 		// while the work is still running.
 		if mm, ok := m.(*MemoryMessage); ok && mm.Acked() {
 			ackedDuringWork.Store(true)

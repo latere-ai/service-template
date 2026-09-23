@@ -264,7 +264,7 @@ func acceptedEncodings(header string) map[string]float64 {
 	return weights
 }
 
-// acceptable reports whether the client accepts one coding, honouring the
+// acceptable reports whether the client accepts one coding, honoring the
 // wildcard form.
 func acceptable(weights map[string]float64, coding string) bool {
 	if q, ok := weights[coding]; ok {

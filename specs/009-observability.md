@@ -47,7 +47,7 @@ package the release pipeline stamps, a trace is attributable to a build.
 | Logs | Structured, JSON in production and text locally, exported through the logging bridge |
 
 Route labels use the registered route pattern, never the raw path. A metric
-labelled with the raw path produces one time series per identifier and overwhelms
+labeled with the raw path produces one time series per identifier and overwhelms
 the backend.
 
 ### Log and trace correlation

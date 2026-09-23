@@ -15,7 +15,7 @@ trigger: foundation spec
 
 A deploy pipeline that smokes a live surface assumes the service exposes one.
 Without a shared runtime contract, each service picks its own probe paths, its
-own readiness meaning, and its own shutdown behaviour. The visible symptoms are
+own readiness meaning, and its own shutdown behavior. The visible symptoms are
 dropped requests during a rolling update, a pod marked ready before its
 dependencies are reachable, and no way to confirm which build is serving.
 

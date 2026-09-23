@@ -46,7 +46,7 @@ flags, and writes only the files those flags select.
 
 Each template file has a mode:
 
-| Mode | Behaviour | Examples |
+| Mode | Behavior | Examples |
 | --- | --- | --- |
 | Generated | Rewritten by `sync`; drift is an error | Lint configuration, hooks, workflow callers |
 | Seed | Written once at `init`; never rewritten, never checked | `main.go`, example handlers, README |

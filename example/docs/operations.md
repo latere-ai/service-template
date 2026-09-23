@@ -84,7 +84,7 @@ curl -s https://<host>/version
 ```
 
 The reported commit must be the one you rolled back to. A deployment that
-reports the previous commit but still serves the new behaviour means the rollout
+reports the previous commit but still serves the new behavior means the rollout
 did not replace every replica.
 
 A schema migration is the case where a rollback needs thought. Migrations are

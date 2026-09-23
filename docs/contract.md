@@ -48,7 +48,7 @@ It is written by the generator and never edited by hand.
 
 ## File modes
 
-| Mode | Behaviour | Examples |
+| Mode | Behavior | Examples |
 | --- | --- | --- |
 | Generated | Rewritten by `sync`; drift is an error | `.lateregate.yaml`, git hooks, workflow callers |
 | Seed | Written once at `init`; never rewritten, never checked | `main.go`, example handlers, `README.md` |

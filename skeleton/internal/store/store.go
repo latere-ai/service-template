@@ -37,7 +37,7 @@ func DefaultOptions() Options {
 	}
 }
 
-// validate rejects limits that would produce a pool with no usable behaviour.
+// validate rejects limits that would produce a pool with no usable behavior.
 func (o Options) validate() error {
 	var problems []error
 	if o.MaxConns < 1 {

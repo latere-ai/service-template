@@ -33,7 +33,7 @@ const ProblemContentType = "application/problem+json; charset=utf-8"
 const StatusClientClosedRequest = 499
 
 // TypeBase is the prefix of the `type` member of the envelope. A service sets
-// it once at start-up to the host that documents its error catalogue. The
+// it once at start-up to the host that documents its error catalog. The
 // value is a URI, and it need not resolve, but a resolvable one is what makes
 // the member useful to a client developer.
 var TypeBase = "https://errors.example.com/"
@@ -180,7 +180,7 @@ func WriteError(w http.ResponseWriter, r *http.Request, err error) {
 
 	body, merr := json.Marshal(p)
 	if merr != nil {
-		// A problem that cannot be marshalled is a defect in a caller-supplied
+		// A problem that cannot be marshaled is a defect in a caller-supplied
 		// field. The client still needs a status, so the envelope degrades to
 		// a fixed one rather than an empty 200.
 		slog.ErrorContext(r.Context(), "render the error envelope",
@@ -200,7 +200,7 @@ func WriteError(w http.ResponseWriter, r *http.Request, err error) {
 	}
 }
 
-// fallbackEnvelope is the hand-built body used when marshalling fails. It is
+// fallbackEnvelope is the hand-built body used when marshaling fails. It is
 // built with the encoder so the identifier is escaped rather than interpolated.
 func fallbackEnvelope(instance string) []byte {
 	body, err := json.Marshal(&Problem{

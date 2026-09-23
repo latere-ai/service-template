@@ -197,7 +197,7 @@ func TestServeOnlyRejectsArguments(t *testing.T) {
 		t.Fatalf("serveOnly = %+v, %v, want a serving invocation", inv, err)
 	}
 	if _, err := serveOnly([]string{"-mode", "work"}, nil); err == nil {
-		t.Fatal("serveOnly accepted a mode flag it cannot honour")
+		t.Fatal("serveOnly accepted a mode flag it cannot honor")
 	}
 }
 
@@ -320,7 +320,7 @@ func TestTheCollectorHeadersAreReadFromTheConfiguration(t *testing.T) {
 // The multiplexer reports no pattern for that request, and the fallback is
 // method-agnostic on purpose: that is what lets the application shell answer a
 // client-side route, and it means the router never reaches its method branch.
-// The behaviour is pinned here because it is a consequence of the mounting and
+// The behavior is pinned here because it is a consequence of the mounting and
 // not of any single handler.
 func TestARegisteredPathWithAnUnregisteredMethodReachesTheFallback(t *testing.T) {
 	a := newTestAssembly(t)

@@ -40,7 +40,7 @@ func recordingTracer(t *testing.T) *tracetest.SpanRecorder {
 	return recorder
 }
 
-// TestOutboundClientContinuesTheTrace asserts the behaviour the assembly's
+// TestOutboundClientContinuesTheTrace asserts the behavior the assembly's
 // client exists for: the receiving service is handed the trace context of the
 // call, so the two sides join into one trace instead of two.
 func TestOutboundClientContinuesTheTrace(t *testing.T) {

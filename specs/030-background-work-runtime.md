@@ -79,7 +79,7 @@ schedule forever.
 A job receives context cancellation on shutdown and has a bounded window to
 stop. A queue consumer stops receiving, finishes the message in hand, and
 acknowledges it. Acknowledging before the work completes loses the message on
-shutdown, so acknowledgement always follows completion.
+shutdown, so acknowledgment always follows completion.
 
 ### Retry and failure
 

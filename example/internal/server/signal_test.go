@@ -12,7 +12,7 @@ import (
 // TestTerminationSignalStartsTheDrain covers the trigger side of acceptance
 // criterion 2. The ordering inside the sequence is asserted in
 // TestDrainMarksUnreadyBeforeItStopsAccepting, which drives the same code path
-// without signalling the test process.
+// without signaling the test process.
 //
 // The test is not parallel: it sends a real signal to this process, and the
 // handler is installed only while Run holds it.

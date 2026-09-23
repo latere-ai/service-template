@@ -13,7 +13,7 @@ const rawSecret = "postgres://user:sup3rs3cr3t@db:5432/app"
 
 // TestSecretRedactsThroughEveryRendering asserts the raw value reaches none of
 // the three surfaces a configuration value normally leaks through: a formatted
-// string, a marshalled document, and a log record.
+// string, a marshaled document, and a log record.
 func TestSecretRedactsThroughEveryRendering(t *testing.T) {
 	s := Secret(rawSecret)
 

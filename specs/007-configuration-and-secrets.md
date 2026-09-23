@@ -87,7 +87,7 @@ committed copy matches the current struct.
 1. Precedence is tested for all four sources, including `_FILE`.
 2. A missing required value fails `Load`, and the error names every missing
    field, not only the first.
-3. A `Secret` renders as `[redacted]` through `fmt`, JSON marshalling, and
+3. A `Secret` renders as `[redacted]` through `fmt`, JSON marshaling, and
    structured logging; a test asserts the raw value appears in none of them.
 4. The start-up log line shows the effective configuration with secrets redacted
    and marks defaulted values.

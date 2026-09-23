@@ -24,7 +24,7 @@ changes it back.
 ## Scope
 
 The runtime lifecycle, the HTTP surface, the configuration boundary, and the
-quality gates the repository starts with. Business behaviour is out of scope
+quality gates the repository starts with. Business behavior is out of scope
 here and belongs in a spec of its own.
 
 ## Design

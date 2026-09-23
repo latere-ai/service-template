@@ -26,7 +26,7 @@ func (s Secret) String() string { return Redacted }
 // GoString reports the placeholder for the %#v verb, which ignores String.
 func (s Secret) GoString() string { return Redacted }
 
-// MarshalJSON reports the placeholder, so a Secret inside a marshalled struct
+// MarshalJSON reports the placeholder, so a Secret inside a marshaled struct
 // carries no value.
 func (s Secret) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + Redacted + `"`), nil

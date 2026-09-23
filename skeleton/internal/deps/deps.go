@@ -2,7 +2,7 @@
 //
 // It exists so the dependency set is fixed in one place while the packages that
 // use it are written. Every import here is consumed by real code elsewhere in
-// the module; the package holds no behaviour of its own.
+// the module; the package holds no behavior of its own.
 package deps
 
 import (

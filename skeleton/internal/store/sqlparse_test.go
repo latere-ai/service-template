@@ -13,7 +13,7 @@ func TestApplyFoldsTheStatementsIntoTheSchema(t *testing.T) {
 			name text,
 			PRIMARY KEY (id)
 		)`,
-		"ALTER TABLE ONLY widgets ADD COLUMN colour text",
+		"ALTER TABLE ONLY widgets ADD COLUMN color text",
 		"ALTER TABLE widgets ADD weight numeric",
 		"ALTER TABLE widgets ADD COLUMN IF NOT EXISTS height numeric",
 		"ALTER TABLE parts ADD COLUMN label text",
@@ -29,7 +29,7 @@ func TestApplyFoldsTheStatementsIntoTheSchema(t *testing.T) {
 	}
 
 	for _, want := range []string{
-		"widgets", "widgets.id", "widgets.name", "widgets.colour",
+		"widgets", "widgets.id", "widgets.name", "widgets.color",
 		"widgets.weight", "widgets.height", "parts.label", "archive",
 	} {
 		if !sc.has(want) {
@@ -44,7 +44,7 @@ func TestApplyFoldsTheStatementsIntoTheSchema(t *testing.T) {
 func TestApplyRemovesWhatTheStatementRemoves(t *testing.T) {
 	sc := newSchema()
 	setup := []string{
-		"CREATE TABLE widgets (id bigint, name text, colour text)",
+		"CREATE TABLE widgets (id bigint, name text, color text)",
 		"CREATE TABLE parts (id bigint)",
 		"CREATE TABLE scrap (id bigint)",
 	}
@@ -58,7 +58,7 @@ func TestApplyRemovesWhatTheStatementRemoves(t *testing.T) {
 		stmt string
 		want []string
 	}{
-		{"ALTER TABLE widgets DROP COLUMN colour CASCADE", []string{"widgets.colour"}},
+		{"ALTER TABLE widgets DROP COLUMN color CASCADE", []string{"widgets.color"}},
 		{"ALTER TABLE widgets RENAME COLUMN name TO title", []string{"widgets.name"}},
 		{"ALTER TABLE widgets RENAME TO gadgets", []string{"widgets"}},
 		{"DROP TABLE IF EXISTS parts, scrap CASCADE", []string{"parts", "scrap"}},

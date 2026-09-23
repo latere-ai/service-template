@@ -17,7 +17,7 @@ type panicValue struct {
 	stack []byte
 }
 
-// capturePanic normalizes a recovered value. A value that already travelled
+// capturePanic normalizes a recovered value. A value that already traveled
 // through an inner stage keeps its original stack.
 func capturePanic(recovered any) panicValue {
 	if p, ok := recovered.(panicValue); ok {
@@ -46,7 +46,7 @@ func Recover() func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// The recorder is installed here, outermost, so every stage that
 			// reports a status reports the same one and a committed response
-			// is recognisable from any of them.
+			// is recognizable from any of them.
 			rec := newRecorder(w)
 			// The state is installed here so the stages inside can fill in
 			// the identifier and the route, and this stage can still name the

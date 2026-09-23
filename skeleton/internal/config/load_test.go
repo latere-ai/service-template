@@ -266,7 +266,7 @@ func TestFlagFormsAndUnknownArguments(t *testing.T) {
 			want: fixture{Addr: ":4", Verbose: true},
 		},
 		{
-			name: "an explicit flag name is honoured",
+			name: "an explicit flag name is honored",
 			args: []string{"-short=renamed", "-fx-addr=:5"},
 			want: fixture{Addr: ":5", Renamed: "renamed"},
 		},

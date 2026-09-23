@@ -29,7 +29,7 @@ attestations.
 
 ### Two Dockerfiles, one artifact
 
-| File | Used by | Behaviour |
+| File | Used by | Behavior |
 | --- | --- | --- |
 | `Dockerfile` | Developers | Multi-stage, compiles inside the image, self-contained |
 | `Dockerfile.ci` | Release pipeline | Copies the prebuilt binary from `out/` into the runtime stage |

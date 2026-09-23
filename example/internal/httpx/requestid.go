@@ -12,7 +12,7 @@ import (
 const HeaderRequestID = "X-Request-Id"
 
 // requestIDPrefix marks the identifier as this service's, so a value copied
-// into a support ticket is recognisable.
+// into a support ticket is recognizable.
 const requestIDPrefix = "req_"
 
 // maxInboundRequestID bounds an adopted identifier. An unbounded value would

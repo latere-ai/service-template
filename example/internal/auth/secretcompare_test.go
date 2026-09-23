@@ -17,7 +17,7 @@ import (
 // differing byte, so the time it takes measures how much of a guess was right,
 // and a caller that can measure it can recover the secret byte by byte.
 //
-// The scanner reads the package source rather than its behaviour, because the
+// The scanner reads the package source rather than its behavior, because the
 // defect is invisible at run time: both forms return the same answer.
 
 // secretNames are the identifier fragments that mark a value as secret

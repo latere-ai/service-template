@@ -14,7 +14,7 @@ trigger: foundation spec
 ## Problem
 
 Formatting arguments waste review time, and a formatting fix mixed into a
-behaviour change hides the behaviour change. Hooks solve this only when every
+behavior change hides the behavior change. Hooks solve this only when every
 clone installs them, which does not happen by default: `core.hooksPath` is local
 configuration and a fresh clone has none.
 
@@ -53,7 +53,7 @@ a fast local mirror of a CI gate, never the only place a rule exists.
 
 ### Targets
 
-| Target | Behaviour |
+| Target | Behavior |
 | --- | --- |
 | `make fmt` | Rewrites files in place |
 | `make fmt-check` | Reports and exits non-zero; used by CI and the hook |

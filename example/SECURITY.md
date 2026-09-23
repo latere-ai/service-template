@@ -13,7 +13,7 @@ contact. Include:
 - The version, commit, or deployed build you observed it on.
 - Any log line or response body that shows the effect.
 
-You will receive an acknowledgement within three working days, an assessment
+You will receive an acknowledgment within three working days, an assessment
 with a severity and a plan within ten working days, and a notification when the
 fix ships. If a report goes unacknowledged for longer, send it again rather than
 assuming it was received.

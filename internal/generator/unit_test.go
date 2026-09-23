@@ -259,7 +259,7 @@ func TestLockRoundTrip(t *testing.T) {
 
 func TestParseLockRejectsBadDocuments(t *testing.T) {
 	cases := map[string]string{
-		"unknown field":  "colour: red\n",
+		"unknown field":  "color: red\n",
 		"duplicate path": "files:\n  - path: a\n    mode: seed\n    digest: x\n  - path: a\n    mode: seed\n    digest: y\n",
 		"unknown mode":   "files:\n  - path: a\n    mode: copied\n    digest: x\n",
 		"files not list": "files: a\n",
@@ -290,7 +290,7 @@ func TestParseConfigRejectsBadDeclarations(t *testing.T) {
 		"missing module":  strings.Replace(base, "module: github.com/acme/widget\n", "", 1),
 		"bad name":        strings.Replace(base, "name: widget", "name: Widget_1", 1),
 		"unknown profile": strings.Replace(base, "profile: service", "profile: gateway", 1),
-		"unknown field":   base + "colour: red\n",
+		"unknown field":   base + "color: red\n",
 		"unknown flag":    base + "features:\n  queue: true\n",
 		// The coverage gate is configured in .lateregate.yaml now. A
 		// declaration still carrying the old block is rejected rather than

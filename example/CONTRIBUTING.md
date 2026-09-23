@@ -2,7 +2,7 @@
 
 ## Before you write code
 
-Work that changes behaviour starts with a spec in `specs/`. A spec states the
+Work that changes behavior starts with a spec in `specs/`. A spec states the
 problem before the solution, lists acceptance criteria a reviewer can check
 without interpretation, and records what shipped when the work is done. A design
 decision that lives only in a pull request description is unfindable six months
@@ -93,5 +93,5 @@ fails the build instead of misleading the next reader.
 ## Review
 
 A reviewer checks the acceptance criteria, the tests, and the failure paths. A
-pull request that changes behaviour with no test, or that leaves a generated
+pull request that changes behavior with no test, or that leaves a generated
 document behind, is not ready.

@@ -127,7 +127,7 @@ func TestFailedStartStopsWhatAlreadyStarted(t *testing.T) {
 }
 
 // TestDrainMarksUnreadyBeforeItStopsAccepting covers acceptance criterion 2.
-// The proof is behavioural: during the drain window the listener still answers
+// The proof is behavioral: during the drain window the listener still answers
 // and the answer is already 503.
 func TestDrainMarksUnreadyBeforeItStopsAccepting(t *testing.T) {
 	h := newHarness(t, http.NotFoundHandler())

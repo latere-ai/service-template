@@ -70,7 +70,7 @@ type entry struct {
 // The exported fields are set after [New] and before [Runner.Run].
 type Runner struct {
 	// Locker leases a job name. Scheduled jobs require it, so a deployment
-	// states whether executions are serialised across replicas rather than
+	// states whether executions are serialized across replicas rather than
 	// inheriting an answer.
 	Locker Locker
 

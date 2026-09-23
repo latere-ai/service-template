@@ -108,7 +108,7 @@ func (h *harness) start() {
 	ctx, cancel := context.WithCancel(context.Background())
 	h.trigger = cancel
 	// The signal wiring is replaced so a test drives shutdown by cancelling
-	// this context instead of signalling the whole test process.
+	// this context instead of signaling the whole test process.
 	h.notify = func(parent context.Context) (context.Context, context.CancelFunc) {
 		return context.WithCancel(parent)
 	}

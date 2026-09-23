@@ -665,7 +665,7 @@ func TestALockServiceFailureSkipsTheExecution(t *testing.T) {
 	clk.advanceUntil(t, 6*time.Second, func() bool { return rec.count(ResultError) >= 1 },
 		"an unreachable lock service was not recorded")
 
-	// A lock that cannot be taken is not a licence to run unlocked: a job that
+	// A lock that cannot be taken is not a license to run unlocked: a job that
 	// ran on every replica because the lock service was down is the failure the
 	// lock exists to prevent.
 	if got := runs.Load(); got != 0 {

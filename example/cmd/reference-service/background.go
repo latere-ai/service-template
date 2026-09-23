@@ -36,7 +36,7 @@ func readWorkerInvocation(args []string, out io.Writer) (invocation, error) {
 func registerJobs(_ context.Context, a *assembly) error {
 	runner := worker.New()
 	runner.Logger = a.logger
-	// The in-process lock serialises a scheduled job inside one process only.
+	// The in-process lock serializes a scheduled job inside one process only.
 	// A deployment with more than one replica supplies a lock over shared
 	// storage, a database row or a key with a time to live, or the same
 	// schedule runs once per replica.
