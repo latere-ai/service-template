@@ -203,7 +203,7 @@ func Init(src fs.FS, dir string, cfg *Config) (*SyncReport, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, fmt.Errorf("create %s: %w", dir, err)
 	}
-	report, err := Sync(src, dir, cfg, &Lock{Features: map[string]bool{}})
+	report, err := Sync(src, dir, cfg, &Lock{Features: map[string]bool{}}, time.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func runSync(env Env, args []string) error {
 	if err := env.ownRelease(cfg.Version, "sync a repository that declares", "sync"); err != nil {
 		return err
 	}
-	report, err := Sync(env.Skeleton, *dir, cfg, lock)
+	report, err := Sync(env.Skeleton, *dir, cfg, lock, env.Now)
 	if err != nil {
 		return err
 	}
@@ -293,7 +293,7 @@ func runUpgrade(env Env, args []string) error {
 	if err != nil {
 		return err
 	}
-	report, err := Sync(env.Skeleton, *dir, next, lock)
+	report, err := Sync(env.Skeleton, *dir, next, lock, env.Now)
 	if err != nil {
 		return err
 	}

@@ -119,7 +119,7 @@ func TestSyncIsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	report, err := Sync(src, dir, cfg, lock)
+	report, err := Sync(src, dir, cfg, lock, testNow)
 	if err != nil {
 		t.Fatalf("sync: %v", err)
 	}
@@ -342,6 +342,109 @@ func TestWaiverDoesNotSuppressBehind(t *testing.T) {
 	code, _, errOut := runCLI(t, os.DirFS(moved), "check", "-C", dir)
 	if code != ExitBehind {
 		t.Fatalf("a waiver hid the behind verdict, exit %d\n%s", code, errOut)
+	}
+}
+
+// A waiver is the repository's record that an edit is deliberate, so sync
+// keeps the edited file, and the check keeps reading it as a waived edit.
+func TestSyncKeepsAWaivedEdit(t *testing.T) {
+	src := skeletonFS(t)
+	dir := initRepo(t, src, testConfig())
+	edited := "cover:\n  threshold: 50.0\n"
+	write(t, dir, ".lateregate.yaml", edited)
+	addWaiver(t, dir, ".lateregate.yaml", "one rule this repository cannot satisfy yet", "2026-12-01")
+
+	code, out, errOut := runCLI(t, src, "sync", "-C", dir)
+	if code != ExitOK {
+		t.Fatalf("sync exited %d\n%s", code, errOut)
+	}
+	if got := read(t, dir, ".lateregate.yaml"); got != edited {
+		t.Fatalf("sync overwrote a waived file:\n%s", got)
+	}
+	mustContain(t, out, "kept under a waiver (1):\n  .lateregate.yaml", "the sync report")
+
+	code, out, errOut = runCLI(t, src, "check", "-C", dir)
+	if code != ExitOK {
+		t.Fatalf("check after the sync exited %d\n%s", code, errOut)
+	}
+	mustContain(t, out, "waived: .lateregate.yaml", "the waiver report")
+}
+
+// An upgrade keeps a waived edit too, and prints what the template changed in
+// the file, because folding that change into the kept copy is now the
+// repository's to do.
+func TestUpgradeKeepsAWaivedEditAndShowsTheTemplateChange(t *testing.T) {
+	dir := initRepo(t, skeletonFS(t), testConfig())
+	edited := "cover:\n  threshold: 50.0\n"
+	write(t, dir, ".lateregate.yaml", edited)
+	addWaiver(t, dir, ".lateregate.yaml", "one rule this repository cannot satisfy yet", "2026-12-01")
+
+	moved := mutableSkeleton(t)
+	if err := os.WriteFile(filepath.Join(moved, ".lateregate.yaml"),
+		[]byte("cover:\n  threshold: 95.0\nlint:\n  new_rule: true\n"), 0o644); err != nil {
+		t.Fatalf("move the template forward: %v", err)
+	}
+	code, out, errOut := runCLI(t, os.DirFS(moved), "upgrade", "-C", dir, "-version", "v1.5.0")
+	if code != ExitOK {
+		t.Fatalf("upgrade exited %d\n%s", code, errOut)
+	}
+	if got := read(t, dir, ".lateregate.yaml"); got != edited {
+		t.Fatalf("upgrade overwrote a waived file:\n%s", got)
+	}
+	mustContain(t, out, "kept under a waiver (1):\n  .lateregate.yaml", "the upgrade report")
+	mustContain(t, out, "-  new_rule: true", "the template's change to the kept file")
+
+	code, _, errOut = runCLI(t, os.DirFS(moved), "check", "-C", dir)
+	if code != ExitOK {
+		t.Fatalf("check after the upgrade exited %d\n%s", code, errOut)
+	}
+}
+
+// A waiver protects an edit. A waived file the repository never edited has
+// nothing to protect, so an upgrade brings it to the template's copy.
+func TestAWaiverDoesNotHoldBackAnUneditedFile(t *testing.T) {
+	dir := initRepo(t, skeletonFS(t), testConfig())
+	addWaiver(t, dir, ".lateregate.yaml", "a rule this repository may not satisfy", "2026-12-01")
+
+	moved := mutableSkeleton(t)
+	next := "cover:\n  threshold: 95.0\n"
+	if err := os.WriteFile(filepath.Join(moved, ".lateregate.yaml"), []byte(next), 0o644); err != nil {
+		t.Fatalf("move the template forward: %v", err)
+	}
+	if code, _, errOut := runCLI(t, os.DirFS(moved), "upgrade", "-C", dir, "-version", "v1.5.0"); code != ExitOK {
+		t.Fatalf("upgrade exited %d\n%s", code, errOut)
+	}
+	if got := read(t, dir, ".lateregate.yaml"); got != next {
+		t.Fatalf("an unedited waived file was held back:\n%s", got)
+	}
+}
+
+// An expired waiver means the edit it covered is either renewed or given up.
+// A sync that overwrote the file would make that decision for the repository,
+// so it refuses before writing anything.
+func TestSyncRefusesAnExpiredWaiver(t *testing.T) {
+	src := skeletonFS(t)
+	dir := initRepo(t, src, testConfig())
+	edited := "cover:\n  threshold: 50.0\n"
+	write(t, dir, ".lateregate.yaml", edited)
+	addWaiver(t, dir, ".lateregate.yaml", "one rule this repository cannot satisfy yet", "2026-01-01")
+	lock := read(t, dir, LockFile)
+
+	for _, args := range [][]string{{"sync", "-C", dir}, {"upgrade", "-C", dir, "-version", "v1.5.0"}} {
+		code, _, errOut := runCLI(t, src, args...)
+		if code != ExitError {
+			t.Fatalf("%s with an expired waiver exited %d", args[0], code)
+		}
+		mustContain(t, errOut, "the waiver for .lateregate.yaml expired on 2026-01-01", "the refusal")
+	}
+	if got := read(t, dir, ".lateregate.yaml"); got != edited {
+		t.Fatalf("a refused sync overwrote the file:\n%s", got)
+	}
+	if got := read(t, dir, LockFile); got != lock {
+		t.Fatal("a refused sync rewrote the lock")
+	}
+	if got := read(t, dir, ConfigFile); !strings.Contains(got, "version: "+testVersion+"\n") {
+		t.Fatalf("a refused upgrade rewrote the declaration:\n%s", got)
 	}
 }
 

@@ -74,9 +74,13 @@ one is a revert or an upstream change, the other is an upgrade.
 ### Escape hatch
 
 A consumer can waive one generated file in `.template.yaml` with a reason and an
-expiry. The check reports waived files and fails on an expired waiver. Templates
-without an escape hatch get forked wholesale the first time a consumer has a
-real need, so the hatch is what keeps the rest of the contract intact.
+expiry. The check reports waived files and fails on an expired waiver. Sync and
+upgrade leave a waived file the consumer edited as it is, and print the
+template's change to it, so the edit the waiver records survives the command
+that absorbs the next release; an expired waiver stops them before they write.
+Templates without an escape hatch get forked wholesale the first time a
+consumer has a real need, so the hatch is what keeps the rest of the contract
+intact.
 
 ### Determinism
 
@@ -100,4 +104,5 @@ so drift fails CI in every consumer without per-repository setup.
    untouched, and prints the diff.
 6. A merged file keeps consumer content outside the owned region across a sync.
 7. A waived file is reported and does not fail; an expired waiver fails.
+   Sync and upgrade keep a waived edit and refuse an expired waiver.
 8. Disabling a feature flag removes its generated files on the next sync.

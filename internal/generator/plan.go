@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
 
 // PlanFile is one file the declaration selects, already rendered. A plan is a
@@ -97,7 +98,10 @@ type SyncReport struct {
 	Updated   []string
 	Removed   []string
 	Unchanged []string
-	// Diffs holds a unified diff per updated path, old side first.
+	// Waived holds the edited files a live waiver kept as they are.
+	Waived []string
+	// Diffs holds a unified diff per updated path, old side first, and per
+	// waived path the difference between the template's copy and the kept one.
 	Diffs map[string]string
 }
 
@@ -115,6 +119,7 @@ func (r *SyncReport) String() string {
 	section("created", r.Created)
 	section("updated", r.Updated)
 	section("removed", r.Removed)
+	section("kept under a waiver", r.Waived)
 	if len(r.Created)+len(r.Updated)+len(r.Removed) == 0 {
 		fmt.Fprintf(&b, "already current, %d files unchanged\n", len(r.Unchanged))
 	}
@@ -124,8 +129,20 @@ func (r *SyncReport) String() string {
 // Sync writes every selected file, removes what the declaration deselected,
 // and rewrites the lock. A seed file already recorded in the lock is left
 // alone, because a seed is written once.
-func Sync(src fs.FS, dir string, cfg *Config, lock *Lock) (*SyncReport, error) {
+//
+// A generated or merged file the repository edited is left as it is while a
+// waiver covers it, because the waiver is the repository's record that the
+// edit is deliberate; the report carries the template's change beside it. An
+// expired waiver stops the sync before anything is written, as it fails the
+// check: the edit it covered is either renewed or given up, and a sync that
+// silently overwrote it would make that decision for the repository. now is
+// the clock the expiry is measured against.
+func Sync(src fs.FS, dir string, cfg *Config, lock *Lock, now time.Time) (*SyncReport, error) {
 	if err := guardProfile(cfg, lock); err != nil {
+		return nil, err
+	}
+	waived, err := liveWaivers(cfg, now)
+	if err != nil {
 		return nil, err
 	}
 	plan, err := BuildPlan(src, cfg)
@@ -144,7 +161,7 @@ func Sync(src fs.FS, dir string, cfg *Config, lock *Lock) (*SyncReport, error) {
 	selected := map[string]bool{}
 	for _, pf := range plan.Files {
 		selected[pf.Target] = true
-		entry, err := syncFile(dir, pf, lock, report)
+		entry, err := syncFile(dir, pf, lock, waived[pf.Target], report)
 		if err != nil {
 			return nil, err
 		}
@@ -161,10 +178,45 @@ func Sync(src fs.FS, dir string, cfg *Config, lock *Lock) (*SyncReport, error) {
 	sort.Strings(report.Created)
 	sort.Strings(report.Updated)
 	sort.Strings(report.Unchanged)
+	sort.Strings(report.Waived)
 	return report, nil
 }
 
-func syncFile(dir string, pf PlanFile, lock *Lock, report *SyncReport) (LockEntry, error) {
+// liveWaivers indexes the waivers a sync honors by path, and refuses an
+// expired one.
+func liveWaivers(cfg *Config, now time.Time) (map[string]bool, error) {
+	live := map[string]bool{}
+	for _, w := range cfg.Waivers {
+		if !w.Expires.After(now) {
+			return nil, fmt.Errorf("the waiver for %s expired on %s (%s); renew its expiry in %s to keep the edit, "+
+				"or remove the waiver to take the template's copy, then sync",
+				w.Path, w.Expires.Format("2006-01-02"), w.Reason, ConfigFile)
+		}
+		live[w.Path] = true
+	}
+	return live, nil
+}
+
+// editedOnDisk reports whether the repository changed a generated or merged
+// file since the generator last wrote it: the check's "edited" axis. A file
+// the lock records and the disk lacks was deleted, which is an edit too.
+func editedOnDisk(pf PlanFile, disk []byte, exists bool, lock *Lock) (bool, error) {
+	recorded, ok := lock.Entry(pf.Target)
+	if !exists {
+		return ok, nil
+	}
+	have := Digest(disk)
+	if pf.Entry.Mode == ModeMerged {
+		region, err := SplitRegion(pf.Target, disk)
+		if err != nil {
+			return false, err
+		}
+		have = Digest(region.Content())
+	}
+	return have != recorded.Digest, nil
+}
+
+func syncFile(dir string, pf PlanFile, lock *Lock, waived bool, report *SyncReport) (LockEntry, error) {
 	full := filepath.Join(dir, filepath.FromSlash(pf.Target))
 	disk, readErr := os.ReadFile(full)
 	exists := readErr == nil
@@ -199,6 +251,20 @@ func syncFile(dir string, pf PlanFile, lock *Lock, report *SyncReport) (LockEntr
 			return LockEntry{}, err
 		}
 		want = spliced
+	}
+	if waived && (!exists || string(disk) != string(want)) {
+		edited, err := editedOnDisk(pf, disk, exists, lock)
+		if err != nil {
+			return LockEntry{}, err
+		}
+		if edited {
+			// The lock records the template's digest, as for any file, so the
+			// check keeps reading the kept copy as an edit the waiver covers,
+			// and as an edit again once the waiver is gone.
+			report.Waived = append(report.Waived, pf.Target)
+			report.Diffs[pf.Target] = UnifiedDiff(pf.Target, want, disk)
+			return entry, nil
+		}
 	}
 	switch {
 	case !exists:

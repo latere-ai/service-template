@@ -89,7 +89,9 @@ file it wrote:
 A change a generated file needs belongs in the template, where it reaches
 every service built from it, and arrives here with the next template upgrade.
 To diverge on one deliberately, declare a waiver in `.template.yaml` with a
-path, a reason, and an expiry date. The template's
+path, a reason, and an expiry date: the check reports the file as waived, and
+a template sync or upgrade keeps your copy and prints the template's change to
+it. The template's
 [adoption guide](https://github.com/latere-ai/service-template/blob/main/docs/adopting.md)
 describes `template check`, `sync`, and `upgrade`.
 

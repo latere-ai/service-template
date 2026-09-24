@@ -43,7 +43,11 @@ exemption there also carries the reason it exists, which this declaration had
 no place for.
 
 A waiver entry is `{path, reason, expires}`. `template check` reports waived
-files and fails on an expired waiver.
+files and fails on an expired waiver. `template sync` and `template upgrade`
+leave a waived file the repository edited as it is and print the template's
+change to it beside the report; an expired waiver stops them before they
+write anything, because the edit it covered is renewed or given up, and that
+is the repository's decision.
 
 `template.lock` sits beside it and records a content digest per generated file.
 It is written by the generator and never edited by hand.

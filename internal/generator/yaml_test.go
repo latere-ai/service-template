@@ -194,7 +194,7 @@ func TestSyncRecordsASeedFileTheRepositoryAlreadyHolds(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	if _, err := Sync(src, dir, loaded, lock); err != nil {
+	if _, err := Sync(src, dir, loaded, lock, testNow); err != nil {
 		t.Fatalf("sync: %v", err)
 	}
 	if got := read(t, dir, "README.md"); got != "# hand written\n" {
