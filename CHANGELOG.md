@@ -33,6 +33,9 @@ committed: the commit log already holds that.
   edited while a live waiver covers it, instead of overwriting it, and print
   the template's change to the file beside the report. An expired waiver
   stops them before they write anything.
+- `make build`, and `make dev` with it, works in a new repository before its
+  first commit. The build stamped the commit as `HEAD unknown`, and the
+  second word broke the link flags.
 - `init` and `upgrade` without `-version` on a build that knows no release
   say why and name the builds that do: a release run with
   `go run latere.ai/x/service-template/cmd/template@latest`, or a clean,

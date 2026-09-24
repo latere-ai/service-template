@@ -29,7 +29,9 @@ INTEGRATION_TAGS ?= integration
 # Build metadata. Each is deferred, so the git and date calls run only for a
 # target that stamps a binary.
 VERSION ?= $(shell git describe --tags --always 2>/dev/null || echo dev)
-COMMIT ?= $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
+# --verify: before the first commit a bare `git rev-parse HEAD` prints "HEAD"
+# as well as failing, and the extra word splits the link flags.
+COMMIT ?= $(shell git rev-parse --verify --quiet HEAD 2>/dev/null || echo unknown)
 BUILD_TIME ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 # A working tree with uncommitted changes produces a binary that cannot be
 # reproduced from its commit alone, so the commit carries the fact.
