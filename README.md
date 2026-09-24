@@ -15,23 +15,6 @@ owned by the template, a drift check proves a service still matches the
 version it declares, and a fix made here reaches every service through one
 command.
 
-## Status
-
-No release has been tagged yet. The generator, the skeleton it ships, the
-reusable pipelines, and a generated reference service are in this repository,
-and `make all` builds and tests them together. A service can be scaffolded and
-developed today from a checkout of this repository.
-
-Two parts wait for the first `v1` release:
-
-- The caller workflows a service commits pin `@v1`, which resolves only once
-  that tag exists. Until then, pin the reusable workflows to a commit of this
-  repository.
-- The `make template-check` target a new service carries cannot install the
-  `template` command yet. Run the drift check from a checkout of this
-  repository instead, as [Keeping a service current](#keeping-a-service-current)
-  shows.
-
 ## Start a service
 
 You need Go 1.27 or newer, git, and GNU Make. A service with a frontend also
@@ -39,26 +22,32 @@ needs [Bun](https://bun.sh), and `make dev` needs a container engine that
 speaks compose, such as Docker or Podman.
 
 ```sh
-git clone https://github.com/latere-ai/service-template.git
-cd service-template
-go run ./cmd/template init \
-  -C ../my-service \
+go run latere.ai/x/service-template/cmd/template@latest init \
+  -C my-service \
   -module github.com/acme/my-service \
   -name my-service \
   -profile service \
-  -features frontend,database \
-  -version v0.1.0
+  -features frontend,database
 ```
 
+There is nothing to clone or install: `go run` fetches the `template` command
+at the newest release, and the command carries the skeleton of that release.
 `init` writes `.template.yaml`, every file the profile and the selected
-features declare, and `template.lock`. `-version` is the template version the
-new service records. A build from a checkout carries no release version of its
-own, so pass one; `v0.1.0` is the lowest the reusable pipelines accept.
+features declare, and `template.lock`. `.template.yaml` records the release
+that ran, and every later check of the service runs that same release.
+
+To scaffold from a checkout of this repository instead, at a commit that is
+not released yet, build the command with version control stamping:
+`go run -buildvcs=true ./cmd/template init ...`. A clean checkout at a pushed
+commit records that commit's pseudo-version, which the module proxy resolves
+like a release. A plain `go run ./cmd/template` stamps no version, and a
+checkout with uncommitted changes has none that a download can reproduce, so
+`init` refuses both and says so.
 
 Then, in the new repository:
 
 ```sh
-cd ../my-service
+cd my-service
 git init
 cp .env.example .env
 make dev    # dependencies, migrations, seed data, and the service with live reload
@@ -149,18 +138,25 @@ update path:
 | Generated files | `.lateregate.yaml`, git hooks, `make/` fragments, the Dockerfiles, the callers, and the rest of what the template owns | `template sync` rewrites them; `template check` fails on drift |
 | Libraries | the Go packages the skeleton imports from `latere.ai/x/pkg`, and the gate in `latere.ai/x/ci-gate` | ordinary dependency updates |
 
-Run the command from a checkout of this repository at the version the service
-declares, and point it at the service with `-C`:
+Each command runs as a release, fetched by `go run`, from the service's own
+directory:
 
 ```sh
-go run ./cmd/template check -C ../my-service     # compare; changes nothing
-go run ./cmd/template sync -C ../my-service      # rewrite generated files
-go run ./cmd/template upgrade -C ../my-service -version v0.2.0
+make template-check                                              # compare against the declared release; changes nothing
+go run latere.ai/x/service-template/cmd/template@v1.0.0 sync     # rewrite generated files to the declared release
+go run latere.ai/x/service-template/cmd/template@v1.1.0 upgrade  # move to v1.1.0, sync, and print the diff
 ```
 
-`check` exits 0 when the repository is clean, 3 when it edited a generated
-file, 4 when it is behind the template, and 1 when the check could not run.
-`upgrade` records the new version, syncs, and prints the diff to review.
+`make template-check` runs `check` at the release `.template.yaml` declares,
+and the verify pipeline runs the same target. `check` exits 0 when the
+repository is clean, 3 when it edited a generated file, 4 when it is behind
+the template, and 1 when the check could not run. The command carries the
+skeleton of its own release, so it refuses to sync or check a repository that
+declares a different one, and names the release to run instead.
+
+Releases are tagged `vX.Y.Z`, and the moving `v1` tag the pipeline callers pin
+follows the newest `v1` release. [`CHANGELOG.md`](CHANGELOG.md) says what each
+release changed in the files a service receives.
 
 ## Design principles
 
@@ -185,6 +181,7 @@ one vendor.
 | | |
 | --- | --- |
 | [Adopting the template](docs/adopting.md) | scaffolding, the first changes, wiring the pipelines, and keeping a service current |
+| [`CHANGELOG.md`](CHANGELOG.md) | what each release changed for a service |
 | [The template contract](docs/contract.md) | what the template owns and what a service owns, file modes, drift verdicts, and the compatibility promise |
 | [`examples/`](examples) | the caller workflows a service commits |
 | [`example/`](example) | a reference service generated with every feature on; `make example` proves it matches a fresh generation |

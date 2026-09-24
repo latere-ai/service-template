@@ -7,17 +7,21 @@ in [the template contract](contract.md).
 
 ## Scaffold
 
-Run the generator from a checkout of this repository:
+Run the newest release of the generator. `go run` fetches it through the
+module proxy, and it carries the skeleton of its release, so there is nothing
+to clone or install:
 
 ```sh
-go run ./cmd/template init \
-  -C ../my-service \
+go run latere.ai/x/service-template/cmd/template@latest init \
+  -C my-service \
   -module github.com/acme/my-service \
   -name my-service \
   -profile service \
-  -features frontend,seo,database \
-  -version v0.1.0
+  -features frontend,seo,database
 ```
+
+`.template.yaml` records the release that ran. Every later command against the
+service runs that release, or the one it upgrades to, the same way.
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
@@ -26,9 +30,19 @@ go run ./cmd/template init \
 | `-name` | the last element of `-module` | the service name: lower case letters, digits, and hyphens. It names `cmd/<name>/` and the Kubernetes objects |
 | `-profile` | `service` | `service`, `library`, or `frontend-only` |
 | `-features` | none | a comma separated list of `frontend`, `seo`, `i18n`, `database`, `background` |
-| `-version` | the generator's own release | the template version to record. A build from a checkout has none, so pass it |
+| `-version` | the generator's own release | the template version to record. A release records itself, and refuses any other value, because the files it writes are that release's |
 | `-template` | `github.com/latere-ai/service-template` | the template identity to record, for a fork |
-| `-skeleton` | found by walking up from the working directory | the skeleton tree to generate from. `TEMPLATE_SKELETON` sets it too |
+| `-skeleton` | the skeleton the command carries | a skeleton tree on disk to generate from instead, for a change to the template or a fork. `TEMPLATE_SKELETON` sets it too |
+
+To scaffold from a checkout of this repository at a commit that is not
+released yet, build the command with version control stamping, such as
+`go run -buildvcs=true ./cmd/template init ...` or `go build ./cmd/template`.
+A clean checkout at a pushed commit records the commit's pseudo-version, which
+the module proxy resolves like a release, so the service's drift check can run
+it later. A plain `go run ./cmd/template` stamps no version, and a checkout
+with uncommitted changes has none that a download can reproduce; `init`
+refuses both and says why. The pipelines accept a declared version from
+`v1.0.0` on, so a pseudo-version of a commit before that release fails them.
 
 The [README](../README.md#profiles-and-features) describes the profiles and the
 features. A profile cannot be changed later; a feature can be switched on by
@@ -50,16 +64,20 @@ whether you may edit it.
 
 Seed files are the service itself and its description: `cmd/<name>/`, the
 feature wiring, `go.mod`, `README.md`, `CONTRIBUTING.md`, `SECURITY.md`,
-`docs/architecture.md`, `docs/operations.md`, `specs/`, `migrations/`,
-everything under `deploy/`, `.github/CODEOWNERS`, `.github/suppressions.yml`,
-`tools/smoke/checks.yaml`, and the frontend's routes and `package.json`.
+`docs/`, `specs/`, `migrations/`, everything under `deploy/`,
+`.github/CODEOWNERS`, `.github/suppressions.yml`, `tools/smoke/checks.yaml`,
+the configuration struct in `internal/config/config.go`, `.env.example`, and
+the frontend's routes and `package.json`. `.env.example`,
+`docs/configuration.md`, and `docs/api.md` are derived from your code by
+`make env-example` and `make docs`, so they describe your service and are
+yours; their check targets, not the drift check, keep them current.
 
 Generated files are the machinery every service shares: `.lateregate.yaml`,
 `.githooks/`, `.github/workflows/verify.yml` and `settings.yml`,
 `.github/settings.yml`, `.github/dependabot.yml`, the two Dockerfiles,
-`docker-compose.yml`, `.env.example`, the `make/` fragments, and the rest of
-`tools/`. Add your own dependency services in `compose.override.yml`, which
-the container engine merges and the template never writes.
+`docker-compose.yml`, the configuration loader, the `make/` fragments, and the
+rest of `tools/`. Add your own dependency services in `compose.override.yml`,
+which the container engine merges and the template never writes.
 
 Merged files are `Makefile`, `.gitignore`, and `frontend/.gitignore`. Add your
 own targets and ignores outside these lines, and leave what is between them
@@ -103,8 +121,9 @@ before the first push:
 ## Wire the pipelines
 
 The pipelines are reusable workflows in this repository. A service commits a
-thin caller for each one. Until `v1` is tagged, replace `@v1` in each caller
-with a full commit SHA of this repository.
+thin caller for each one, pinned to `@v1`, the moving tag that follows the
+newest `v1` release. Pin a full version tag such as `@v1.0.0` instead to take
+workflow changes only when you move the pin.
 
 | Workflow | Caller | What it needs from you |
 | --- | --- | --- |
@@ -123,21 +142,30 @@ repository.
 
 ## Keep it current
 
-Run the `template` command from a checkout of this repository at the version
-your `.template.yaml` names. It compares against the skeleton tree it reads,
-so a checkout at another version compares against that version instead.
+Every command runs as a template release, fetched by `go run`, from the
+service's directory. Nothing is installed and no checkout of this repository
+is needed:
 
 ```sh
-cd service-template
-git checkout v0.1.0      # the version the service declares, once it is tagged
-go run ./cmd/template check -C ../my-service
+make template-check                                              # check against the declared release
+go run latere.ai/x/service-template/cmd/template@v1.0.0 sync     # the release .template.yaml declares
+go run latere.ai/x/service-template/cmd/template@v1.1.0 upgrade  # the release to move to
 ```
+
+`make template-check` reads the version from `.template.yaml` and runs `check`
+at it; the verify pipeline runs the same target. To check with another build
+of the command, name it: `make template-check TEMPLATE_COMMAND=/path/to/template`.
+
+A release carries its own skeleton and compares against nothing else, so it
+refuses to sync or check a repository that declares a different release, and
+to record a different version, and prints the `go run` command for the release
+that can.
 
 | Command | What it does |
 | --- | --- |
 | `check` | compares every generated and merged file against the template and the lock. Changes nothing |
 | `sync` | rewrites generated files and the managed regions to the declared version |
-| `upgrade -version vX.Y.Z` | records the new version in `.template.yaml`, syncs, and prints the diff of every file it changed |
+| `upgrade` | records the release that runs in `.template.yaml`, syncs, and prints the diff of every file it changed |
 
 `check` exits with a code that names the remedy:
 
@@ -149,40 +177,35 @@ go run ./cmd/template check -C ../my-service
 | 1 | the check could not run: a malformed declaration, a merged file with missing markers, or an expired waiver | fix what the message names |
 
 The verify and release workflows also check the declared version. Each names
-the lowest `.template.yaml` version it works with, and a service below it fails
-the first job with an instruction to upgrade.
+the lowest `.template.yaml` version it works with, `v1.0.0` today, and a
+service below it fails the first job with the `upgrade` command to run.
 
 ### Waivers
 
 A waiver records a generated file you diverge on deliberately. It turns the
-`edited` verdict for that path into `waived` until it expires, and an expired
-waiver fails the check.
+`edited` verdict for that path into `waived` until it expires.
 
 ```yaml
 waivers:
-  - path: .env.example
-    reason: the service adds settings of its own and regenerates this file
+  - path: .lateregate.yaml
+    reason: the coverage floor waits for the storage tests
     expires: 2027-03-31
 ```
 
-A waiver changes the verdict of `check` and nothing else: `sync` and
-`upgrade` still rewrite a waived file to the template's copy, so reapply your
-version afterwards.
+`sync` and `upgrade` keep a waived file you edited as it is. They list it
+under `kept under a waiver`, and `upgrade` prints the template's change to the
+file beside the report, so you can fold the change into your copy. A waiver
+protects an edit only: a waived file you have not edited is updated like any
+other.
 
-`.env.example` is the common case today. The template generates it, and the
-service regenerates it from its own configuration struct with
-`make env-example`, so a service that adds a setting either declares this
-waiver or fails the check with exit 3. After a `sync`, run `make env-example`
-again, or the service's own staleness check fails.
+When a waiver expires, `check` fails and `sync` and `upgrade` stop before
+they write anything. Renew the expiry to keep the edit, or remove the waiver
+and run `sync` to take the template's copy. A waiver on a file you own, such
+as one declared for `.env.example` before it became a seed file, does nothing;
+`check` warns about it, and you remove it.
 
 ## Known limitations
 
-- **The drift check in CI.** A new service's `make template-check` target,
-  which the verify pipeline runs, tells you to install the command with
-  `go install github.com/latere-ai/service-template/cmd/template@v1`. That
-  does not resolve: the module path is `latere.ai/x/service-template`, there
-  is no `v1` tag yet, and the command needs a skeleton tree beside it. Run the
-  check from a checkout as shown above.
 - **Profile documents.** The `library` and `frontend-only` profiles receive
   the same seed `README.md` and `CONTRIBUTING.md` as the `service` profile,
   which describe an HTTP service and targets such as `make dev` those profiles

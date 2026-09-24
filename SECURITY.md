@@ -2,9 +2,10 @@
 
 ## Supported versions
 
-No release has been tagged yet, so fixes land on `main`. Once `v1` is
-tagged, the `v1` line receives security fixes and older tags do not. A fix to
-a generated file reaches a service on its next `template sync`.
+The `v1` line receives security fixes, as a new release that the moving `v1`
+tag follows; older tags do not. A fix to a reusable workflow reaches a service
+through its callers, which pin `@v1`. A fix to a generated file reaches a
+service when it upgrades to the release that carries it.
 
 ## Reporting a vulnerability
 

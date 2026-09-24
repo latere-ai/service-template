@@ -91,9 +91,10 @@ every service built from it, and arrives here with the next template upgrade.
 To diverge on one deliberately, declare a waiver in `.template.yaml` with a
 path, a reason, and an expiry date: the check reports the file as waived, and
 a template sync or upgrade keeps your copy and prints the template's change to
-it. The template's
+it. `make template-check` runs the check at the template release
+`.template.yaml` declares, as the verify pipeline does. The template's
 [adoption guide](https://github.com/latere-ai/service-template/blob/main/docs/adopting.md)
-describes `template check`, `sync`, and `upgrade`.
+describes `check`, `sync`, and `upgrade`, and how to run each at a release.
 
 ## Files derived from the code
 
