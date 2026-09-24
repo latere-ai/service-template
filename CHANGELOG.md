@@ -15,6 +15,10 @@ committed: the commit log already holds that.
 - `docs/adopting.md`: scaffolding a service, the files it owns and the files
   the template owns, the first changes, wiring the four pipelines, and
   keeping a service current with `check`, `sync`, `upgrade`, and waivers.
+- A new service's `CONTRIBUTING.md` says which of its files the template owns
+  and what to do about each mode, and that `.env.example` needs a waiver once
+  the service adds a setting. Seed text, so it reaches services scaffolded
+  from this release on.
 
 ### Changed
 

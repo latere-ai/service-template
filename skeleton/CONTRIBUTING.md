@@ -72,10 +72,31 @@ httpx: reject a body over the size limit before reading it
 The scope is the package or the area the change belongs to. The description says
 what changed, in the imperative, without a trailing period.
 
-## Generated files
+## Files the template owns
 
-Some files in this repository are generated. The header of each one says so.
-Edit the source, not the output:
+This repository was scaffolded from
+[service-template](https://github.com/latere-ai/service-template), and
+`.template.yaml` names the template version it follows. The template keeps
+owning part of what it wrote, and `template.lock` records a digest of each
+file it wrote:
+
+| Mode | Files | What you do |
+| --- | --- | --- |
+| seed | the service's own code, documents, specs, and deployment, written once when the repository was scaffolded | change them freely |
+| generated | the shared machinery: `.lateregate.yaml`, `.githooks/`, the workflow callers, `.github/settings.yml`, the `make/` fragments, and most of `tools/` | leave them alone; `make template-check` reports a change as drift |
+| merged | `Makefile` and `.gitignore` | edit outside the lines that mark the managed region |
+
+A change a generated file needs belongs in the template, where it reaches
+every service built from it, and arrives here with the next template upgrade.
+To diverge on one deliberately, declare a waiver in `.template.yaml` with a
+path, a reason, and an expiry date. The template's
+[adoption guide](https://github.com/latere-ai/service-template/blob/main/docs/adopting.md)
+describes `template check`, `sync`, and `upgrade`.
+
+## Files derived from the code
+
+Some files in this repository are generated from the code. The header of each
+one says so. Edit the source, not the output:
 
 | Output | Source | Command |
 | --- | --- | --- |
@@ -85,6 +106,11 @@ Edit the source, not the output:
 
 A check target proves each committed copy is current, and the check runs in the
 pipeline. An edit to a generated file is reverted by the next regeneration.
+
+`.env.example` is also one of the files the template owns. After you add a
+setting and regenerate it, declare a waiver for it in `.template.yaml`, and
+run `make env-example` again after each template sync, which restores the
+template's copy.
 
 `specs/README.md` is written by hand. `make spec-check` proves every row agrees
 with the spec it links to, so a status the table claims and the file denies

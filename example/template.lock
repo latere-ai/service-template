@@ -40,7 +40,7 @@ files:
     digest: sha256:7c4a9bc61fa89f38f6d1367907ecb97c02871a81edec775f9578e1d943309519
   - path: CONTRIBUTING.md
     mode: seed
-    digest: sha256:0bf28872e536c84930d2ab4f5954d1e4f4ca3ddc93897cabee69c424f7270482
+    digest: sha256:fb9f415cea4bafffabccd56a686fc7f3feb59dde090e9d7bdd75af55b48a71fe
   - path: Dockerfile
     mode: generated
     digest: sha256:8e624f6bef7cfb5d36bb89287a849407bbe4706f9bc5d07faf56c2a98fd33de4
