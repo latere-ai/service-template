@@ -10,6 +10,12 @@ committed: the commit log already holds that.
 
 ## Unreleased
 
+### Added
+
+- `docs/adopting.md`: scaffolding a service, the files it owns and the files
+  the template owns, the first changes, wiring the four pipelines, and
+  keeping a service current with `check`, `sync`, `upgrade`, and waivers.
+
 ### Changed
 
 - The skeleton serves its probes through `latere.ai/x/pkg/health` (pkg
