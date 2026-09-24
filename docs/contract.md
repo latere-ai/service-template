@@ -10,7 +10,7 @@ happens when the two disagree.
 | --- | --- | --- | --- |
 | Workflows | Template | A caller file with inputs | Re-pin, or ride the moving major tag |
 | Materialized files | Template | The generated file, committed | `template sync`, verified by `template check` |
-| Libraries | Template | An import and a version | Dependency update |
+| Libraries | Their own modules (`latere.ai/x/pkg`, `latere.ai/x/ci-gate`), pinned by the template | An import and a version | Dependency update |
 
 Layer 2 files are committed in the consumer repository on purpose. A developer
 must be able to read the lint rules and the hooks without network access, and
@@ -23,6 +23,8 @@ Every consumer repository holds `.template.yaml` at its root.
 ```yaml
 template: github.com/latere-ai/service-template
 version: v1.4.0          # exact template release the generated files came from
+module: github.com/acme/widget   # the Go module path, substituted at generation
+name: widget             # the service name, also the cmd/<name> directory
 profile: service         # service | library | frontend-only, fixed at scaffold
 features:
   frontend: true
