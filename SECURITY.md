@@ -2,7 +2,9 @@
 
 ## Supported versions
 
-The `v1` line receives security fixes. Older tags do not.
+No release has been tagged yet, so fixes land on `main`. Once `v1` is
+tagged, the `v1` line receives security fixes and older tags do not. A fix to
+a generated file reaches a service on its next `template sync`.
 
 ## Reporting a vulnerability
 
