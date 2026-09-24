@@ -155,10 +155,14 @@ rather than working around the check.
 Every tag has a section in [`CHANGELOG.md`](CHANGELOG.md), and that section is
 the body of the GitHub release. Write under `Unreleased` as work lands, for
 the developer who maintains a service: what changed in the files they receive
-and what they have to do. `go tool lateregate release vX.Y.Z` turns
-`Unreleased` into the tag's section, commits, tags, and pushes. The
-compatibility rules in the [template contract](docs/contract.md) decide
-whether a change is a patch, a minor, or a major release.
+and what they have to do. `go tool lateregate release vX.Y.Z` refuses while
+CI is red, then turns `Unreleased` into the tag's section, commits, tags, and
+pushes. The tag starts `template-release.yml`, which publishes the GitHub
+release with that section as its body and then moves `v1` to the tag, because
+the callers a service commits pin `@v1`. A pre-release tag publishes a
+pre-release and leaves `v1` alone. The compatibility rules in the
+[template contract](docs/contract.md) decide whether a change is a patch, a
+minor, or a major release.
 
 ## Commit messages
 

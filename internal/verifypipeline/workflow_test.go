@@ -377,3 +377,35 @@ func TestTheTemplateGateRunsValidate(t *testing.T) {
 		}
 	}
 }
+
+// The callers a service commits pin the moving major tag, and deps.yml reads
+// the latest GitHub release. A version tag therefore publishes a release and
+// then moves the tag the callers pin, or a service's callers resolve nothing
+// and its template-version job reads no release.
+func TestAVersionTagPublishesAReleaseAndMovesTheMajorTag(t *testing.T) {
+	workflow := readFile(t, ".github", "workflows", "template-release.yml")
+	if !strings.Contains(workflow, `tags: ["v*.*.*"]`) {
+		t.Error("the release workflow must run on a full version tag, and not on the major tag it moves")
+	}
+	_, blocks := jobs(t, workflow)
+	if !strings.Contains(blocks["notes"], "uses: latere-ai/ci/.github/workflows/notes-release.yml@v1") {
+		t.Error("a version tag must publish the GitHub release with its CHANGELOG.md section")
+	}
+	major, ok := blocks["major"]
+	if !ok {
+		t.Fatal("the release workflow does not move the major tag")
+	}
+	if needs := needsOf(t, major); len(needs) != 1 || needs[0] != "notes" {
+		t.Errorf("the major tag moves before the release is published: needs %v", needs)
+	}
+	pinned := regexp.MustCompile(`service-template/\.github/workflows/[a-z-]+\.yml@(v[0-9]+)\b`).
+		FindStringSubmatch(readFile(t, "examples", "verify.yml"))
+	if pinned == nil {
+		t.Fatal("the verify caller pins no major tag")
+	}
+	for _, want := range []string{"git tag -f " + pinned[1] + " ", "refs/tags/" + pinned[1], `grep -Eq '^` + pinned[1] + `\.`} {
+		if !strings.Contains(major, want) {
+			t.Errorf("the major job does not move %s, the tag the callers pin: no %q", pinned[1], want)
+		}
+	}
+}

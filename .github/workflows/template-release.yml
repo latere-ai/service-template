@@ -1,0 +1,53 @@
+# The template's own release. A version tag publishes the GitHub release, whose
+# body is the tag's section in CHANGELOG.md, and then moves the major tag.
+#
+# A service needs both. The callers it commits pin `@v1`, which resolves only
+# once `v1` exists and reaches a release only once `v1` points at it; and the
+# template-version job of deps.yml reads the latest GitHub release to tell a
+# service that a newer one exists. A bare version tag serves neither.
+name: template-release
+
+on:
+  push:
+    # A full version only: the moving major tag this workflow pushes is not a
+    # release of its own.
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+jobs:
+  notes:
+    permissions:
+      contents: write
+    uses: latere-ai/ci/.github/workflows/notes-release.yml@v1
+    secrets: inherit
+
+  # Moving `v1` is part of cutting a version rather than a separate step that
+  # can be forgotten, the way latere-ai/ci moves its own. It waits for the
+  # release, so a tag refused for having no notes moves nothing. Landing on
+  # main moves nothing either, and a pre-release leaves `v1` where it is, so a
+  # release candidate is tried by pinning it exactly.
+  major:
+    needs: notes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Move v1 to ${{ github.ref_name }}
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$TAG" | grep -Eq '^v1\.[0-9]+\.[0-9]+$'; then
+            echo "$TAG is a pre-release or outside the v1 line; v1 stays where it is."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f v1 "$TAG"^{}
+          git push -f origin refs/tags/v1
+          echo "v1 -> $TAG ($(git rev-parse 'v1^{}'))"
