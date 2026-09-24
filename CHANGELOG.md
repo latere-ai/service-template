@@ -10,6 +10,8 @@ committed: the commit log already holds that.
 
 ## Unreleased
 
+## v1.0.0 - 2026-09-24
+
 The first release. A service starts from it with
 `go run latere.ai/x/service-template/cmd/template@latest init`, which needs no
 checkout of this repository, and its pipeline callers resolve `@v1`. A
