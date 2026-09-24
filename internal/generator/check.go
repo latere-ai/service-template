@@ -105,9 +105,11 @@ func Check(src fs.FS, dir string, cfg *Config, lock *Lock, now time.Time) (*Chec
 	}
 
 	selected := map[string]bool{}
+	seeds := map[string]bool{}
 	for _, pf := range plan.Files {
 		selected[pf.Target] = true
 		if pf.Entry.Mode == ModeSeed {
+			seeds[pf.Target] = true
 			continue
 		}
 		v := checkFile(dir, pf, lock)
@@ -134,9 +136,16 @@ func Check(src fs.FS, dir string, cfg *Config, lock *Lock, now time.Time) (*Chec
 	}
 
 	for _, w := range cfg.Waivers {
-		if !selected[w.Path] {
+		switch {
+		case !selected[w.Path]:
 			report.Warnings = append(report.Warnings,
 				fmt.Sprintf("the waiver for %q covers no generated file", w.Path))
+		case seeds[w.Path]:
+			// A file that moved from generated to seed keeps the waiver the
+			// repository declared for it, which would fail the check on its
+			// expiry date over a file the check never compares.
+			report.Warnings = append(report.Warnings,
+				fmt.Sprintf("the waiver for %q covers a file the repository owns, which the check never compares; remove it", w.Path))
 		}
 	}
 

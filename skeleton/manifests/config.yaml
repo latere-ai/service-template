@@ -54,9 +54,12 @@ files:
     mode: generated
     profiles: [service]
 
-  # The committed environment reference. It is generated from the configuration
+  # The committed environment reference. It is derived from the configuration
   # struct, so a new setting reaches the file that documents it in the same
-  # change; the staleness gate proves the committed copy is current.
+  # change. It is seed for the reason docs/configuration.md is: the struct is
+  # the service's own from the first setting it adds, so the file describes
+  # the service rather than the template. The template writes it once; the
+  # staleness gate, not the drift check, proves the committed copy current.
   - path: .env.example
-    mode: generated
+    mode: seed
     profiles: [service]

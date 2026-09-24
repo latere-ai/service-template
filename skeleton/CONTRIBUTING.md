@@ -107,10 +107,9 @@ one says so. Edit the source, not the output:
 A check target proves each committed copy is current, and the check runs in the
 pipeline. An edit to a generated file is reverted by the next regeneration.
 
-`.env.example` is also one of the files the template owns. After you add a
-setting and regenerate it, declare a waiver for it in `.template.yaml`, and
-run `make env-example` again after each template sync, which restores the
-template's copy.
+The outputs are this repository's own, like the code they are derived from.
+The template wrote each one once, when it scaffolded the repository, and
+neither checks nor rewrites them afterwards.
 
 `specs/README.md` is written by hand. `make spec-check` proves every row agrees
 with the spec it links to, so a status the table claims and the file denies

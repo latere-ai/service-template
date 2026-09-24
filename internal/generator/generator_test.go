@@ -485,6 +485,44 @@ func TestCheckReportsAWaiverForNoGeneratedFile(t *testing.T) {
 	mustContain(t, out, "covers no generated file", "the stale waiver warning")
 }
 
+// A waiver on a file the repository owns does nothing until it expires, and
+// then fails the check over a file the check never compares, so the check
+// says to remove it while it is still harmless.
+func TestCheckReportsAWaiverOnASeedFile(t *testing.T) {
+	src := skeletonFS(t)
+	dir := initRepo(t, src, testConfig())
+	addWaiver(t, dir, "README.md", "written before the file became the repository's own", "2026-12-01")
+
+	code, out, _ := runCLI(t, src, "check", "-C", dir)
+	if code != ExitOK {
+		t.Fatalf("a waiver on a seed file failed the check, exit %d", code)
+	}
+	mustContain(t, out, `the waiver for "README.md" covers a file the repository owns`, "the seed waiver warning")
+}
+
+// A service adds settings of its own from the first day and regenerates
+// .env.example from its configuration struct. The file describes the service,
+// so the service owns it: neither the drift check nor a sync may treat the
+// regenerated copy as an edit to a template file.
+func TestTheServiceOwnsItsEnvironmentExample(t *testing.T) {
+	src := os.DirFS(filepath.Join("..", "..", "skeleton"))
+	cfg := testConfig()
+	dir := initRepo(t, src, cfg)
+	regenerated := read(t, dir, ".env.example") + "\n# A setting the service added.\nGREETING=hello\n"
+	write(t, dir, ".env.example", regenerated)
+
+	code, out, errOut := runCLI(t, src, "check", "-C", dir)
+	if code != ExitOK {
+		t.Fatalf("a regenerated .env.example failed the drift check, exit %d\n%s%s", code, out, errOut)
+	}
+	if code, _, errOut := runCLI(t, src, "sync", "-C", dir); code != ExitOK {
+		t.Fatalf("sync exited %d\n%s", code, errOut)
+	}
+	if got := read(t, dir, ".env.example"); got != regenerated {
+		t.Fatalf("sync rewrote the service's .env.example:\n%s", got)
+	}
+}
+
 // addWaiver appends a waiver to the declaration.
 func addWaiver(t *testing.T, dir, path, reason, expires string) {
 	t.Helper()

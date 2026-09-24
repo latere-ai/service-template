@@ -9,7 +9,7 @@ features:
   background: true
 files:
   - path: .env.example
-    mode: generated
+    mode: seed
     digest: sha256:a5e4501a6305e6c62ac2457ec09bf144852fa3dc4947c2bf14f6678a5e4bde02
   - path: .githooks/pre-commit
     mode: generated
@@ -40,7 +40,7 @@ files:
     digest: sha256:7c4a9bc61fa89f38f6d1367907ecb97c02871a81edec775f9578e1d943309519
   - path: CONTRIBUTING.md
     mode: seed
-    digest: sha256:fb9f415cea4bafffabccd56a686fc7f3feb59dde090e9d7bdd75af55b48a71fe
+    digest: sha256:cfdaf6304e91527a6a3c884fdfd78dd2b055893b0a2f5624c63db416d999655e
   - path: Dockerfile
     mode: generated
     digest: sha256:8e624f6bef7cfb5d36bb89287a849407bbe4706f9bc5d07faf56c2a98fd33de4

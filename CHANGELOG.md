@@ -24,9 +24,8 @@ committed: the commit log already holds that.
   the template owns, the first changes, wiring the four pipelines, and
   keeping a service current with `check`, `sync`, `upgrade`, and waivers.
 - A new service's `CONTRIBUTING.md` says which of its files the template owns
-  and what to do about each mode, and that `.env.example` needs a waiver once
-  the service adds a setting. Seed text, so it reaches services scaffolded
-  from this release on.
+  and what to do about each mode. Seed text, so it reaches services
+  scaffolded from this release on.
 
 ### Fixed
 
@@ -46,6 +45,11 @@ committed: the commit log already holds that.
   and no checkout of the template. It used to name a module path and a tag
   that do not exist. `TEMPLATE_COMMAND` names another build of the command.
   The upgrade instructions the pipelines print name the same command.
+- `.env.example` is a seed file: the service owns it, as it owns the
+  configuration struct it is derived from. Adding a setting and running
+  `make env-example` no longer fails `template check` with exit 3, and no
+  waiver is needed. `template check` warns about a waiver that covers a file
+  the service owns; remove a waiver declared for `.env.example`.
 - The verify and release pipelines accept `.template.yaml` versions from
   v1.0.0, the first release; no earlier version names a release the drift
   check can run. A service scaffolded from a checkout before it runs
