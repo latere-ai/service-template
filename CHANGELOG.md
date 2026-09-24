@@ -40,6 +40,17 @@ committed: the commit log already holds that.
 
 ### Changed
 
+- `make template-check` runs the template release `.template.yaml` declares,
+  as `go run latere.ai/x/service-template/cmd/template@<version> check`, so
+  the drift step of the verify pipeline works in any service, with no install
+  and no checkout of the template. It used to name a module path and a tag
+  that do not exist. `TEMPLATE_COMMAND` names another build of the command.
+  The upgrade instructions the pipelines print name the same command.
+- The verify and release pipelines accept `.template.yaml` versions from
+  v1.0.0, the first release; no earlier version names a release the drift
+  check can run. A service scaffolded from a checkout before it runs
+  `go run latere.ai/x/service-template/cmd/template@v1.0.0 upgrade`.
+
 - The skeleton serves its probes through `latere.ai/x/pkg/health` (pkg
   v0.58.0): `/livez` and `/readyz` answer `ok` as text, `/readyz` names
   each failing dependency as `not ready: <check>: <error>`, and `/version`

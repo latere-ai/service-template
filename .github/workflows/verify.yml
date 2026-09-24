@@ -69,8 +69,9 @@ env:
   SCRIPTS: .template-pipeline/.github/scripts
   # The minimum consumer declaration this workflow accepts. A workflow change
   # that reads a new generated file raises this, and raising it is a minor
-  # release that names the file.
-  MIN_TEMPLATE_VERSION: v0.1.0
+  # release that names the file. v1.0.0 is the first release: the drift check
+  # runs the declared release, and no earlier version names one.
+  MIN_TEMPLATE_VERSION: v1.0.0
   BINARY_ARTIFACT: verify-binary
   BUNDLE_ARTIFACT: verify-bundle
   BUNDLE_SIZE_ARTIFACT: verify-bundle-size

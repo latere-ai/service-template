@@ -21,7 +21,7 @@ EXAMPLE_MODULE := github.com/example/reference-service
 EXAMPLE_NAME := reference-service
 EXAMPLE_PROFILE := service
 EXAMPLE_FEATURES := frontend,seo,i18n,database,background
-EXAMPLE_VERSION := v0.1.0
+EXAMPLE_VERSION := v1.0.0
 
 # Both modules render their lint configuration from the shared template in
 # latere.ai/x/ci-gate rather than committing one. golangci-lint cannot inherit

@@ -101,7 +101,7 @@ below() {
 if below "$version" "$min"; then
 	echo "template-version: this repository follows template $version" >&2
 	echo "this workflow needs $min or newer, because it reads generated files added in $min." >&2
-	echo "run: template upgrade --to $min && make template-check" >&2
+	echo "run: go run latere.ai/x/service-template/cmd/template@$min upgrade && make template-check" >&2
 	exit 1
 fi
 

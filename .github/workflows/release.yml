@@ -42,7 +42,7 @@ on:
         description: The lowest .template.yaml version this pipeline supports.
         type: string
         required: false
-        default: v0.1.0
+        default: v1.0.0
       binary-artifact:
         description: >-
           Name of the binary artifact the verify run published. A
@@ -148,7 +148,7 @@ jobs:
           fi
           lowest=$(printf '%s\n%s\n' "${have#v}" "${want#v}" | sort -V | head -1)
           if [ "$lowest" != "${want#v}" ] && [ "${have#v}" != "${want#v}" ]; then
-            echo "::error::this pipeline needs template $want, the repository declares $have; run template upgrade"
+            echo "::error::this pipeline needs template $want, the repository declares $have; run: go run latere.ai/x/service-template/cmd/template@$want upgrade"
             exit 1
           fi
           echo "template version $have satisfies $want"

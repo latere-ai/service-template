@@ -6,6 +6,7 @@ package verifypipeline
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -57,7 +58,7 @@ func TestTemplateVersionGate(t *testing.T) {
 				t.Fatalf("exit code %d, want %d\n%s", got.Code, c.code, got.Output)
 			}
 			if c.code != 0 {
-				got.contains(t, "template upgrade --to "+c.minimum)
+				got.contains(t, "go run latere.ai/x/service-template/cmd/template@"+c.minimum+" upgrade")
 			}
 		})
 	}
@@ -103,4 +104,49 @@ func TestTemplateVersionWithoutDeclaration(t *testing.T) {
 		t.Fatalf("the gate passed without a declaration\n%s", got.Output)
 	}
 	got.contains(t, "template init")
+}
+
+// Every place a pipeline tells a repository to upgrade names a command that
+// runs: the release itself, fetched by `go run`, which needs no install and no
+// checkout. An instruction naming a binary nothing installs, or a flag the
+// command does not take, sends the reader into a second failure.
+func TestUpgradeInstructionsRunTheRelease(t *testing.T) {
+	const command = "go run latere.ai/x/service-template/cmd/template@"
+	for _, file := range [][]string{
+		{".github", "scripts", "template-version.sh"},
+		{".github", "workflows", "deps.yml"},
+		{".github", "workflows", "release.yml"},
+	} {
+		name := filepath.Join(file...)
+		text := readFile(t, file...)
+		if !strings.Contains(text, command) {
+			t.Errorf("%s gives no upgrade instruction that runs %s<version>", name, command)
+		}
+		for _, stale := range []string{"template upgrade", "--to "} {
+			if strings.Contains(text, stale) {
+				t.Errorf("%s still tells the reader %q, which does not run", name, stale)
+			}
+		}
+	}
+}
+
+// The verify and release pipelines accept the same lowest declaration, and the
+// reference service declares a version both accept, or the example the
+// repository publishes would fail the pipelines it documents.
+func TestPipelinesAgreeOnTheMinimumVersion(t *testing.T) {
+	verify := regexp.MustCompile(`(?m)^  MIN_TEMPLATE_VERSION: (v\S+)$`).
+		FindStringSubmatch(readFile(t, ".github", "workflows", "verify.yml"))
+	release := regexp.MustCompile(`minimum-template-version:\n(?:        .*\n)*?        default: (v\S+)\n`).
+		FindStringSubmatch(readFile(t, ".github", "workflows", "release.yml"))
+	if verify == nil || release == nil {
+		t.Fatalf("a pipeline declares no minimum: verify %v, release %v", verify, release)
+	}
+	if verify[1] != release[1] {
+		t.Fatalf("verify accepts %s and up, release accepts %s and up", verify[1], release[1])
+	}
+	got := runScript(t, filepath.Join(repoRoot(t), "example"), "template-version.sh",
+		[]string{"MIN_TEMPLATE_VERSION=" + verify[1], "GITHUB_OUTPUT="})
+	if got.Code != 0 {
+		t.Fatalf("the reference service fails the minimum %s:\n%s", verify[1], got.Output)
+	}
 }

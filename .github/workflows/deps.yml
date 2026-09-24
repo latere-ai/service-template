@@ -168,8 +168,8 @@ jobs:
             echo "Absorb it with:"
             echo
             echo '```sh'
-            echo "template upgrade --to $latest"
-            echo "template check"
+            echo "go run latere.ai/x/service-template/cmd/template@$latest upgrade"
+            echo "make template-check"
             echo '```'
             echo
             echo "Changes between the two:"

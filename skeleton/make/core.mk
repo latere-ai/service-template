@@ -166,6 +166,16 @@ test-hermetic:
 test-tempdir:
 	@go tool lateregate tempdir
 
+# The drift check runs the template release .template.yaml declares, because
+# the files to compare against are the ones that release generated, whatever
+# release is newest. The command carries its release's skeleton, and `go run`
+# fetches it through the module proxy, so the check needs no install and no
+# checkout of the template. TEMPLATE_COMMAND names another build of the
+# command instead.
+TEMPLATE_MODULE ?= latere.ai/x/service-template
+TEMPLATE_VERSION = $(shell awk '$$1 == "version:" { print $$2; exit }' .template.yaml 2>/dev/null | tr -d "\"'")
+TEMPLATE_COMMAND ?= go run $(TEMPLATE_MODULE)/cmd/template@$(TEMPLATE_VERSION)
+
 template-check:
-	$(call require_tool,template,go install github.com/latere-ai/service-template/cmd/template@v1)
-	template check
+	@test -n "$(TEMPLATE_VERSION)" || { echo ".template.yaml declares no template version."; exit 1; }
+	$(TEMPLATE_COMMAND) check

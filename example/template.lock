@@ -1,5 +1,5 @@
 # Written by the template generator. Do not edit.
-version: v0.1.0
+version: v1.0.0
 profile: service
 features:
   frontend: true
@@ -772,7 +772,7 @@ files:
     digest: sha256:86b54e8e1e27f7a3bcd7acec65ee20313ddf0e7c7c555bcc5c99b783d83ea08c
   - path: make/core.mk
     mode: generated
-    digest: sha256:c8fa9ace907127cb90eaacc077143a28afdaaaf5ba09d7a596904c8b54416445
+    digest: sha256:ea3194c3ecb552ff6b8bf84b34686d33fae5adb22c75ac125dffb64b9d7513ac
   - path: make/dev.mk
     mode: generated
     digest: sha256:fbc6113aa52a626a9d01904b7c1dd015578007ec6ba0a5e5cad423e2a4ed4f47
