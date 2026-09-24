@@ -12,6 +12,14 @@ committed: the commit log already holds that.
 
 ### Added
 
+- The `template` command carries the skeleton of its own release, so
+  `go run latere.ai/x/service-template/cmd/template@<version>` scaffolds,
+  syncs, and checks a service with no checkout of this repository. A build
+  that carries its skeleton refuses to record, sync to, or check against any
+  other release, and prints the `go run` command for the release that can.
+  `-skeleton` and `TEMPLATE_SKELETON` still name a tree on disk; the working
+  directory no longer selects one.
+
 - `docs/adopting.md`: scaffolding a service, the files it owns and the files
   the template owns, the first changes, wiring the four pipelines, and
   keeping a service current with `check`, `sync`, `upgrade`, and waivers.

@@ -29,6 +29,28 @@ type Env struct {
 	// Version is the release of the generator itself. It is the default
 	// version an init writes and an upgrade moves to.
 	Version string
+	// Embedded reports that Skeleton is the tree this build of the command
+	// carries, so Version names its content exactly. Such a command records,
+	// syncs to, and checks against its own release only.
+	Embedded bool
+}
+
+// CommandPath is the import path of the command. A release runs as
+// `go run CommandPath@<version>`, which needs no checkout and no install.
+const CommandPath = "latere.ai/x/service-template/cmd/template"
+
+// ownRelease refuses to pair the skeleton a build carries with any release but
+// the build's own. The command writes and compares its own tree, so recording
+// another version, or checking a repository that declares one, would name
+// files the command does not hold. A build that knows no version of its own
+// cannot tell, and is left to the caller.
+func (env Env) ownRelease(want, action, command string) error {
+	if !env.Embedded || env.Version == "" || want == env.Version {
+		return nil
+	}
+	return fmt.Errorf("this build of the template command is %s and carries that release's skeleton, "+
+		"so it cannot %s %s; run that release instead: go run %s@%s %s",
+		env.Version, action, want, CommandPath, want, command)
 }
 
 const usage = `template materializes and verifies the files a service template owns.
@@ -139,6 +161,9 @@ func runInit(env Env, args []string) error {
 	if err := cfg.Validate(ConfigFile); err != nil {
 		return err
 	}
+	if err := env.ownRelease(cfg.Version, "record", "init"); err != nil {
+		return err
+	}
 	report, err := Init(env.Skeleton, *dir, cfg)
 	if err != nil {
 		return err
@@ -178,6 +203,9 @@ func runSync(env Env, args []string) error {
 	if err != nil {
 		return err
 	}
+	if err := env.ownRelease(cfg.Version, "sync a repository that declares", "sync"); err != nil {
+		return err
+	}
 	report, err := Sync(env.Skeleton, *dir, cfg, lock)
 	if err != nil {
 		return err
@@ -194,6 +222,9 @@ func runCheck(env Env, args []string) (int, error) {
 	}
 	cfg, lock, err := load(*dir)
 	if err != nil {
+		return ExitError, err
+	}
+	if err := env.ownRelease(cfg.Version, "check a repository that declares", "check"); err != nil {
 		return ExitError, err
 	}
 	report, err := Check(env.Skeleton, *dir, cfg, lock, env.Now)
@@ -217,6 +248,9 @@ func runUpgrade(env Env, args []string) error {
 	}
 	if *version == "" {
 		return errors.New("upgrade needs -version, the template release to move to")
+	}
+	if err := env.ownRelease(*version, "upgrade to", "upgrade"); err != nil {
+		return err
 	}
 	cfg, lock, err := load(*dir)
 	if err != nil {

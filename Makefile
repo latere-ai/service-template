@@ -30,7 +30,8 @@ EXAMPLE_VERSION := v0.1.0
 
 .PHONY: all build test test-race test-hermetic validate lint lint-config \
         lint-modernize lint-otel fmt fmt-check manifest skeleton-test \
-        skeleton-lint skeleton-cover spec-lint example example-update clean
+        skeleton-lint skeleton-cover skeleton-archive spec-lint example \
+        example-update clean
 
 # A bare make runs every gate that needs no network and no container engine.
 all: fmt-check lint-modernize build test test-hermetic spec-lint validate lint
@@ -164,7 +165,15 @@ example:
 		exit 1; \
 	fi
 
-example-update:
+# The command carries the skeleton as one archive, because skeleton/ is a
+# module of its own and neither an embed pattern nor a module download reaches
+# into it. The archive is packed from the tree, and the suite fails when the
+# two differ, so it is refreshed with the example rather than by hand.
+skeleton-archive:
+	@go test ./internal/skeleton -run '^TestArchiveMatchesTheSkeleton$$' -count=1 -update >/dev/null
+	@echo "skeleton-archive: packed from $(SKELETON)"
+
+example-update: skeleton-archive
 	@rm -rf $(EXAMPLE)
 	@$(MAKE) --no-print-directory generate-example DIR=$(EXAMPLE)
 	@echo "example: regenerated"

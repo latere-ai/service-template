@@ -13,6 +13,7 @@ the reference service the two produce together.
 ```
 cmd/template/             the generator and drift check
 internal/generator/       manifest loading, rendering, planning, drift verdicts
+internal/skeleton/        the skeleton packed into the archive the command embeds
 internal/verifypipeline/  tests for the pipeline scripts and the workflow structure
 skeleton/                 the files a service receives, as a compiling Go module
   cmd/service/              the entry point, plus one wiring file per feature
@@ -46,6 +47,16 @@ file: a bare substitution of `service` would also hit `services` and
 it and fails on any difference, so it doubles as the determinism check and as
 a readable sample of what a service receives.
 
+The command carries the skeleton inside its binary, so a release run as
+`go run latere.ai/x/service-template/cmd/template@<version>` needs no
+checkout. `skeleton/` is a module of its own, which neither an embed pattern
+nor a module download reaches into, so the command embeds
+`internal/skeleton/skeleton.zip`: the manifest fragments and every file they
+declare, stored uncompressed. It is generated output that is committed, like
+`example/`, and the suite fails when it no longer matches the tree. The
+command generates from that archive unless `-skeleton` or `TEMPLATE_SKELETON`
+names a tree on disk, which is how the targets below reach the working copy.
+
 ## Changing the skeleton
 
 1. Edit or add the file under `skeleton/`.
@@ -57,8 +68,8 @@ a readable sample of what a service receives.
 3. Run `make validate`: it compiles and tests the skeleton under the race
    detector, lints it as its own module, proves the manifest complete, and
    compares `example/` against a fresh generation.
-4. Run `make example-update` and commit the regenerated `example/` in the same
-   change.
+4. Run `make example-update` and commit the regenerated `example/` and
+   `internal/skeleton/skeleton.zip` in the same change.
 
 Choose the mode by who owns the content after the first day. The
 [template contract](docs/contract.md) states the three modes, and every
@@ -91,7 +102,8 @@ compiled and tested as source, the manifest check, and the comparison of
 | `make skeleton-cover` | the skeleton's coverage gate over the unit and integration tiers. It needs a reachable Postgres and a browser for the diagram renderer, so it is not part of `all` |
 | `make manifest` | every skeleton file declared in exactly one fragment |
 | `make example` | the committed `example/` compared against a fresh generation |
-| `make example-update` | regenerates `example/` |
+| `make example-update` | regenerates `example/` and, first, the skeleton archive |
+| `make skeleton-archive` | packs `skeleton/` into the archive the command embeds |
 | `make check` | the shared bar alone, `go tool lateregate`; `go tool lateregate list` names each gate |
 
 ## Workflow
@@ -117,7 +129,7 @@ The template holds itself to the standards it ships:
   checks CI does not.
 - Never edit a file under `example/` by hand, a sweep included: change the
   skeleton and run `make example-update`, or `template.lock` falls behind the
-  files it describes.
+  files it describes. The same holds for the skeleton archive.
 - A bug fix carries a test that fails without the fix. That test is how the
   fix stays fixed.
 - Coverage has a per-package floor, set in `.lateregate.yaml`. An exemption

@@ -4,6 +4,7 @@
 package generator
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -448,4 +449,49 @@ func TestUpgradeNeedsAVersion(t *testing.T) {
 		t.Fatalf("upgrade without a version exited %d", code)
 	}
 	mustContain(t, errOut.String(), "needs -version", "the missing flag")
+}
+
+// runCarried drives the command the way a build that carries its own skeleton
+// does: the tree is the build's, so the build's version names it.
+func runCarried(t *testing.T, src fs.FS, version string, args ...string) (int, string) {
+	t.Helper()
+	var out, errOut strings.Builder
+	code := Run(Env{Skeleton: src, Embedded: true, Stdout: &out, Stderr: &errOut, Now: testNow, Version: version}, args)
+	return code, errOut.String()
+}
+
+// A build that carries its own skeleton writes and compares that release's
+// files, so it refuses to record, sync to, or check against any other one and
+// names the release that can.
+func TestACarriedSkeletonPairsOnlyWithItsOwnRelease(t *testing.T) {
+	src := skeletonFS(t)
+	dir := initRepo(t, src, testConfig()) // declares testVersion
+
+	code, errOut := runCarried(t, src, testVersion, "init", "-C", filepath.Join(t.TempDir(), "repo"),
+		"-module", "github.com/acme/widget", "-version", "v1.5.0")
+	if code != ExitError {
+		t.Fatalf("init recorded another release than the build's, exit %d", code)
+	}
+	mustContain(t, errOut, "go run "+CommandPath+"@v1.5.0 init", "the release to run")
+
+	for _, command := range []string{"sync", "check"} {
+		code, errOut := runCarried(t, src, "v1.5.0", command, "-C", dir)
+		if code != ExitError {
+			t.Fatalf("%s against a repository declaring %s exited %d", command, testVersion, code)
+		}
+		mustContain(t, errOut, "go run "+CommandPath+"@"+testVersion+" "+command, "the release to run")
+	}
+
+	code, errOut = runCarried(t, src, testVersion, "upgrade", "-C", dir, "-version", "v1.5.0")
+	if code != ExitError {
+		t.Fatalf("upgrade moved to a release the build does not carry, exit %d", code)
+	}
+	mustContain(t, errOut, "go run "+CommandPath+"@v1.5.0 upgrade", "the release to run")
+	if got := read(t, dir, ConfigFile); !strings.Contains(got, "version: "+testVersion+"\n") {
+		t.Fatalf("a refused upgrade rewrote the declaration:\n%s", got)
+	}
+
+	if code, errOut := runCarried(t, src, testVersion, "check", "-C", dir); code != ExitOK {
+		t.Fatalf("check at the declared release exited %d\n%s", code, errOut)
+	}
 }

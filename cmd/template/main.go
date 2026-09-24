@@ -7,12 +7,14 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime/debug"
 	"strings"
 
 	"latere.ai/x/service-template/internal/generator"
+	"latere.ai/x/service-template/internal/skeleton"
 )
 
 // version is the generator's own release. A release build sets it with
@@ -20,20 +22,19 @@ import (
 // module version the Go tool recorded.
 var version = ""
 
-// skeletonEnv names the directory that holds the skeleton tree. The skeleton
-// cannot be embedded, because an embed pattern may not leave the package
-// directory, so the command locates it on disk.
+// skeletonEnv names a directory that holds a skeleton tree to generate from
+// instead of the one this build carries.
 const skeletonEnv = "TEMPLATE_SKELETON"
 
 func main() {
-	args := os.Args[1:]
-	dir, rest, err := skeletonDir(args)
+	src, embedded, rest, err := skeletonSource(os.Args[1:], os.Getenv)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "template: %v\n", err)
 		os.Exit(generator.ExitError)
 	}
 	env := generator.Env{
-		Skeleton: os.DirFS(dir),
+		Skeleton: src,
+		Embedded: embedded,
 		Stdout:   os.Stdout,
 		Stderr:   os.Stderr,
 		Version:  buildVersion(),
@@ -51,11 +52,15 @@ func buildVersion() string {
 	return ""
 }
 
-// skeletonDir resolves the skeleton tree and returns the arguments with the
-// -skeleton flag removed. The flag wins over the environment variable, and a
-// search from the working directory and the executable covers a build from a
-// checkout.
-func skeletonDir(args []string) (string, []string, error) {
+// skeletonSource resolves the skeleton tree and returns the arguments with the
+// -skeleton flag removed. The flag wins over the environment variable, and
+// both win over the tree this build carries. embedded reports that the tree
+// is the carried one, whose content the build's version names exactly.
+//
+// A working directory never selects the tree. A command run inside a checkout
+// of the template, or inside a service scaffolded next to one, generates from
+// the tree of its own release unless it is told otherwise.
+func skeletonSource(args []string, getenv func(string) string) (fs.FS, bool, []string, error) {
 	rest := make([]string, 0, len(args))
 	from := ""
 	source := ""
@@ -63,11 +68,11 @@ func skeletonDir(args []string) (string, []string, error) {
 		switch {
 		case args[i] == "-skeleton" || args[i] == "--skeleton":
 			if i+1 >= len(args) {
-				return "", nil, fmt.Errorf("-skeleton needs a directory")
+				return nil, false, nil, fmt.Errorf("-skeleton needs a directory")
 			}
 			from, source = args[i+1], "-skeleton"
 			i++
-		case len(args[i]) > 10 && (args[i][:10] == "-skeleton="):
+		case strings.HasPrefix(args[i], "-skeleton="):
 			from, source = strings.TrimPrefix(args[i], "-skeleton="), "-skeleton"
 		case strings.HasPrefix(args[i], "--skeleton="):
 			from, source = strings.TrimPrefix(args[i], "--skeleton="), "-skeleton"
@@ -76,50 +81,23 @@ func skeletonDir(args []string) (string, []string, error) {
 		}
 	}
 	if from == "" {
-		from, source = os.Getenv(skeletonEnv), skeletonEnv
+		from, source = getenv(skeletonEnv), skeletonEnv
 	}
 	if from != "" {
 		if !isSkeleton(from) {
-			return "", nil, fmt.Errorf("%s names %s, which holds no %s directory",
+			return nil, false, nil, fmt.Errorf("%s names %s, which holds no %s directory",
 				source, from, generator.ManifestDir)
 		}
-		return from, rest, nil
+		return os.DirFS(from), false, rest, nil
 	}
-	if found, ok := searchUp(); ok {
-		return found, rest, nil
+	carried, err := skeleton.FS()
+	if err != nil {
+		return nil, false, nil, err
 	}
-	return "", nil, fmt.Errorf(
-		"cannot find the skeleton tree; pass -skeleton <dir> or set %s", skeletonEnv)
+	return carried, true, rest, nil
 }
 
 func isSkeleton(dir string) bool {
 	st, err := os.Stat(filepath.Join(dir, generator.ManifestDir))
 	return err == nil && st.IsDir()
-}
-
-// searchUp walks upwards from the working directory and from the executable
-// looking for a checkout of the template.
-func searchUp() (string, bool) {
-	var starts []string
-	if wd, err := os.Getwd(); err == nil {
-		starts = append(starts, wd)
-	}
-	if exe, err := os.Executable(); err == nil {
-		starts = append(starts, filepath.Dir(exe))
-	}
-	for _, start := range starts {
-		dir := start
-		for {
-			candidate := filepath.Join(dir, "skeleton")
-			if isSkeleton(candidate) {
-				return candidate, true
-			}
-			parent := filepath.Dir(dir)
-			if parent == dir {
-				break
-			}
-			dir = parent
-		}
-	}
-	return "", false
 }
