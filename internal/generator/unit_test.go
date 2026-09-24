@@ -448,7 +448,31 @@ func TestUpgradeNeedsAVersion(t *testing.T) {
 	if code != ExitError {
 		t.Fatalf("upgrade without a version exited %d", code)
 	}
-	mustContain(t, errOut.String(), "needs -version", "the missing flag")
+	mustContain(t, errOut.String(), "upgrade needs the template version to record", "the missing version")
+	mustContain(t, errOut.String(), "go run "+CommandPath+"@latest upgrade", "the release to run")
+}
+
+// A build of the command knows its own release unless it was built without
+// version control stamping or from a checkout with uncommitted changes. Init
+// then has nothing true to record, so it says why and names the builds that
+// know a release, rather than failing on a declaration the user never wrote.
+func TestInitWithoutAVersionNamesTheRemedy(t *testing.T) {
+	var out, errOut strings.Builder
+	why := "it was built without version control stamping, which a plain go run in a checkout does"
+	code := Run(Env{Skeleton: skeletonFS(t), Stdout: &out, Stderr: &errOut, Now: testNow, VersionMissing: why},
+		[]string{"init", "-C", filepath.Join(t.TempDir(), "repo"), "-module", "github.com/acme/widget"})
+	if code != ExitError {
+		t.Fatalf("init without a version exited %d", code)
+	}
+	for _, want := range []string{
+		"init needs the template version to record",
+		why,
+		"go run " + CommandPath + "@latest init",
+		"go build",
+		"pass -version",
+	} {
+		mustContain(t, errOut.String(), want, "the remedy")
+	}
 }
 
 // runCarried drives the command the way a build that carries its own skeleton

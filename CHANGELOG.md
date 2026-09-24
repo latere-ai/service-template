@@ -28,6 +28,16 @@ committed: the commit log already holds that.
   the service adds a setting. Seed text, so it reaches services scaffolded
   from this release on.
 
+### Fixed
+
+- `init` and `upgrade` without `-version` on a build that knows no release
+  say why and name the builds that do: a release run with
+  `go run latere.ai/x/service-template/cmd/template@latest`, or a clean,
+  pushed checkout built with `go build`, whose stamped pseudo-version the
+  module proxy resolves like a release. A plain `go run` in a checkout and a
+  checkout with uncommitted changes have none. The error used to blame a
+  `.template.yaml` nobody had written.
+
 ### Changed
 
 - The skeleton serves its probes through `latere.ai/x/pkg/health` (pkg

@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"testing"
 
@@ -115,4 +116,46 @@ func marker(t *testing.T, src fs.FS) string {
 		return ""
 	}
 	return string(data)
+}
+
+// The version a build records is the one the Go tool stamped, and only one
+// that names files a module download can reproduce.
+func TestBuildVersion(t *testing.T) {
+	stamped := func(v string) *debug.BuildInfo {
+		return &debug.BuildInfo{Main: debug.Module{Path: generator.CommandPath, Version: v}}
+	}
+	cases := []struct {
+		name   string
+		linked string
+		info   *debug.BuildInfo
+		ok     bool
+		want   string
+		why    string
+	}{
+		{"a release run through the module proxy", "", stamped("v1.0.0"), true, "v1.0.0", ""},
+		{"a clean checkout past a release", "", stamped("v1.0.1-0.20260924120120-e26584391406"), true,
+			"v1.0.1-0.20260924120120-e26584391406", ""},
+		{"a clean checkout before any release", "", stamped("v0.0.0-20260924120120-e26584391406"), true,
+			"v0.0.0-20260924120120-e26584391406", ""},
+		{"a version set at link time", "v1.2.3", stamped("(devel)"), true, "v1.2.3", ""},
+		{"a plain go run in a checkout", "", stamped("(devel)"), true, "", "without version control stamping"},
+		{"no module version at all", "", stamped(""), true, "", "without version control stamping"},
+		{"a checkout with uncommitted changes", "", stamped("v1.0.1-0.20260924120120-e26584391406+dirty"), true,
+			"", "uncommitted changes"},
+		{"no build information", "", nil, false, "", "no build information"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, why := buildVersion(c.linked, c.info, c.ok)
+			if got != c.want {
+				t.Errorf("version %q, want %q", got, c.want)
+			}
+			if c.why == "" && why != "" {
+				t.Errorf("a versioned build gave a reason: %q", why)
+			}
+			if !strings.Contains(why, c.why) {
+				t.Errorf("reason %q does not say %q", why, c.why)
+			}
+		})
+	}
 }

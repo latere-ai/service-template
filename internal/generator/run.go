@@ -29,6 +29,9 @@ type Env struct {
 	// Version is the release of the generator itself. It is the default
 	// version an init writes and an upgrade moves to.
 	Version string
+	// VersionMissing says why Version is empty, for the error that asks for
+	// a version to record.
+	VersionMissing string
 	// Embedded reports that Skeleton is the tree this build of the command
 	// carries, so Version names its content exactly. Such a command records,
 	// syncs to, and checks against its own release only.
@@ -38,6 +41,20 @@ type Env struct {
 // CommandPath is the import path of the command. A release runs as
 // `go run CommandPath@<version>`, which needs no checkout and no install.
 const CommandPath = "latere.ai/x/service-template/cmd/template"
+
+// noVersion is the error for a command that records a template version and
+// has none: this build knows no release of its own and -version was not
+// passed. It says why the build has none and names the builds that do, so
+// the declaration never records a version that names no files.
+func (env Env) noVersion(command string) error {
+	why := env.VersionMissing
+	if why == "" {
+		why = "it carries no release version"
+	}
+	return fmt.Errorf("%s needs the template version to record, and this build of the template command has none: %s; "+
+		"run a release (go run %s@latest %s), build the command from a clean, pushed checkout with go build, "+
+		"or pass -version", command, why, CommandPath, command)
+}
 
 // ownRelease refuses to pair the skeleton a build carries with any release but
 // the build's own. The command writes and compares its own tree, so recording
@@ -140,6 +157,9 @@ func runInit(env Env, args []string) error {
 	}
 	if *module == "" {
 		return errors.New("init needs -module, the Go module path of the new repository")
+	}
+	if *version == "" {
+		return env.noVersion("init")
 	}
 	if *name == "" {
 		*name = filepath.Base(*module)
@@ -247,7 +267,7 @@ func runUpgrade(env Env, args []string) error {
 		return err
 	}
 	if *version == "" {
-		return errors.New("upgrade needs -version, the template release to move to")
+		return env.noVersion("upgrade")
 	}
 	if err := env.ownRelease(*version, "upgrade to", "upgrade"); err != nil {
 		return err

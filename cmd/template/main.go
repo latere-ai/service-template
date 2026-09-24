@@ -17,9 +17,9 @@ import (
 	"latere.ai/x/service-template/internal/skeleton"
 )
 
-// version is the generator's own release. A release build sets it with
-// -ldflags "-X main.version=v1.4.0"; a build from source falls back to the
-// module version the Go tool recorded.
+// version is the generator's own release. A release build may set it with
+// -ldflags "-X main.version=v1.4.0"; otherwise it comes from the build
+// information the Go tool records.
 var version = ""
 
 // skeletonEnv names a directory that holds a skeleton tree to generate from
@@ -32,24 +32,48 @@ func main() {
 		fmt.Fprintf(os.Stderr, "template: %v\n", err)
 		os.Exit(generator.ExitError)
 	}
+	info, ok := debug.ReadBuildInfo()
+	v, why := buildVersion(version, info, ok)
 	env := generator.Env{
-		Skeleton: src,
-		Embedded: embedded,
-		Stdout:   os.Stdout,
-		Stderr:   os.Stderr,
-		Version:  buildVersion(),
+		Skeleton:       src,
+		Embedded:       embedded,
+		Stdout:         os.Stdout,
+		Stderr:         os.Stderr,
+		Version:        v,
+		VersionMissing: why,
 	}
 	os.Exit(generator.Run(env, rest))
 }
 
-func buildVersion() string {
-	if version != "" {
-		return version
+// buildVersion is the template release this build is, and when it is none,
+// the reason, for the error that asks for one.
+//
+// The Go tool records the module version of a build: the release for
+// `go run` or `go install` of latere.ai/x/service-template/cmd/template@<version>,
+// and for `go build` in a checkout the version control stamp, which is the
+// tag of a tagged commit or a pseudo-version naming the commit. A pseudo-version
+// resolves through the module proxy like a release, so a service scaffolded
+// from a pushed commit can be checked against that commit later.
+//
+// A plain `go run` in a checkout stamps nothing, and a checkout with
+// uncommitted changes stamps a version that no module download can
+// reproduce. Neither is recorded, because a declaration names the files a
+// service came from, and neither build can name them.
+func buildVersion(linked string, info *debug.BuildInfo, ok bool) (string, string) {
+	if linked != "" {
+		return linked, ""
 	}
-	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
-		return info.Main.Version
+	if !ok || info == nil {
+		return "", "the binary holds no build information"
 	}
-	return ""
+	v := info.Main.Version
+	switch {
+	case v == "" || v == "(devel)":
+		return "", "it was built without version control stamping, which a plain go run in a checkout does"
+	case strings.Contains(v, "+dirty"):
+		return "", "it was built from a checkout with uncommitted changes (" + v + "), which no release holds"
+	}
+	return v, ""
 }
 
 // skeletonSource resolves the skeleton tree and returns the arguments with the
