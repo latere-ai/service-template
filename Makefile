@@ -31,7 +31,7 @@ EXAMPLE_VERSION := v1.0.0
 .PHONY: all build test test-race test-hermetic validate lint lint-config \
         lint-modernize lint-otel fmt fmt-check manifest skeleton-test \
         skeleton-lint skeleton-cover skeleton-archive spec-lint example \
-        example-update clean
+        example-update adoption clean
 
 # A bare make runs every gate that needs no network and no container engine.
 all: fmt-check lint-modernize build test test-hermetic spec-lint validate lint
@@ -142,9 +142,20 @@ manifest:
 
 # Everything about this repository that the shared Go pipeline cannot host: the
 # shipped skeleton compiled and tested as source, linted as its own module, its
-# outbound clients checked, the manifest proved complete, and the committed
-# reference service diffed against a fresh generation.
-validate: skeleton-test skeleton-lint lint-otel manifest example
+# outbound clients checked, the manifest proved complete, the committed
+# reference service diffed against a fresh generation, and the adoption proof.
+# template.yml runs it as a job beside the shared gates.
+validate: skeleton-test skeleton-lint lint-otel manifest example adoption
+
+# The adoption proof runs the path the README documents, from outside this
+# checkout: the command built from this tree scaffolds a service into an empty
+# temporary directory, and the service builds, passes its own checks, and
+# passes the template drift check, before and after it adds a setting of its
+# own. It compiles and tests a whole generated service and downloads that
+# service's dependencies, so it sits behind a build tag rather than in the
+# suite every gate reruns.
+adoption:
+	@go test -tags adoption -count=1 -timeout 30m -run '^TestAdoption$$' ./cmd/template
 
 # The reference service is a generated artifact that is committed, so the
 # committed tree and a fresh generation must be identical. A difference means

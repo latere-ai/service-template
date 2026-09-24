@@ -27,6 +27,10 @@ committed: the commit log already holds that.
   and what to do about each mode. Seed text, so it reaches services
   scaffolded from this release on.
 
+- The template's own gate scaffolds a service from every change and runs
+  the service's checks, the drift check among them, so the path the README
+  documents is proven on each change rather than on adoption.
+
 ### Fixed
 
 - `template sync` and `template upgrade` keep a generated file the service

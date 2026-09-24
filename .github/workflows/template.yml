@@ -1,16 +1,17 @@
 # The template's own pre-merge gate.
 #
-# Every other workflow in this repository is workflow_call only, because they
-# are the pipelines a consumer repository calls. None of them runs here, so
-# without this file the template ships gates it never runs against itself.
+# Every other workflow in this repository is either called by a consumer
+# (workflow_call) or runs on a release tag. Without this file the template
+# ships gates it never runs against itself.
 #
-# The gates are the shared ones from latere-ai/ci, reached through this
-# repository's Makefile: go-verify probes the Makefile and runs the targets it
-# finds, so the pipeline and a developer's machine cannot disagree about what
-# passing means. What is specific to a template rather than to a Go repository
-# -- the skeleton compiled and linted as source, and the committed reference
-# service diffed against a fresh generation -- is the `validate` target, which
-# go-verify runs as a job of its own.
+# Two jobs. verify is the shared bar from latere-ai/ci, run against the root
+# module: the gates `go tool lateregate list` names, the same ones a developer
+# runs with `make check`. validate is what is specific to a template rather
+# than to a Go repository, and what the shared bar cannot see: the skeleton
+# compiled, tested, and linted as its own module, the manifest proved
+# complete, the committed reference service compared against a fresh
+# generation, and the adoption proof, which scaffolds a service from this
+# tree and runs its checks, the drift check among them.
 name: template
 
 on:
@@ -29,3 +30,17 @@ concurrency:
 jobs:
   verify:
     uses: latere-ai/ci/.github/workflows/lateregate.yml@v1
+
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            skeleton/go.sum
+      - name: Skeleton, manifest, reference service, and adoption proof
+        run: make validate

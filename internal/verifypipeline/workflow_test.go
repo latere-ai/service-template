@@ -348,3 +348,32 @@ func TestGeneratedCallersMatchTheExamples(t *testing.T) {
 		}
 	}
 }
+
+// The shared bar sees the root module only. The skeleton as its own module,
+// the manifest, the committed reference service, and the adoption proof are
+// checked by `make validate`, so the template's own gate runs that target, or
+// they are checked only where somebody remembers to run them.
+func TestTheTemplateGateRunsValidate(t *testing.T) {
+	workflow := readFile(t, ".github", "workflows", "template.yml")
+	_, blocks := jobs(t, workflow)
+	validate, ok := blocks["validate"]
+	if !ok {
+		t.Fatal("template.yml declares no validate job")
+	}
+	if !strings.Contains(validate, "run: make validate") {
+		t.Error("the validate job does not run make validate")
+	}
+	if strings.Contains(validate, "if:") {
+		t.Error("the validate job is conditional, so a run can skip it")
+	}
+	makefile := readFile(t, "Makefile")
+	target := regexp.MustCompile(`(?m)^validate:(.*)$`).FindStringSubmatch(makefile)
+	if target == nil {
+		t.Fatal("the Makefile declares no validate target")
+	}
+	for _, want := range []string{"skeleton-test", "skeleton-lint", "manifest", "example", "adoption"} {
+		if !strings.Contains(" "+target[1]+" ", " "+want+" ") {
+			t.Errorf("make validate does not run %s", want)
+		}
+	}
+}

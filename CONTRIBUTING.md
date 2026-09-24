@@ -66,8 +66,9 @@ names a tree on disk, which is how the targets below reach the working copy.
    `make manifest`, because a file the generator silently drops is how a fix
    stops reaching services.
 3. Run `make validate`: it compiles and tests the skeleton under the race
-   detector, lints it as its own module, proves the manifest complete, and
-   compares `example/` against a fresh generation.
+   detector, lints it as its own module, proves the manifest complete,
+   compares `example/` against a fresh generation, and scaffolds a service
+   from the tree and runs its checks.
 4. Run `make example-update` and commit the regenerated `example/` and
    `internal/skeleton/skeleton.zip` in the same change.
 
@@ -85,24 +86,34 @@ is at least a minor one.
 
 ## The build
 
-CI is `template.yml`, which runs the shared gates of `latere-ai/ci` against
-the root module: formatting, lint, modernization, the suite with and without
-the race detector, the hermetic and empty `TMPDIR` suites, vulnerabilities,
-licenses, and the spec tree. It does not run `make validate`, so the skeleton
-compiled and tested as source, the manifest check, and the comparison of
-`example/` against a fresh generation run only where you run them. Run
-`make all` before you push, and always after changing anything under
-`skeleton/` or `example/`.
+CI is `template.yml`, with two jobs. `verify` runs the shared gates of
+`latere-ai/ci` against the root module: formatting, lint, modernization, the
+suite with and without the race detector, the hermetic and empty `TMPDIR`
+suites, vulnerabilities, licenses, and the spec tree. `validate` runs
+`make validate`: the skeleton compiled, tested, and linted as its own module,
+the manifest check, the comparison of `example/` against a fresh generation,
+and the adoption proof. Run `make all` before you push; it covers both.
+
+The adoption proof, `make adoption`, is the README's path run end to end from
+outside this checkout. It builds the command from this tree, scaffolds a
+service into an empty temporary directory, and runs the service's own checks
+there: build, vet, the suite, formatting, modernization, outbound tracing,
+the environment reference, settings, the spec tree, and the drift check. It
+then adds a setting, regenerates `.env.example`, and runs the checks that
+must still pass. Lint and the frontend targets are left out, because they
+need golangci-lint and Bun installed; `make validate` lints and tests the
+same code as the skeleton module.
 
 | Target | What it does |
 | --- | --- |
 | `make` / `make all` | formatting, modernization, build, the suite, the hermetic suite for both modules, the spec trees, `validate`, and lint |
-| `make validate` | `skeleton-test`, `skeleton-lint`, `lint-otel`, `manifest`, and `example` |
+| `make validate` | `skeleton-test`, `skeleton-lint`, `lint-otel`, `manifest`, `example`, and `adoption` |
 | `make skeleton-test` | the skeleton built and tested as source with the race detector |
 | `make skeleton-cover` | the skeleton's coverage gate over the unit and integration tiers. It needs a reachable Postgres and a browser for the diagram renderer, so it is not part of `all` |
 | `make manifest` | every skeleton file declared in exactly one fragment |
 | `make example` | the committed `example/` compared against a fresh generation |
 | `make example-update` | regenerates `example/` and, first, the skeleton archive |
+| `make adoption` | scaffolds a service from this tree into a temporary directory and runs its checks, the drift check among them |
 | `make skeleton-archive` | packs `skeleton/` into the archive the command embeds |
 | `make check` | the shared bar alone, `go tool lateregate`; `go tool lateregate list` names each gate |
 
@@ -125,8 +136,7 @@ spec is a reasonable first contribution on its own.
 
 The template holds itself to the standards it ships:
 
-- Run `make all` before you push. It covers what CI runs and the skeleton
-  checks CI does not.
+- Run `make all` before you push. It covers what CI runs.
 - Never edit a file under `example/` by hand, a sweep included: change the
   skeleton and run `make example-update`, or `template.lock` falls behind the
   files it describes. The same holds for the skeleton archive.
