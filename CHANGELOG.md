@@ -10,6 +10,13 @@ committed: the commit log already holds that.
 
 ## Unreleased
 
+The first release. A service starts from it with
+`go run latere.ai/x/service-template/cmd/template@latest init`, which needs no
+checkout of this repository, and its pipeline callers resolve `@v1`. A
+service scaffolded from a checkout before this release moves onto it with
+`go run latere.ai/x/service-template/cmd/template@v1.0.0 upgrade`, and
+removes any waiver it declared for `.env.example`.
+
 ### Added
 
 - The `template` command carries the skeleton of its own release, so
@@ -19,34 +26,15 @@ committed: the commit log already holds that.
   other release, and prints the `go run` command for the release that can.
   `-skeleton` and `TEMPLATE_SKELETON` still name a tree on disk; the working
   directory no longer selects one.
-
 - `docs/adopting.md`: scaffolding a service, the files it owns and the files
   the template owns, the first changes, wiring the four pipelines, and
   keeping a service current with `check`, `sync`, `upgrade`, and waivers.
 - A new service's `CONTRIBUTING.md` says which of its files the template owns
   and what to do about each mode. Seed text, so it reaches services
   scaffolded from this release on.
-
-- The template's own gate scaffolds a service from every change and runs
-  the service's checks, the drift check among them, so the path the README
+- The template's own gate scaffolds a service from every change and runs the
+  service's checks, the drift check among them, so the path the README
   documents is proven on each change rather than on adoption.
-
-### Fixed
-
-- `template sync` and `template upgrade` keep a generated file the service
-  edited while a live waiver covers it, instead of overwriting it, and print
-  the template's change to the file beside the report. An expired waiver
-  stops them before they write anything.
-- `make build`, and `make dev` with it, works in a new repository before its
-  first commit. The build stamped the commit as `HEAD unknown`, and the
-  second word broke the link flags.
-- `init` and `upgrade` without `-version` on a build that knows no release
-  say why and name the builds that do: a release run with
-  `go run latere.ai/x/service-template/cmd/template@latest`, or a clean,
-  pushed checkout built with `go build`, whose stamped pseudo-version the
-  module proxy resolves like a release. A plain `go run` in a checkout and a
-  checkout with uncommitted changes have none. The error used to blame a
-  `.template.yaml` nobody had written.
 
 ### Changed
 
@@ -60,15 +48,29 @@ committed: the commit log already holds that.
   configuration struct it is derived from. Adding a setting and running
   `make env-example` no longer fails `template check` with exit 3, and no
   waiver is needed. `template check` warns about a waiver that covers a file
-  the service owns; remove a waiver declared for `.env.example`.
+  the service owns.
+- `template sync` and `template upgrade` keep a generated file the service
+  edited while a live waiver covers it, instead of overwriting it, and print
+  the template's change to the file beside the report. An expired waiver
+  stops them before they write anything.
 - The verify and release pipelines accept `.template.yaml` versions from
-  v1.0.0, the first release; no earlier version names a release the drift
-  check can run. A service scaffolded from a checkout before it runs
-  `go run latere.ai/x/service-template/cmd/template@v1.0.0 upgrade`.
-
+  v1.0.0; no earlier version names a release the drift check can run.
 - The skeleton serves its probes through `latere.ai/x/pkg/health` (pkg
   v0.58.0): `/livez` and `/readyz` answer `ok` as text, `/readyz` names
   each failing dependency as `not ready: <check>: <error>`, and `/version`
   reports `version`, `commit`, and `build_time`. `/healthz` answers as
   `/livez` for one release and is removed in the next. The smoke tool reads
   the new bodies and pins the entry asset from the served document alone.
+
+### Fixed
+
+- `make build`, and `make dev` with it, works in a new repository before its
+  first commit. The build stamped the commit as `HEAD unknown`, and the
+  second word broke the link flags.
+- `init` and `upgrade` without `-version` on a build that knows no release
+  say why and name the builds that do: a release run with
+  `go run latere.ai/x/service-template/cmd/template@latest`, or a clean,
+  pushed checkout built with `go build`, whose stamped pseudo-version the
+  module proxy resolves like a release. A plain `go run` in a checkout and a
+  checkout with uncommitted changes have none. The error used to blame a
+  `.template.yaml` nobody had written.
