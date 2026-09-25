@@ -303,6 +303,12 @@ func TestParseConfigRejectsBadDeclarations(t *testing.T) {
 		"waiver without expiry":              base + "waivers:\n  - path: a\n    reason: because\n",
 		"waiver bad expiry":                  base + "waivers:\n  - path: a\n    reason: because\n    expires: soon\n",
 		"tab indentation":                    base + "features:\n\tseo: true\n",
+		// A license the gate has no fingerprint for fails that gate, so it
+		// fails here, at scaffold time, instead.
+		"unknown license":       base + "license:\n  spdx: GPL-2.0-only\n",
+		"unknown license field": base + "license:\n  spdx: MIT\n  year: 2026\n",
+		"license not a mapping": base + "license: MIT\n",
+		"holder with syntax":    base + "license:\n  holder: \"a: b\"\n",
 	}
 	for name, body := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -310,6 +316,34 @@ func TestParseConfigRejectsBadDeclarations(t *testing.T) {
 				t.Fatalf("accepted:\n%s", body)
 			}
 		})
+	}
+}
+
+// A declaration written before the license field existed parses unchanged
+// and is released under the default terms, and a declaration that names its
+// terms keeps them through a marshal.
+func TestLicenseDefaultsAndRoundTrips(t *testing.T) {
+	base := "template: t\nversion: v1.0.0\nmodule: github.com/acme/widget\nname: widget\nprofile: service\n"
+	cfg, err := ParseConfig(ConfigFile, []byte(base))
+	if err != nil {
+		t.Fatalf("parse a declaration with no license: %v", err)
+	}
+	if got := cfg.Terms(); got.SPDX != DefaultLicense || got.Holder != DefaultHolder {
+		t.Fatalf("a declaration with no license has terms %+v, want the defaults", got)
+	}
+	mustContain(t, string(cfg.Marshal()), "license:\n  spdx: "+DefaultLicense+"\n  holder: "+DefaultHolder+"\n",
+		"the marshaled default license")
+
+	named, err := ParseConfig(ConfigFile, []byte(base+"license:\n  spdx: MIT\n  holder: Acme, Inc.\n"))
+	if err != nil {
+		t.Fatalf("parse a declaration naming its license: %v", err)
+	}
+	back, err := ParseConfig(ConfigFile, named.Marshal())
+	if err != nil {
+		t.Fatalf("parse the marshaled declaration: %v", err)
+	}
+	if got := back.Terms(); got != (License{SPDX: "MIT", Holder: "Acme, Inc."}) {
+		t.Fatalf("the license did not round trip, got %+v", got)
 	}
 }
 

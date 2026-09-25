@@ -84,6 +84,14 @@ files:
   - path: .gitignore
     mode: merged
 
+  # The terms. LICENSE is seed: which license the service is released under
+  # is the repository's decision, declared in .template.yaml. The generator
+  # renders the text for the licenses it ships and writes nothing for the
+  # others, and the license gate checks the notice on every Go file against
+  # it.
+  - path: LICENSE
+    mode: seed
+
   # The gate configuration. The gates themselves are latere.ai/x/ci-gate,
   # pinned in go.mod as a tool dependency; this file declares what they assert
   # for this repository.
@@ -92,6 +100,12 @@ files:
   # shared configuration, so `make lint-config` renders it on every run and it
   # is gitignored: a committed copy makes drift detectable, regenerating makes
   # it impossible.
+  #
+  # The file is a template, because what it declares depends on the
+  # declaration: the license in .template.yaml, and the profile. The plain
+  # .lateregate.yaml beside it is the template rendered for the skeleton
+  # itself, which the skeleton's own gates read in place; generation renders
+  # the template, and the template's suite holds the two equal.
   - path: .lateregate.yaml
     mode: generated
     profiles: [service, library]

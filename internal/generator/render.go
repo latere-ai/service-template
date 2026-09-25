@@ -46,6 +46,9 @@ type Data struct {
 	// Features maps a flag name to whether it is on, for example
 	// {{ if .Features.database }}.
 	Features map[string]bool
+	// License is the declared terms with the defaults applied, for example
+	// {{ .License.SPDX }}.
+	License License
 }
 
 // NewData builds the render input for a declaration.
@@ -61,6 +64,7 @@ func NewData(cfg *Config) Data {
 		Name:     cfg.Name,
 		Profile:  cfg.Profile,
 		Features: features,
+		License:  cfg.Terms(),
 	}
 }
 

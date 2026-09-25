@@ -9,6 +9,8 @@ import (
 	"flag"
 	"io/fs"
 	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -76,6 +78,78 @@ func TestArchiveMatchesTheSkeleton(t *testing.T) {
 	if len(stale) > 0 {
 		t.Fatalf("%s does not match the skeleton tree:\n  %s\nrun: make skeleton-archive",
 			ArchiveName, strings.Join(stale, "\n  "))
+	}
+}
+
+// inPlace lists the skeleton files that are templates in the tree and that
+// the skeleton's own gates also read in place, from the plain file beside the
+// template. .lateregate.yaml is one: a service's copy depends on its profile
+// and its license, and `go tool lateregate` run inside skeleton/ reads the
+// skeleton's.
+var inPlace = []string{".lateregate.yaml"}
+
+// Each plain file in inPlace is its template rendered for the skeleton
+// itself: the service profile, every feature, the skeleton's module and name,
+// and the default license. The two are one decision written twice, so they
+// are held equal. An edit to one alone would gate the skeleton by rules no
+// service receives, or ship rules the skeleton was never held to. `make
+// skeleton-archive` rewrites each plain file from its template.
+func TestInPlaceTwinsMatchTheirTemplates(t *testing.T) {
+	src := os.DirFS(tree)
+	m, err := generator.LoadManifest(src)
+	if err != nil {
+		t.Fatalf("load the manifest: %v", err)
+	}
+	features := map[string]bool{}
+	for _, f := range generator.AllFeatures {
+		features[f] = true
+	}
+	cfg := &generator.Config{
+		Template: generator.DefaultTemplate,
+		Version:  "v0.0.0",
+		Module:   generator.SkeletonModule,
+		Name:     generator.SkeletonName,
+		Profile:  generator.ProfileService,
+		Features: features,
+	}
+	entries := map[string]generator.Entry{}
+	for _, e := range m.Entries {
+		entries[e.Path] = e
+	}
+	for _, p := range inPlace {
+		e, ok := entries[p]
+		if !ok || !strings.HasSuffix(e.Source, generator.TemplateSuffix) {
+			t.Fatalf("%s is listed as an in-place twin, but the manifest declares no template for it", p)
+		}
+		want, err := generator.Render(src, e, cfg)
+		if err != nil {
+			t.Fatalf("render %s: %v", e.Source, err)
+		}
+		if *update {
+			if err := os.WriteFile(filepath.Join(tree, filepath.FromSlash(p)), want, 0o644); err != nil {
+				t.Fatalf("write %s: %v", p, err)
+			}
+			continue
+		}
+		plain, err := fs.ReadFile(src, p)
+		if err != nil {
+			t.Fatalf("read the in-place %s: %v\nrun: make skeleton-archive", p, err)
+		}
+		if !bytes.Equal(plain, want) {
+			t.Errorf("%s differs from the rendering of %s for the skeleton itself\nrun: make skeleton-archive\n%s",
+				p, e.Source, generator.UnifiedDiff(p, plain, want))
+		}
+	}
+	// A plain file beside any other template is one generation ignores and no
+	// check holds to anything, so it is refused rather than left to drift.
+	for _, e := range m.Entries {
+		if !strings.HasSuffix(e.Source, generator.TemplateSuffix) || slices.Contains(inPlace, e.Path) {
+			continue
+		}
+		if _, err := fs.Stat(src, e.Path); err == nil {
+			t.Errorf("%s sits beside %s, and generation reads only the template; delete it or list it in inPlace",
+				e.Path, e.Source)
+		}
 	}
 }
 

@@ -13,7 +13,7 @@ cover:
   # a repository average. An average lets a well-tested package carry an
   # untested one and reports a number nobody can act on.
   threshold: 90.0
-  trim_prefix: github.com/example/reference-service/
+  trim_prefix: example.com/service/
   # A package that genuinely cannot be measured is exempted with the reason
   # attached, because the value is the reason. An empty one fails the load.
   #
@@ -133,13 +133,13 @@ golangci:
               deny:
                 - pkg: net/http
                   desc: the storage and worker layers sit below transport
-                - pkg: github.com/example/reference-service/internal/httpx
+                - pkg: example.com/service/internal/httpx
                   desc: the storage and worker layers sit below transport
-                - pkg: github.com/example/reference-service/internal/handler
+                - pkg: example.com/service/internal/handler
                   desc: the storage and worker layers sit below transport
-                - pkg: github.com/example/reference-service/internal/server
+                - pkg: example.com/service/internal/server
                   desc: the storage and worker layers sit below transport
-                - pkg: github.com/example/reference-service/internal/web
+                - pkg: example.com/service/internal/web
                   desc: the storage and worker layers sit below transport
             # Configuration is read before anything else is constructed, so it
             # depends on nothing this repository owns.
@@ -148,11 +148,11 @@ golangci:
               files:
                 - '**/internal/config/**'
               deny:
-                - pkg: github.com/example/reference-service/internal/store
+                - pkg: example.com/service/internal/store
                   desc: configuration is loaded before any component exists
-                - pkg: github.com/example/reference-service/internal/server
+                - pkg: example.com/service/internal/server
                   desc: configuration is loaded before any component exists
-                - pkg: github.com/example/reference-service/internal/handler
+                - pkg: example.com/service/internal/handler
                   desc: configuration is loaded before any component exists
 
 license:
@@ -162,5 +162,5 @@ license:
   # text at the root to it. To change the terms, edit the license field of
   # .template.yaml, run template sync, replace LICENSE, and rewrite the
   # notice on the files the repository owns.
-  spdx: LicenseRef-Proprietary
-  holder: Latere AI
+  spdx: {{ .License.SPDX }}
+  holder: {{ .License.Holder }}

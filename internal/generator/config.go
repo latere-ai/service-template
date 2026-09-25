@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -65,6 +66,45 @@ var profileFeatures = map[string]map[string]bool{
 // AllProfiles is every profile name in declaration order.
 var AllProfiles = []string{ProfileService, ProfileLibrary, ProfileFrontendOnly}
 
+// License is the terms a generated repository is released under. The
+// generator stamps its notice on every Go file it writes, declares it to the
+// license gate in .lateregate.yaml, and writes LICENSE from it where it ships
+// the text, so the notice, the gate, and the root file name the same terms.
+//
+// The skeleton itself carries no notice. It is published under the template
+// repository's license, and the terms of a service built from it are that
+// service's decision, recorded here.
+type License struct {
+	// SPDX is the identifier, one of Licenses.
+	SPDX string
+	// Holder is the copyright holder, written literally in every notice.
+	Holder string
+}
+
+// The license a declaration that names none is released under. A repository
+// of an organization starts closed: every right reserved, no license granted,
+// until somebody decides otherwise and says so in the declaration.
+const (
+	DefaultLicense = "LicenseRef-Proprietary"
+	DefaultHolder  = "Latere AI"
+)
+
+// Licenses are the identifiers a declaration may name: the ones the license
+// gate of latere.ai/x/ci-gate can check LICENSE against. Any other identifier
+// fails that gate, so it fails here first, at scaffold time.
+var Licenses = []string{
+	"LicenseRef-Proprietary",
+	"MIT",
+	"Apache-2.0",
+	"AGPL-3.0-only",
+	"AGPL-3.0-or-later",
+}
+
+// holderPattern keeps the holder a single plain phrase. It is written
+// unquoted into YAML and into a comment on every Go file, so a character
+// either would read as syntax is refused rather than escaped.
+var holderPattern = regexp.MustCompile(`^[A-Za-z0-9](?:[A-Za-z0-9 .,&()'-]*[A-Za-z0-9.)])?$`)
+
 // Waiver records a generated file the repository deliberately diverges on. A
 // waiver suppresses the "edited" verdict for that path until it expires.
 type Waiver struct {
@@ -87,7 +127,23 @@ type Config struct {
 	Name     string
 	Profile  string
 	Features map[string]bool
-	Waivers  []Waiver
+	// License is the declared terms. A declaration that names none gets
+	// DefaultLicense and DefaultHolder.
+	License License
+	Waivers []Waiver
+}
+
+// Terms returns the declared license with the defaults applied to what the
+// declaration left out.
+func (c *Config) Terms() License {
+	l := c.License
+	if l.SPDX == "" {
+		l.SPDX = DefaultLicense
+	}
+	if l.Holder == "" {
+		l.Holder = DefaultHolder
+	}
+	return l
 }
 
 var (
@@ -119,7 +175,7 @@ func ParseConfig(file string, data []byte) (*Config, error) {
 	cfg := &Config{Features: map[string]bool{}}
 	for _, key := range root.keys {
 		switch key {
-		case "template", "version", "module", "name", "profile", "features", "waivers":
+		case "template", "version", "module", "name", "profile", "features", "license", "waivers":
 		default:
 			return nil, errAt(file, root.get(key).line, "unknown field %q", key)
 		}
@@ -145,6 +201,9 @@ func ParseConfig(file string, data []byte) (*Config, error) {
 	if err := readFeatures(file, root, cfg); err != nil {
 		return nil, err
 	}
+	if err := readLicense(file, root, cfg); err != nil {
+		return nil, err
+	}
 	if err := readWaivers(file, root, cfg); err != nil {
 		return nil, err
 	}
@@ -168,6 +227,34 @@ func readFeatures(file string, root *node, cfg *Config) error {
 			return err
 		}
 		cfg.Features[key] = v
+	}
+	return nil
+}
+
+// readLicense reads the optional license mapping. A declaration written
+// before the field existed names none and gets the defaults, so it parses
+// unchanged.
+func readLicense(file string, root *node, cfg *Config) error {
+	l := root.get("license")
+	if l == nil {
+		return nil
+	}
+	if l.kind != kindMapping {
+		return errAt(file, l.line, "\"license\" must be a mapping with spdx and holder")
+	}
+	for _, key := range l.keys {
+		switch key {
+		case "spdx", "holder":
+		default:
+			return errAt(file, l.get(key).line, "unknown license field %q, the fields are spdx and holder", key)
+		}
+	}
+	var err error
+	if cfg.License.SPDX, err = l.scalar(file, "spdx"); err != nil {
+		return err
+	}
+	if cfg.License.Holder, err = l.scalar(file, "holder"); err != nil {
+		return err
 	}
 	return nil
 }
@@ -258,6 +345,15 @@ func (c *Config) Validate(file string) error {
 			return errAt(file, 0, "the %q feature flag needs the %q flag", dependent, FeatureFrontend)
 		}
 	}
+	terms := c.Terms()
+	if !slices.Contains(Licenses, terms.SPDX) {
+		return errAt(file, 0, "\"license.spdx\" must be one of %s, found %q; the license gate checks LICENSE against no other",
+			strings.Join(Licenses, ", "), terms.SPDX)
+	}
+	if !holderPattern.MatchString(terms.Holder) {
+		return errAt(file, 0, "\"license.holder\" must be a plain name of letters, digits, spaces, and .,&()'- found %q",
+			terms.Holder)
+	}
 	return nil
 }
 
@@ -289,6 +385,10 @@ func (c *Config) Marshal() []byte {
 	for _, f := range AllFeatures {
 		fmt.Fprintf(&b, "  %s: %t\n", f, c.Features[f])
 	}
+	terms := c.Terms()
+	b.WriteString("license:\n")
+	fmt.Fprintf(&b, "  spdx: %s\n", terms.SPDX)
+	fmt.Fprintf(&b, "  holder: %s\n", terms.Holder)
 	if len(c.Waivers) == 0 {
 		b.WriteString("waivers: []\n")
 	} else {

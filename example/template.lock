@@ -37,7 +37,7 @@ files:
     digest: sha256:da5b8fb48770ef19202dec916aae077103445e04e8e42577c67477303c40dd7e
   - path: .lateregate.yaml
     mode: generated
-    digest: sha256:7c4a9bc61fa89f38f6d1367907ecb97c02871a81edec775f9578e1d943309519
+    digest: sha256:0b74e63aeb97c6000c405a21fb1ed0b9bc3e9cb16fdc73326bef882aed24d8cb
   - path: CONTRIBUTING.md
     mode: seed
     digest: sha256:c6054f08f85ca7c5b03e0be4d67fd5a0a50afb714294a374e652bfec183f8d6f
@@ -47,6 +47,9 @@ files:
   - path: Dockerfile.ci
     mode: generated
     digest: sha256:e3c614bb22ff5755b275216956365de08c72b9b154713eae85bd81abbc47e9b1
+  - path: LICENSE
+    mode: seed
+    digest: sha256:3e24416438db99f29bbc0877e352899aa0db404e7688b80c8dbb832ec6b79dd3
   - path: Makefile
     mode: merged
     digest: sha256:358fc58caa7bce19361b41652d5e1bca616f932d23c1a96c1c4c0b55b816fd81

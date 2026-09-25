@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 )
 
 func TestInitWritesTheSelectedFiles(t *testing.T) {
@@ -654,4 +655,59 @@ func boolText(v bool) string {
 		return "true"
 	}
 	return "false"
+}
+
+// licenseSkeleton is a skeleton whose gate configuration is a template with a
+// plain twin beside it, and whose LICENSE is a template that ships the text
+// of one license only.
+func licenseSkeleton() fstest.MapFS {
+	return fstest.MapFS{
+		"manifests/core.yaml": {Data: []byte("files:\n" +
+			"  - path: .lateregate.yaml\n    mode: generated\n" +
+			"  - path: LICENSE\n    mode: seed\n" +
+			"  - path: main.go\n    mode: seed\n")},
+		".lateregate.yaml":      {Data: []byte("the skeleton's own copy\n")},
+		".lateregate.yaml.tmpl": {Data: []byte("spdx: {{ .License.SPDX }}\nholder: {{ .License.Holder }}\n")},
+		"LICENSE.tmpl":          {Data: []byte("{{ if eq .License.SPDX \"MIT\" }}MIT License, {{ .License.Holder }}\n{{ end }}")},
+		"main.go":               {Data: []byte("package main\n")},
+	}
+}
+
+// The template wins over the plain file beside it: the plain file is the
+// skeleton's own rendering for its gates to read in place, and a service's
+// copy renders from its own declaration.
+func TestTheTemplateWinsOverItsInPlaceTwin(t *testing.T) {
+	cfg := testConfig()
+	cfg.License = License{SPDX: "MIT", Holder: "Acme"}
+	dir := initRepo(t, licenseSkeleton(), cfg)
+	if got := read(t, dir, ".lateregate.yaml"); got != "spdx: MIT\nholder: Acme\n" {
+		t.Fatalf(".lateregate.yaml was not rendered from its template:\n%s", got)
+	}
+	if got := read(t, dir, "LICENSE"); got != "MIT License, Acme\n" {
+		t.Fatalf("LICENSE was not rendered for the declared license:\n%s", got)
+	}
+	mustContain(t, read(t, dir, ConfigFile), "license:\n  spdx: MIT\n  holder: Acme\n", "the recorded license")
+}
+
+// A license whose text the template does not ship gets no LICENSE rather than
+// an empty one, and init says so, since the license gate reads the file.
+func TestInitWritesNoLicenseTextItDoesNotShip(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "svc")
+	code, out, errOut := runCLI(t, licenseSkeleton(), "init", "-C", dir,
+		"-module", "github.com/acme/widget", "-license", "Apache-2.0", "-holder", "Acme")
+	if code != ExitOK {
+		t.Fatalf("init exited %d:\n%s%s", code, out, errOut)
+	}
+	if exists(t, dir, "LICENSE") {
+		t.Fatalf("init wrote a LICENSE for a license whose text it does not ship:\n%s", read(t, dir, "LICENSE"))
+	}
+	mustContain(t, out, "no LICENSE was written for Apache-2.0", "the missing license report")
+	mustContain(t, read(t, dir, ".lateregate.yaml"), "spdx: Apache-2.0\n", "the declared license")
+
+	code, out, errOut = runCLI(t, licenseSkeleton(), "init", "-C", filepath.Join(t.TempDir(), "bad"),
+		"-module", "github.com/acme/widget", "-license", "GPL-2.0-only")
+	if code != ExitError {
+		t.Fatalf("init accepted a license the gate cannot check, exit %d:\n%s%s", code, out, errOut)
+	}
+	mustContain(t, errOut, "license.spdx", "the refused license")
 }

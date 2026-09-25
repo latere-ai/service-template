@@ -180,8 +180,12 @@ example:
 # module of its own and neither an embed pattern nor a module download reaches
 # into it. The archive is packed from the tree, and the suite fails when the
 # two differ, so it is refreshed with the example rather than by hand.
+#
+# The same run rewrites each plain file the skeleton keeps beside a template
+# for its own gates to read in place, such as .lateregate.yaml, from that
+# template rendered for the skeleton itself.
 skeleton-archive:
-	@go test ./internal/skeleton -run '^TestArchiveMatchesTheSkeleton$$' -count=1 -update >/dev/null
+	@go test ./internal/skeleton -run '^(TestInPlaceTwinsMatchTheirTemplates|TestArchiveMatchesTheSkeleton)$$' -count=1 -update >/dev/null
 	@echo "skeleton-archive: packed from $(SKELETON)"
 
 example-update: skeleton-archive

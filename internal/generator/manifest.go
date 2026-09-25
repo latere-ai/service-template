@@ -99,8 +99,13 @@ func LoadManifest(src fs.FS) (*Manifest, error) {
 // path is written without the template suffix, so both spellings are tried.
 // An entry with no file behind it keeps an empty source and is reported by
 // VerifyCoverage.
+//
+// The template wins when both exist. The plain file beside it is the
+// template's rendering for the skeleton itself, kept so the skeleton's own
+// gates can read it in place (.lateregate.yaml is one), and the suite holds
+// the two to each other; generation always renders the template.
 func resolveSource(src fs.FS, p string) string {
-	for _, candidate := range []string{p, p + TemplateSuffix} {
+	for _, candidate := range []string{p + TemplateSuffix, p} {
 		if st, err := fs.Stat(src, candidate); err == nil && !st.IsDir() {
 			return candidate
 		}

@@ -4,6 +4,7 @@
 package generator
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -58,6 +59,13 @@ func BuildPlan(src fs.FS, cfg *Config) (*Plan, error) {
 		content, err := Render(src, e, cfg)
 		if err != nil {
 			return nil, err
+		}
+		// A seed template that renders to nothing has nothing to offer this
+		// declaration, and an empty file would pass for a decision nobody
+		// made. LICENSE is the case: the template ships the text of some
+		// licenses, and a repository declaring another writes its own.
+		if e.Mode == ModeSeed && strings.HasSuffix(e.Source, TemplateSuffix) && len(bytes.TrimSpace(content)) == 0 {
+			continue
 		}
 		pf := PlanFile{Entry: e, Target: TargetPath(e.Path, cfg.Name), Content: content}
 		if e.Mode == ModeMerged {

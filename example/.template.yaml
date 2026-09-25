@@ -10,4 +10,7 @@ features:
   i18n: true
   database: true
   background: true
+license:
+  spdx: LicenseRef-Proprietary
+  holder: Latere AI
 waivers: []

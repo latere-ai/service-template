@@ -152,6 +152,9 @@ func runInit(env Env, args []string) error {
 		"comma separated feature flags to enable: "+strings.Join(AllFeatures, ", "))
 	version := set.String("version", env.Version, "template version to record")
 	origin := set.String("template", DefaultTemplate, "template identity to record")
+	spdx := set.String("license", DefaultLicense,
+		"SPDX identifier of the terms the repository is released under: "+strings.Join(Licenses, ", "))
+	holder := set.String("holder", DefaultHolder, "copyright holder every license notice names")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -171,6 +174,7 @@ func runInit(env Env, args []string) error {
 		Name:     *name,
 		Profile:  *profile,
 		Features: map[string]bool{},
+		License:  License{SPDX: *spdx, Holder: *holder},
 	}
 	for f := range strings.SplitSeq(*features, ",") {
 		f = strings.TrimSpace(f)
@@ -190,6 +194,13 @@ func runInit(env Env, args []string) error {
 	}
 	_, _ = fmt.Fprintf(env.Stdout, "scaffolded the %s profile of %s at %s\n", cfg.Profile, cfg.Module, *dir)
 	_, _ = fmt.Fprint(env.Stdout, report.String())
+	// The template ships the text of some licenses only. A repository that
+	// declares another gets no LICENSE rather than a placeholder, and is told
+	// here instead of by its first license gate run.
+	if _, err := os.Stat(filepath.Join(*dir, "LICENSE")); os.IsNotExist(err) {
+		_, _ = fmt.Fprintf(env.Stdout, "no LICENSE was written for %s: add the license text at LICENSE, "+
+			"which the license gate checks against license.spdx\n", cfg.Terms().SPDX)
+	}
 	return nil
 }
 

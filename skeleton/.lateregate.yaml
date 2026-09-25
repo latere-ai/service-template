@@ -154,3 +154,13 @@ golangci:
                   desc: configuration is loaded before any component exists
                 - pkg: example.com/service/internal/handler
                   desc: configuration is loaded before any component exists
+
+license:
+  # The terms this repository is released under, rendered from the license
+  # field of .template.yaml. The generator writes LICENSE from it where it
+  # ships the text, and the gate holds the notice on every Go file and the
+  # text at the root to it. To change the terms, edit the license field of
+  # .template.yaml, run template sync, replace LICENSE, and rewrite the
+  # notice on the files the repository owns.
+  spdx: LicenseRef-Proprietary
+  holder: Latere AI
