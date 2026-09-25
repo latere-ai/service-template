@@ -10,7 +10,7 @@ features:
 files:
   - path: .env.example
     mode: seed
-    digest: sha256:a5e4501a6305e6c62ac2457ec09bf144852fa3dc4947c2bf14f6678a5e4bde02
+    digest: sha256:71a875ee706446b5b6db8ab98c434f82f021ca6a236f1fa9a44ff5d22fbcc96a
   - path: .githooks/pre-commit
     mode: generated
     digest: sha256:25df0330d612d476f23db7c6fc1e23b64d053940148eb4f699b60a865c5f15e1
@@ -67,10 +67,10 @@ files:
     digest: sha256:58b3614183707e6604567bae78a579e170e94abfac6ed7a29b1a7026b78affaa
   - path: cmd/reference-service/database.go
     mode: seed
-    digest: sha256:4dd8d48d6e68e5d6101ae99a18750f8029ad199a1434f32c90282b5d841577a6
+    digest: sha256:2cb7e9f9003cbc0fb3aaffce82e6a7b576cc43a028d1655d3182159624c822f2
   - path: cmd/reference-service/database_test.go
     mode: seed
-    digest: sha256:138e11470065aefe7c21e08e71d6621460acd81f224c481c98bbfdf3eb9e3242
+    digest: sha256:b99f3c8c86a575c0fb1fe344647f279d124ac72f786108e1496929aedcc9ee06
   - path: cmd/reference-service/frontend.go
     mode: seed
     digest: sha256:a299b1f906255161fe36794cea01cd2a1290fa797c0a76ea0b418735a4fad1ea
@@ -136,10 +136,10 @@ files:
     digest: sha256:82338026f19d18114f4d30ffc739fed2389ecd7bac3b6392ea158936cb0f2fad
   - path: docs/configuration.md
     mode: seed
-    digest: sha256:4d95e177cc0cfed876397f419a52f9281eeb801751c8a39a7caf8db982741f67
+    digest: sha256:0d2ed15f94262b79dbcd6ef63f8536d2b8b40dccf7ef5a0f8762701a817e38d7
   - path: docs/operations.md
     mode: seed
-    digest: sha256:f17630c096c6b7abaf375fd161f78255d4744f1fb4fba6ee69ecd0f455534599
+    digest: sha256:71920de0abbb74f233786131fa716eb672ab54e76d27b8af42d46dad9f98ea36
   - path: frontend/.gitignore
     mode: merged
     digest: sha256:1cce964e85897eb3bedcc0dd4edff90e2109b674be2a122aab9d332bad43c94e
@@ -466,7 +466,7 @@ files:
     digest: sha256:7bb2802ba74d923d6b904e88009454f7907cedbc65cd65ccc86943beee77fed8
   - path: internal/config/config.go
     mode: seed
-    digest: sha256:93af2312980c8816400a558607b6dfd1ae8ae23fe9f006175e4045678455e896
+    digest: sha256:be7235aa96a21a01da93c745a2ad047367133b74bab38b444e176527591574cd
   - path: internal/config/config_test.go
     mode: seed
     digest: sha256:26f58e6b1a9037f644cc9f0cf17e99225f0523e11f9b92762d265bffdd45662b
@@ -625,7 +625,7 @@ files:
     digest: sha256:25ca29f90b6535d4cca604993d8a91766c60d9975d4601bf3f85b0f738c4389a
   - path: internal/store/cmd/migrate/main_test.go
     mode: generated
-    digest: sha256:b34dda3664328a7dc560413c174b27fc8eb7fd2e1906e4fa8bec6989b152cf26
+    digest: sha256:d99b33906c44da13939178d87e1ad77dd06528c6dbbd0a123122c93020d3b7c0
   - path: internal/store/compat.go
     mode: generated
     digest: sha256:a93552f308daece6c20712ffa555c05185dc06a8bb68e1f6a1e5117b28109323

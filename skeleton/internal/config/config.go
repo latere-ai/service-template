@@ -65,9 +65,16 @@ type Config struct {
 	// that never returns reads as a healthy replica.
 	ReadyCheckTimeout time.Duration `env:"READY_CHECK_TIMEOUT" default:"2s" doc:"Deadline for one readiness check."`
 
-	// DatabaseURL is the connection string. It is empty when the service runs
-	// without a database.
-	DatabaseURL Secret `env:"DATABASE_URL" doc:"PostgreSQL connection string. Empty disables the database."`
+	// DatabaseURL is the connection string direct to the server. It is empty
+	// when the service runs without a database. The migrate command always
+	// connects on it, because a migration holds a session-scoped lock that a
+	// transaction-mode pooler does not keep.
+	DatabaseURL Secret `env:"DATABASE_URL" doc:"PostgreSQL connection string direct to the server, for migrations and for serving when DATABASE_POOL_URL is empty. Empty disables the database."`
+	// DatabasePoolURL is the connection string through a transaction-mode
+	// pooler. The serving path prefers it, so a replica holds pooler
+	// connections rather than server slots, and falls back to DatabaseURL
+	// when it is empty.
+	DatabasePoolURL Secret `env:"DATABASE_POOL_URL" doc:"PostgreSQL connection string through a transaction-mode pooler, for serving. Empty serves on DATABASE_URL."`
 
 	// OTLPEndpoint is the collector base URL. Empty disables telemetry export.
 	OTLPEndpoint string `env:"OTEL_EXPORTER_OTLP_ENDPOINT" doc:"OTLP collector base URL. Empty disables telemetry export."`

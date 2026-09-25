@@ -20,7 +20,15 @@ func init() { openDatabase = connectStore }
 // and a start-up migration ties a schema change to rollout timing instead of to
 // the deployment step that owns it. They run through the migrate command.
 func connectStore(ctx context.Context, a *assembly) error {
-	dsn := a.cfg.DatabaseURL.Reveal()
+	// The serving path connects through the pooler when one is configured, so
+	// a replica holds pooler connections rather than server slots and the
+	// replica count stops being a database decision. The direct string is the
+	// fallback, and stays the migrate command's: a migration holds a
+	// session-scoped lock, which a transaction-mode pooler does not keep.
+	dsn := a.cfg.DatabasePoolURL.Reveal()
+	if dsn == "" {
+		dsn = a.cfg.DatabaseURL.Reveal()
+	}
 	if dsn == "" {
 		// A scaffold runs without a database, and so do its tests. A service
 		// that requires one states that by making the connection string a

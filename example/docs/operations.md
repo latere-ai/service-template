@@ -93,6 +93,22 @@ them, so the previous binary runs against the migrated schema. If a migration is
 not backward compatible, the release notes say so, and the rollback needs the
 matching down path rather than a redeploy.
 
+## Database connections
+
+The serving path connects on `DATABASE_POOL_URL`, a transaction-mode pooler in
+front of the server, and on `DATABASE_URL` only when the pooled string is
+empty. A replica then holds pooler connections rather than server slots, so
+scaling replicas does not exhaust the server's connection limit. The migrate
+command always uses `DATABASE_URL`, because a migration holds a
+session-scoped lock that a transaction-mode pooler does not keep.
+
+A transaction-mode pooler hands the next transaction to another backend, so
+a prepared statement cannot outlive the transaction that made it. The pooled
+string sets `default_query_exec_mode=cache_describe`, which keeps statement
+descriptions in the client and leaves no named statement on the server. When
+a request fails on a prepared statement that does not exist, the pooled
+string has lost that parameter.
+
 ## Restoring a local environment
 
 `make dev-down` removes the containers and the volumes of the local stack, and

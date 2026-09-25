@@ -33,3 +33,17 @@ func TestAnUnusableConnectionStringFailsStartUp(t *testing.T) {
 		t.Fatal("an unusable connection string was accepted")
 	}
 }
+
+// The serving path prefers the pooled connection string. The pooled string
+// here is unusable and the direct one is absent, so start-up fails only if
+// the pooled string is the one the store was opened with: were the direct
+// string read first, the store would stay closed and start-up would pass.
+func TestThePooledConnectionStringIsPreferred(t *testing.T) {
+	a := newTestAssembly(t)
+	a.cfg.DatabaseURL = config.Secret("")
+	a.cfg.DatabasePoolURL = config.Secret("this is not a connection string")
+
+	if err := connectStore(context.Background(), a); err == nil {
+		t.Fatal("the pooled connection string was not the one opened")
+	}
+}

@@ -71,21 +71,6 @@ waive:
     reason: >-
       the tree is at 85.8% against a 90% per-package floor; the generator's own skeleton and example trees carry the untested weight
     until: 2026-12-01
-  # Staying on the direct endpoint is an exception, so it carries a reason
-  # and a date. The gate fails the direct role without this entry, and fails
-  # it again the day after the date, which is when somebody decides whether
-  # the reason still holds.
-  postgres:
-    reason: >-
-      a template and not a deployment: the example service here is copied
-      into a new repository and is never rolled out from this one, so the
-      connection string it reads claims no slot on any shared database, and
-      the repository generated from it declares a role of its own. This
-      stops holding when the skeleton teaches the pooled shape instead,
-      which is the better fix: a generated serving path that reads a pooled
-      name and falls back to the direct one, with the migrator keeping the
-      direct one, so every service made from this template starts pooled.
-    until: 2026-12-19
 
 # The identity shape of the family: specs/infrastructure/identity.md in latere-ai/specs
 identity:
@@ -93,7 +78,8 @@ identity:
 
 # The database shape: which endpoint the serving path connects on.
 postgres:
-  # The example service opens a pool on the direct connection string. It is
-  # a skeleton to copy rather than a deployment, and the role records the
-  # client it carries.
-  role: direct
+  # The skeleton and the example service it generates open their serving
+  # pool on DATABASE_POOL_URL, falling back to DATABASE_URL, and migrate on
+  # DATABASE_URL, which is the shape every service made from this template
+  # starts with. The role records that shape.
+  role: pooled

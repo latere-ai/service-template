@@ -46,6 +46,30 @@ func TestApplyNeedsAConnectionString(t *testing.T) {
 	}
 }
 
+// A migration holds a session-scoped lock, which a transaction-mode pooler
+// does not keep, so the command connects on the direct string only. With the
+// pooled string set and the direct one absent it refuses rather than
+// migrating through the pooler.
+func TestApplyNeverReadsThePooledConnectionString(t *testing.T) {
+	pooledOnly := func(name string) string {
+		if name == "DATABASE_POOL_URL" {
+			return "postgres://pooler.invalid:25061/app"
+		}
+		return ""
+	}
+	var out bytes.Buffer
+	err := run(t.Context(), []string{"-dir", "../../../../migrations"}, &out, pooledOnly)
+	if err == nil {
+		t.Fatal("run applied with only the pooled connection string set")
+	}
+	if strings.Contains(err.Error(), "pooler.invalid") {
+		t.Errorf("error %q names the pooled host, so the command read the pooled string", err)
+	}
+	if !strings.Contains(err.Error(), "DATABASE_URL") {
+		t.Errorf("error %q does not name the variable to set", err)
+	}
+}
+
 func TestUnknownFlagFails(t *testing.T) {
 	var out bytes.Buffer
 	if err := run(t.Context(), []string{"-nonsense"}, &out, noEnv); err == nil {

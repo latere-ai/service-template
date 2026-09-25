@@ -41,7 +41,8 @@ that record and in every other record.
 | `GRACE_PERIOD` | `-grace-period` | duration | `30s` | Time in-flight requests may finish after the listener stops. |
 | `STOP_TIMEOUT` | `-stop-timeout` | duration | `15s` | Time one component has to stop before it is abandoned. |
 | `READY_CHECK_TIMEOUT` | `-ready-check-timeout` | duration | `2s` | Deadline for one readiness check. |
-| `DATABASE_URL` | `-database-url` | secret | empty | PostgreSQL connection string. Empty disables the database. |
+| `DATABASE_URL` | `-database-url` | secret | empty | PostgreSQL connection string direct to the server, for migrations and for serving when DATABASE_POOL_URL is empty. Empty disables the database. |
+| `DATABASE_POOL_URL` | `-database-pool-url` | secret | empty | PostgreSQL connection string through a transaction-mode pooler, for serving. Empty serves on DATABASE_URL. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `-otel-exporter-otlp-endpoint` | string | empty | OTLP collector base URL. Empty disables telemetry export. |
 | `OTEL_EXPORTER_OTLP_HEADERS` | `-otel-exporter-otlp-headers` | secret | empty | OTLP headers as comma-separated key=value pairs. |
 | `OTEL_TRACES_SAMPLE_RATIO` | `-otel-traces-sample-ratio` | number | `1.0` | Head trace sampling ratio between 0 and 1. |
@@ -55,6 +56,7 @@ Every value has a default or is optional, so the service starts with no configur
 These carry credentials. Mount each one as a file and set `<NAME>_FILE` to its path, so the value is not visible in the process environment. Their values are redacted in every log record.
 
 - `DATABASE_URL`
+- `DATABASE_POOL_URL`
 - `OTEL_EXPORTER_OTLP_HEADERS`
 
 ## The example file
