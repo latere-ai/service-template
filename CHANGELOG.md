@@ -10,6 +10,8 @@ committed: the commit log already holds that.
 
 ## Unreleased
 
+## v1.1.0 - 2026-09-26
+
 A service now runs two pipelines on every push. `.github/workflows/ci.yml`
 calls the fleet's shared per-push bar in `latere-ai/ci`, the gates lateregate
 names for the repository at the version `go.mod` pins, and the template's
