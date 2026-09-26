@@ -13,6 +13,25 @@ import (
 // the store package and compiles without it.
 func init() { openDatabase = connectStore }
 
+// storeHandle is what the entry point holds of an open store: the readiness
+// check it registers and the close it runs on shutdown.
+type storeHandle interface {
+	Ping(context.Context) error
+	Close()
+}
+
+// openStore opens the store the serving path uses. It is a variable so the
+// start-up tests can assemble the process around a store that needs no
+// server, which is the only way the path after a successful open runs in a
+// suite with no database beside it.
+var openStore = func(ctx context.Context, dsn string) (storeHandle, error) {
+	db, err := store.Open(ctx, dsn)
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
 // connectStore opens the pool, reports it through readiness, and closes it on
 // shutdown.
 //
@@ -37,7 +56,7 @@ func connectStore(ctx context.Context, a *assembly) error {
 		return nil
 	}
 
-	db, err := store.Open(ctx, dsn)
+	db, err := openStore(ctx, dsn)
 	if err != nil {
 		return err
 	}
