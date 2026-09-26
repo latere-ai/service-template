@@ -14,13 +14,17 @@ files:
   # the fleet's shared per-push bar, verify.yml the service-specific checks
   # the bar does not cover, and ci-gate-bump.yml keeps the bar's pin current.
   # The job ids in the ci and verify callers name the required status checks,
-  # which is why the callers are generated rather than seed.
+  # which is why the callers are generated rather than seed. The shared bar
+  # and its pin live in the Go module, so a frontend-only repository has
+  # neither caller.
   - path: .github/workflows/ci.yml
     mode: generated
+    profiles: [service, library]
   - path: .github/workflows/verify.yml
     mode: generated
   - path: .github/workflows/ci-gate-bump.yml
     mode: generated
+    profiles: [service, library]
   - path: .github/workflows/settings.yml
     mode: generated
 

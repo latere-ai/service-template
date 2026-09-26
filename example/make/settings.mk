@@ -37,7 +37,8 @@ settings-apply:
 settings-report:
 	@go run $(SETTINGS_CMD) -mode=report -file=$(SETTINGS_FILE) -repo=$(REPO)
 
-# Fails when the gate is not a required status check on the default branch.
-# Until it passes, every gate in the pipeline is advisory.
+# Fails when a context the declaration requires, the shared bar's aggregate or
+# the verify gate, is not a required status check on the default branch. Until
+# it passes, the pipeline that reports that context is advisory.
 settings-required-check:
 	@go run $(SETTINGS_CMD) -mode=required-check -file=$(SETTINGS_FILE) -repo=$(REPO)

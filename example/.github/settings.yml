@@ -1,14 +1,17 @@
 # Repository settings as code.
 #
-# The verify pipeline calls its gate job the single required check, and a
-# required check is repository configuration rather than repository content. A
-# repository can hold every workflow in this template, wire the gate correctly,
-# and still merge a red branch, because nothing marked the check required. This
-# file is that declaration, and tools/settings applies it.
+# A required check is repository configuration rather than repository content.
+# A repository can hold every workflow in this template, wire each gate
+# correctly, and still merge a red branch, because nothing marked the checks
+# required. This file is that declaration, and tools/settings applies it.
 #
-# The required context is "<caller job id> / gate". The caller commits its job
-# as "verify", so the context below and the job id in .github/workflows/verify.yml
-# are one decision: renaming the job unbinds the protection rule.
+# Two pipelines run on every push, and each reports one aggregate that is
+# required below. "gate / all gates passed" is the fleet's shared per-push bar,
+# which .github/workflows/ci.yml calls as the job "gate". "verify / gate" is the
+# service-specific pipeline, which .github/workflows/verify.yml calls as the
+# job "verify". A context is "<caller job id> / <job name>", so each context
+# and the job id in its caller are one decision: renaming either job unbinds
+# the protection rule.
 repository:
   default_branch: main
   # Squash only, with the pull request title as the commit subject. The release
@@ -37,6 +40,7 @@ protection:
     # the result the gate reported is the result of the merged tree.
     strict: true
     contexts:
+      - gate / all gates passed
       - verify / gate
   required_pull_request_reviews:
     required_approving_review_count: 1

@@ -24,11 +24,18 @@ make check      # the whole shared bar, as CI runs it
 
 The gates live in `latere.ai/x/ci-gate`, pinned in `go.mod` and configured in
 `.lateregate.yaml`. `make check` runs every one of them, `go tool lateregate`
-under another name, and CI runs the same binary at the same version, so a
-green local run is evidence rather than a hope. Run it before you push. The
-pre-commit hook checks the staged Go files in seconds, and the pre-push hook
-lints the packages a push changes and refuses a release tag with no
-changelog section. A bare `make` runs the fast local subset.
+under another name, and `.github/workflows/ci.yml` runs the same binary at the
+same version on every push, so a green local run is evidence rather than a
+hope. Run it before you push. The pre-commit hook checks the staged Go files
+in seconds, and the pre-push hook lints the packages a push changes and
+refuses a release tag with no changelog section. A bare `make` runs the fast
+local subset.
+
+`.github/workflows/verify.yml` runs beside it with what the shared bar does
+not cover: the template drift check, the declared settings and ownership,
+tracked suppressions, code scanning, the integration tier against Postgres,
+and the frontend. A pull request merges when both report green, as
+`gate / all gates passed` and `verify / gate`.
 
 | Target | What it does |
 | --- | --- |

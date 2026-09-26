@@ -66,7 +66,7 @@ func newFakeAPI(t *testing.T) *fakeAPI {
 		protection: map[string]any{
 			"required_status_checks": map[string]any{
 				"strict":   true,
-				"contexts": []string{"verify / gate"},
+				"contexts": []string{"gate / all gates passed", "verify / gate"},
 			},
 			"required_pull_request_reviews": map[string]any{
 				"dismiss_stale_reviews":           true,
@@ -247,6 +247,27 @@ func TestApplyIsIdempotent(t *testing.T) {
 	}
 	if !strings.Contains(second.Stdout, "nothing to apply") {
 		t.Fatalf("the second apply did not report a match\n%s", second.Stdout)
+	}
+}
+
+// A repository that requires one of the two aggregates is still advisory for
+// the other: a service that required only "verify / gate" before its shared
+// bar moved to ci.yml can merge a branch the bar failed. required-check names
+// the context that is missing.
+func TestRequiredCheckNamesAMissingAggregate(t *testing.T) {
+	api := newFakeAPI(t)
+	checks, ok := api.protection["required_status_checks"].(map[string]any)
+	if !ok {
+		t.Fatal("the fake repository declares no required status checks")
+	}
+	checks["contexts"] = []string{"verify / gate"}
+
+	required := runSettings(t, settingsArgs(t, api, "required-check")...)
+	if required.Code != exitDrift {
+		t.Fatalf("required-check exited %d with the shared bar unrequired, want %d", required.Code, exitDrift)
+	}
+	if !strings.Contains(required.Stderr, "does not require gate / all gates passed") {
+		t.Fatalf("required-check does not name the missing context\n%s", required.Stderr)
 	}
 }
 

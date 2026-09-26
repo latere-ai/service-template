@@ -1,5 +1,5 @@
 # Written by the template generator. Do not edit.
-version: v1.0.0
+version: v1.1.0
 profile: service
 features:
   frontend: true
@@ -25,7 +25,7 @@ files:
     digest: sha256:5d4805567bdf9e07a35f14c35c465bced6f6a7f3ba7947f727d535a94c08ed8b
   - path: .github/settings.yml
     mode: generated
-    digest: sha256:5c0a28ee5cd2d2e49d7e02f9d9205d46d04c68317cc676d6bedda24a5a3cb5ea
+    digest: sha256:e0a4359049255535acc46bf744a64464132a641f32f01621664cc177d3b4c2c3
   - path: .github/suppressions.yml
     mode: seed
     digest: sha256:f260e626f339fb17fce87b14235a0705409fe9b4b82487f6aabbc4b34d48448c
@@ -52,7 +52,7 @@ files:
     digest: sha256:06ae03968a22bbe92246ee9a8f7f0cae266fd80d03607ddadb312b8cb0e2b996
   - path: CONTRIBUTING.md
     mode: seed
-    digest: sha256:cde0decabc05b062e1e75d26bdaa0dcc7b036e24fe90a0cda1e9a4a3532e5203
+    digest: sha256:382a2e24fb42a5f0000fe66e198b8b96f03bd36eeb24a508e05bff373df399de
   - path: Dockerfile
     mode: generated
     digest: sha256:8e624f6bef7cfb5d36bb89287a849407bbe4706f9bc5d07faf56c2a98fd33de4
@@ -67,7 +67,7 @@ files:
     digest: sha256:358fc58caa7bce19361b41652d5e1bca616f932d23c1a96c1c4c0b55b816fd81
   - path: README.md
     mode: seed
-    digest: sha256:cca43468be9397e29812b5be0c875f3c34ede000f696ffc575018dea443d3e0a
+    digest: sha256:c005ba1c3132f032b3f61588197729f2653e33420a4c7842108c04e14d558f59
   - path: SECURITY.md
     mode: seed
     digest: sha256:ecef5e288def37df3fbf2c59a37e878f69db9f0b1607daf42d978fa5d2dfc408
@@ -796,7 +796,7 @@ files:
     digest: sha256:1c39ce34a4e90b7d56c877328013d835721acfc195a8a1ca4d21f585170152f8
   - path: make/settings.mk
     mode: generated
-    digest: sha256:0dbb9ae3ed8f7964bc34783a991721aaeda0c18841421da78d9d6d1252ee1bee
+    digest: sha256:c0541aab3371557ecefd78670bd262801c3a00df0f9cb629d3669502bd77bd17
   - path: make/store.mk
     mode: generated
     digest: sha256:b0de757572a7bb3c188fed17677b3d408b4e5d16f83aa49a648e3ab35760ff85
@@ -988,7 +988,7 @@ files:
     digest: sha256:8e1297f15f7d81a5e96c7b08d9678ea6b9ea897d2c26f4d2d5e0c2fd9f1eed8f
   - path: tools/settings/declaration_test.go
     mode: generated
-    digest: sha256:4aad5152fb9e97b14bdf2dccb4e995d6eb32b5805135fbce9f5e7d8fe5b82ebc
+    digest: sha256:41b499fbeb4ec30518143a21f504cafda5b1df3a0bdfe29c42e0388e57e31321
   - path: tools/settings/failure_test.go
     mode: generated
     digest: sha256:4a9f1ccb25cfb3969e3198965bf1f6e7fcae0e338f7072b960d8178734a000d8
@@ -1003,7 +1003,7 @@ files:
     digest: sha256:cd3735a8464f639cce2091bdcb0e2e65b41836ddbbcb89d081eb051d715e0d3b
   - path: tools/settings/settings_test.go
     mode: generated
-    digest: sha256:b2cf32a25bce81019a258407a8a1780e06dea64208322067c3b7ea376d89975a
+    digest: sha256:b9e5177a8130fa91440d3efa486f767d87891f80cb848d12b3d1c7244a1d731e
   - path: tools/smoke/assert.go
     mode: generated
     digest: sha256:12fe54299e60f428f77d3cb61a2cddfa4887b9308881770b1eebbe968746a549

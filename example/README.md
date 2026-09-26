@@ -48,8 +48,9 @@ make check
 ```
 
 `make build` writes a stamped binary to `out/`. `make test` runs `go vet` and
-the unit tier. `make check` runs the whole shared bar exactly as CI does: every
-gate `go tool lateregate list` names, from formatting and lint to the race
+the unit tier. `make check` runs the whole shared bar exactly as
+`.github/workflows/ci.yml` does on every push: every gate
+`go tool lateregate list` names, from formatting and lint to the race
 detector, the per-package coverage floor, and the vulnerability scan. A bare
 `make` runs the fast local subset.
 

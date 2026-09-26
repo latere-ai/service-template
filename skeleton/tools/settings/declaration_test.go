@@ -7,7 +7,8 @@ import (
 )
 
 // The declaration this repository ships must state a binding configuration:
-// squash only, an owner review, and the gate as a required check.
+// squash only, an owner review, and both pipelines' aggregates as required
+// checks.
 func TestShippedDeclaration(t *testing.T) {
 	d, err := LoadDeclaration(filepath.Join("..", "..", ".github", "settings.yml"))
 	if err != nil {
@@ -34,14 +35,19 @@ func TestShippedDeclaration(t *testing.T) {
 	if d.Security.SecretScanningPushProtection != "enabled" {
 		t.Error("push protection must be on")
 	}
-	found := false
-	for _, context := range d.Protection.RequiredStatusChecks.Contexts {
-		if strings.HasSuffix(context, "/ gate") {
-			found = true
+	// Two pipelines run on every push: the shared bar reports "all gates
+	// passed" and the service's own pipeline reports "gate". Each one binds
+	// nothing until it is required.
+	for _, job := range []string{"/ all gates passed", "/ gate"} {
+		found := false
+		for _, context := range d.Protection.RequiredStatusChecks.Contexts {
+			if strings.HasSuffix(context, job) {
+				found = true
+			}
 		}
-	}
-	if !found {
-		t.Errorf("no required context names the gate job: %v", d.Protection.RequiredStatusChecks.Contexts)
+		if !found {
+			t.Errorf("no required context names the job %q: %v", strings.TrimPrefix(job, "/ "), d.Protection.RequiredStatusChecks.Contexts)
+		}
 	}
 }
 
