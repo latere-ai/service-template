@@ -1,0 +1,72 @@
+# Repository settings as code.
+#
+# A required check is repository configuration rather than repository content.
+# A repository can hold every workflow in this template, wire each gate
+# correctly, and still merge a red branch, because nothing marked the checks
+# required. This file is that declaration, and tools/settings applies it.
+#
+{{- if eq .Profile "frontend-only" }}
+# The verify pipeline reports one aggregate, required below as "verify / gate":
+# .github/workflows/verify.yml calls it as the job "verify", and a context is
+# "<caller job id> / <job name>", so the context and the job id are one
+# decision: renaming the job unbinds the protection rule. The fleet's shared
+# per-push bar runs Go gates, and a repository with no Go module has no caller
+# of it and no context for it to report.
+{{- else }}
+# Two pipelines run on every push, and each reports one aggregate that is
+# required below. "gate / all gates passed" is the fleet's shared per-push bar,
+# which .github/workflows/ci.yml calls as the job "gate". "verify / gate" is the
+# service-specific pipeline, which .github/workflows/verify.yml calls as the
+# job "verify". A context is "<caller job id> / <job name>", so each context
+# and the job id in its caller are one decision: renaming either job unbinds
+# the protection rule.
+{{- end }}
+repository:
+  default_branch: main
+  # Squash only, with the pull request title as the commit subject. The release
+  # version is derived from commit messages, so the merge method and the version
+  # derivation are one decision rather than two.
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: false
+  squash_merge_commit_title: PR_TITLE
+  squash_merge_commit_message: PR_BODY
+  delete_branch_on_merge: true
+  allow_auto_merge: true
+  allow_update_branch: true
+
+security:
+  # Advisories that appear after a release reach the repository through these,
+  # not through a person remembering to look.
+  vulnerability_alerts: true
+  secret_scanning: enabled
+  secret_scanning_push_protection: enabled
+
+protection:
+  branch: main
+  required_status_checks:
+    # The branch must carry the default branch's commits before it merges, so
+    # the result the gate reported is the result of the merged tree.
+    strict: true
+    contexts:
+{{- if ne .Profile "frontend-only" }}
+      - gate / all gates passed
+{{- end }}
+      - verify / gate
+  required_pull_request_reviews:
+    required_approving_review_count: 1
+    dismiss_stale_reviews: true
+    require_code_owner_reviews: true
+  required_linear_history: true
+  required_conversation_resolution: true
+  allow_force_pushes: false
+  allow_deletions: false
+  enforce_admins: false
+
+codeowners:
+  # Paths that must have an owner. The pipeline and the template pin cannot be
+  # changed without an owner review, because a repository that can rewrite its
+  # own gates has none.
+  required_paths:
+    - /.github/
+    - /.template.yaml

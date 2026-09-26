@@ -3,11 +3,14 @@
 # when the service's whole bar passes on it, pushes `gate: ci-gate vX.Y.Z` to
 # the branch, and dispatches the per-push gate in ci.yml on that commit. When
 # the bar fails it opens one issue for the version instead and pushes nothing.
+#
+# The minute is derived from the service name, so the repositories sharing a
+# runner do not all start at once.
 name: ci-gate bump
 
 on:
   schedule:
-    - cron: "41 3 * * *"
+    - cron: "{{ .ScheduleMinute }} 3 * * *"
   workflow_dispatch:
 
 # The pipeline pushes the pin, opens the issue, and dispatches the per-push

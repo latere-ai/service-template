@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"latere.ai/x/service-template/internal/generator"
 )
 
 func readFile(t *testing.T, parts ...string) string {
@@ -363,16 +365,34 @@ func TestSettingsWorkflowTakesAnAdministrativeToken(t *testing.T) {
 }
 
 // The caller in examples/ is what the generator materializes into a consumer
-// repository. Two copies of the same file drift, so they are compared.
+// repository. Two copies of the same file drift, so they are compared. A
+// caller rendered from a template is compared as the skeleton renders it for
+// its own name, service.
 func TestGeneratedCallersMatchTheExamples(t *testing.T) {
 	for _, name := range []string{"ci.yml", "verify.yml", "ci-gate-bump.yml", "settings.yml"} {
 		example := readFile(t, "examples", name)
-		generated := readFile(t, "skeleton", ".github", "workflows", name)
-		if example != generated {
+		rel := ".github/workflows/" + name
+		generated, err := generator.Render(os.DirFS(filepath.Join(repoRoot(t), "skeleton")),
+			generator.Entry{Path: rel, Source: skeletonSource(t, rel)},
+			&generator.Config{Module: generator.SkeletonModule, Name: generator.SkeletonName})
+		if err != nil {
+			t.Fatalf("render %s: %v", rel, err)
+		}
+		if example != string(generated) {
 			t.Errorf("examples/%s and the generated caller differ; a consumer would get "+
 				"a pipeline the documentation does not describe", name)
 		}
 	}
+}
+
+// skeletonSource is the skeleton file a generated path renders from: its
+// template when there is one, the file itself otherwise.
+func skeletonSource(t *testing.T, rel string) string {
+	t.Helper()
+	if _, err := os.Stat(filepath.Join(repoRoot(t), "skeleton", rel+generator.TemplateSuffix)); err == nil {
+		return rel + generator.TemplateSuffix
+	}
+	return rel
 }
 
 // The shared bar sees the root module only. The skeleton as its own module,

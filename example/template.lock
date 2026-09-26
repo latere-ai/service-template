@@ -31,7 +31,7 @@ files:
     digest: sha256:f260e626f339fb17fce87b14235a0705409fe9b4b82487f6aabbc4b34d48448c
   - path: .github/workflows/ci-gate-bump.yml
     mode: generated
-    digest: sha256:bb4dae70b3eb97a63a03fdcfa0b6acded1250f6b68d15a9f7b670f81402afdac
+    digest: sha256:e5e43437aabc8ba9fa55cab2df2d8c84622ba468b0a4106254c29ac9636267b4
   - path: .github/workflows/ci.yml
     mode: generated
     digest: sha256:c63815d75c2f42d9d113e12881c69847f88faf0da95c96e1c067e7cb21bbb2c2
@@ -79,10 +79,10 @@ files:
     digest: sha256:362e083d79368701a81bb53c5c547052543c7cc5875978918cb9dac6d0a5c96f
   - path: cmd/reference-service/database.go
     mode: seed
-    digest: sha256:453a17fb13f5f2db44efb18b8ff9b0750cf7a0b472ab501d87a542b76ed3bec1
+    digest: sha256:d631c18dea0fdf3aed02317ccb15c1813a5de8667b01c076a9cad51bb5f00b61
   - path: cmd/reference-service/database_test.go
     mode: seed
-    digest: sha256:a88f6869eaded4c3df59be264ecdbef1d8c3ba80b6a5c0872a3e6589529990b2
+    digest: sha256:4e8be1699473d4f3c8209cd890fd27c1b7e721f6fe5a20190026f76b67a50fc8
   - path: cmd/reference-service/frontend.go
     mode: seed
     digest: sha256:2a0786db4b565e454c39c6d869c9cd4229226989e9cf59147cade621d1e3c757

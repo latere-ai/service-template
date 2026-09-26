@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -821,9 +822,9 @@ func TestADeclarationWithNoYearNamesTheRemedy(t *testing.T) {
 func TestUpgradeRecordsTheYearAndWritesTheNotice(t *testing.T) {
 	cases := map[string]func(string) string{
 		"no license block": func(decl string) string {
-			i := strings.Index(decl, "license:\n")
+			before, _, _ := strings.Cut(decl, "license:\n")
 			j := strings.Index(decl, "waivers:")
-			return decl[:i] + decl[j:]
+			return before + decl[j:]
 		},
 		"a license block with no year": func(decl string) string {
 			return strings.Replace(decl, "  year: "+testYear+"\n", "", 1)
@@ -873,5 +874,67 @@ func TestUpgradeRecordsTheYearAndWritesTheNotice(t *testing.T) {
 				t.Fatalf("check after the upgrade exited %d\n%s", code, errOut)
 			}
 		})
+	}
+}
+
+// The shared per-push bar runs Go gates, so a repository with no Go module
+// has no caller of it, and branch protection requires no context it could
+// never report. A Go profile has both.
+func TestOnlyAGoProfileRequiresTheSharedBar(t *testing.T) {
+	src := os.DirFS(filepath.Join("..", "..", "skeleton"))
+	const shared = "      - gate / all gates passed\n"
+	for _, c := range []struct {
+		profile  string
+		features map[string]bool
+		want     bool
+	}{
+		{ProfileService, map[string]bool{}, true},
+		{ProfileLibrary, map[string]bool{}, true},
+		{ProfileFrontendOnly, map[string]bool{FeatureFrontend: true}, false},
+	} {
+		t.Run(c.profile, func(t *testing.T) {
+			cfg := testConfig()
+			cfg.Profile, cfg.Features = c.profile, c.features
+			dir := initRepo(t, src, cfg)
+			settings := read(t, dir, ".github/settings.yml")
+			if got := strings.Contains(settings, shared); got != c.want {
+				t.Errorf("settings.yml requires the shared bar: %t, want %t\n%s", got, c.want, settings)
+			}
+			mustContain(t, settings, "      - verify / gate\n", "the verify context")
+			for _, caller := range []string{".github/workflows/ci.yml", ".github/workflows/ci-gate-bump.yml"} {
+				_, err := os.Stat(filepath.Join(dir, caller))
+				if exists := err == nil; exists != c.want {
+					t.Errorf("%s exists: %t, want %t", caller, exists, c.want)
+				}
+			}
+		})
+	}
+}
+
+// Each repository runs its ci-gate bump at a minute derived from its name, so
+// repositories sharing a runner do not all start at once, and the minute of
+// one repository never moves.
+func TestTheBumpScheduleIsDerivedFromTheName(t *testing.T) {
+	src := os.DirFS(filepath.Join("..", "..", "skeleton"))
+	minutes := map[string]string{}
+	for _, name := range []string{"widget", "gadget"} {
+		cfg := testConfig()
+		cfg.Name = name
+		first := read(t, initRepo(t, src, cfg), ".github/workflows/ci-gate-bump.yml")
+		again := read(t, initRepo(t, src, cfg), ".github/workflows/ci-gate-bump.yml")
+		if first != again {
+			t.Fatalf("two scaffolds of %s schedule the bump differently", name)
+		}
+		m := regexp.MustCompile(`cron: "([0-9]+) 3 \* \* \*"`).FindStringSubmatch(first)
+		if m == nil {
+			t.Fatalf("the bump caller of %s holds no daily schedule:\n%s", name, first)
+		}
+		if n, err := strconv.Atoi(m[1]); err != nil || n < 0 || n > 59 {
+			t.Fatalf("the minute %q is not a minute of the hour", m[1])
+		}
+		minutes[name] = m[1]
+	}
+	if minutes["widget"] == minutes["gadget"] {
+		t.Errorf("widget and gadget share the minute %s; the derivation spreads nothing", minutes["widget"])
 	}
 }

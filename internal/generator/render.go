@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/format"
+	"hash/fnv"
 	"io/fs"
 	"path"
 	"strings"
@@ -49,6 +50,11 @@ type Data struct {
 	// License is the declared terms with the defaults applied, for example
 	// {{ .License.SPDX }}.
 	License License
+	// ScheduleMinute is a minute of the hour, 0 to 59, derived from the
+	// service name, for example "{{ .ScheduleMinute }} 3 * * *". Repositories
+	// sharing a runner run their scheduled workflows at different minutes
+	// rather than all at once, and one repository's minute never moves.
+	ScheduleMinute int
 }
 
 // NewData builds the render input for a declaration.
@@ -58,14 +64,23 @@ func NewData(cfg *Config) Data {
 		features[f] = cfg.Features[f]
 	}
 	return Data{
-		Template: cfg.Template,
-		Version:  cfg.Version,
-		Module:   cfg.Module,
-		Name:     cfg.Name,
-		Profile:  cfg.Profile,
-		Features: features,
-		License:  cfg.Terms(),
+		Template:       cfg.Template,
+		Version:        cfg.Version,
+		Module:         cfg.Module,
+		Name:           cfg.Name,
+		Profile:        cfg.Profile,
+		Features:       features,
+		License:        cfg.Terms(),
+		ScheduleMinute: scheduleMinute(cfg.Name),
 	}
+}
+
+// scheduleMinute spreads names over the hour with FNV-1a, which is stable
+// across releases and platforms, so a sync never moves a schedule.
+func scheduleMinute(name string) int {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(name))
+	return int(h.Sum32() % 60)
 }
 
 // TargetPath maps a skeleton-form path to its path in the generated

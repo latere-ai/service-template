@@ -85,8 +85,9 @@ func TestArchiveMatchesTheSkeleton(t *testing.T) {
 // the skeleton's own gates also read in place, from the plain file beside the
 // template. .lateregate.yaml is one: a service's copy depends on its profile
 // and its license, and `go tool lateregate` run inside skeleton/ reads the
-// skeleton's.
-var inPlace = []string{".lateregate.yaml"}
+// skeleton's. .github/settings.yml is another: the contexts it requires
+// depend on the profile, and tools/settings tests the skeleton's.
+var inPlace = []string{".lateregate.yaml", ".github/settings.yml"}
 
 // Each plain file in inPlace is its template rendered for the skeleton
 // itself: the service profile, every feature, the skeleton's module and name,
