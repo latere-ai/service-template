@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -343,5 +345,48 @@ func TestARegisteredPathWithAnUnregisteredMethodReachesTheFallback(t *testing.T)
 	}
 	if got := rec.Header().Get("Content-Type"); got != httpx.ProblemContentType {
 		t.Errorf("content type = %q, want the envelope", got)
+	}
+}
+
+// An error the authorization layer does not classify is answered as a server
+// failure inside the envelope, and its text stays out of the body.
+func TestAnUnclassifiedDenialIsAServerFailure(t *testing.T) {
+	rec := httptest.NewRecorder()
+	denyWithEnvelope(rec, httptest.NewRequest(http.MethodGet, "/v1/items", nil), errors.New("the policy store timed out"))
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
+	}
+	if strings.Contains(rec.Body.String(), "policy store") {
+		t.Errorf("the denial reason reached the body: %s", rec.Body.String())
+	}
+}
+
+// Asking for help prints it and succeeds, whichever reader the features
+// installed: a request for usage is not a failed start.
+func TestAskingForHelpIsASuccessfulRun(t *testing.T) {
+	previous := readInvocation
+	t.Cleanup(func() { readInvocation = previous })
+	readInvocation = func([]string, io.Writer) (invocation, error) { return invocation{}, flag.ErrHelp }
+
+	var out, errs strings.Builder
+	if code := main1(context.Background(), []string{"-h"}, &out, &errs); code != exitOK {
+		t.Fatalf("exit code = %d, want %d; stderr: %s", code, exitOK, errs.String())
+	}
+}
+
+// failingWriter refuses every write, the way a closed standard output does.
+type failingWriter struct{}
+
+func (failingWriter) Write([]byte) (int, error) { return 0, errors.New("the stream is closed") }
+
+// A build identity that cannot be written is a failed run, so a probe that
+// reads the version never mistakes a silent process for a reported one.
+func TestAVersionThatCannotBeWrittenFailsTheProcess(t *testing.T) {
+	var errs strings.Builder
+	if code := main1(context.Background(), []string{"-version"}, failingWriter{}, &errs); code != exitError {
+		t.Fatalf("exit code = %d, want %d", code, exitError)
+	}
+	if !strings.Contains(errs.String(), "the stream is closed") {
+		t.Errorf("the message does not carry the write error: %q", errs.String())
 	}
 }
