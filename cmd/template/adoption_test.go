@@ -19,14 +19,15 @@ import (
 // release build carries its version in its build information; the proof sets
 // the same value at link time, so the scaffold runs without -version exactly as
 // the documented command does.
-const adoptionVersion = "v1.0.0"
+const adoptionVersion = "v1.1.0"
 
 // The adoption proof. It runs the path the README documents for a developer
 // starting a service, from outside this repository: the command scaffolds a
 // service into an empty directory, and the service builds and passes its own
-// checks, the template drift check among them. Every step is a command the
-// developer runs, so a change that breaks the documented path fails here
-// rather than in the first repository that follows it.
+// checks, the shared bar's wiring check and the template drift check among
+// them. Every step is a command the developer runs, so a change that breaks
+// the documented path fails here rather than in the first repository that
+// follows it.
 //
 // The suite compiles, vets, and tests a whole generated service, which takes
 // minutes and downloads the service's dependencies, so it sits behind the
@@ -54,6 +55,14 @@ func TestAdoption(t *testing.T) {
 	// The service's gates ask git which files the repository tracks.
 	run(t, svc, "git", "init", "-q")
 	run(t, svc, "git", "add", "-A")
+
+	// The wiring the shared per-push bar expects: one caller of the reusable
+	// workflow, hooks that delegate to the pinned binary, a tracked changelog,
+	// the generated files ignored. A scaffold that drifts from it goes red on
+	// its first push for a reason no line of its own code caused.
+	if out := output(t, svc, "go", "tool", "lateregate", "contract"); !strings.HasPrefix(out, "in shape:") {
+		t.Fatalf("lateregate contract does not report the scaffold in shape:\n%s", out)
+	}
 
 	// The checks a bare `make` runs that need nothing beyond the Go toolchain,
 	// git, and make. lint needs golangci-lint installed and the frontend
