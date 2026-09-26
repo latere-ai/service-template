@@ -42,7 +42,7 @@ on:
         description: The lowest .template.yaml version this pipeline supports.
         type: string
         required: false
-        default: v1.0.0
+        default: v1.1.0
       binary-artifact:
         description: >-
           Name of the binary artifact the verify run published. A

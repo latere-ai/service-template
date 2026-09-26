@@ -79,12 +79,6 @@ func writeFile(t *testing.T, path, content string) {
 	}
 }
 
-// testdataPath is a recorded scanner report used as a script input.
-func testdataPath(t *testing.T, name string) string {
-	t.Helper()
-	return filepath.Join(repoRoot(t), "internal", "verifypipeline", "testdata", name)
-}
-
 // Every pipeline script must parse. A syntax error in a shell step is found at
 // the moment the gate runs otherwise, which is the worst moment to find it.
 func TestScriptsParse(t *testing.T) {

@@ -214,14 +214,45 @@ func TestFrontendCacheIsKeyedOnTheLockfile(t *testing.T) {
 }
 
 // Ownership coverage is a property of a file, so it runs on every pull request
-// rather than only where an administrative token exists.
-func TestLintChecksOwnership(t *testing.T) {
+// rather than only where an administrative token exists. The same job holds
+// the drift check and the suppression rules: what a service declares about
+// itself, which no Go gate reads.
+func TestChecksCoverWhatTheServiceDeclares(t *testing.T) {
 	workflow := readFile(t, ".github", "workflows", "verify.yml")
 	_, blocks := jobs(t, workflow)
-	lint := blocks["lint"]
-	for _, want := range []string{"make fmt-check", "make template-check", "make settings-verify", "lint-summary.sh"} {
-		if !strings.Contains(lint, want) {
-			t.Errorf("the lint job does not run %q", want)
+	checks, ok := blocks["checks"]
+	if !ok {
+		t.Fatal("the workflow declares no checks job")
+	}
+	for _, want := range []string{"make template-check", "make settings-verify", "suppressions.sh"} {
+		if !strings.Contains(checks, want) {
+			t.Errorf("the checks job does not run %q", want)
+		}
+	}
+}
+
+// A service runs the shared per-push bar from ci.yml, so a check that bar
+// holds and this workflow repeats runs twice on every push and can disagree
+// with itself when the two pin different versions of the same tool.
+func TestNoCheckRepeatsTheSharedBar(t *testing.T) {
+	workflow := readFile(t, ".github", "workflows", "verify.yml")
+	shared := []string{
+		"make fmt-check", "make lint-modernize", "make spec-check", "make lint-otel",
+		"make lint-config", "golangci-lint", "govulncheck", "go vet",
+		"make test-hermetic", "make test-tempdir",
+	}
+	for line := range strings.SplitSeq(workflow, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		if trimmed == "run: make test" {
+			t.Error("verify.yml runs make test, which the shared bar in ci.yml already runs")
+		}
+		for _, command := range shared {
+			if strings.Contains(trimmed, command) {
+				t.Errorf("verify.yml runs %q, which the shared bar in ci.yml already runs: %s", command, trimmed)
+			}
 		}
 	}
 }
@@ -258,16 +289,11 @@ func TestReferencedScriptsExist(t *testing.T) {
 	}
 }
 
-// The static analysis job carries the three tools and asserts each one ran.
-func TestStaticAnalysisAssertsEveryScanRan(t *testing.T) {
+// The code scanning job asserts that the scan produced a result, and a fork run
+// analyzes without uploading rather than skipping the job.
+func TestCodeScanningAssertsTheScanRan(t *testing.T) {
 	workflow := readFile(t, ".github", "workflows", "verify.yml")
 	_, blocks := jobs(t, workflow)
-	static := blocks["static"]
-	for _, want := range []string{"go vet ./...", "govulncheck", "scan-guard.sh", "suppressions.sh"} {
-		if !strings.Contains(static, want) {
-			t.Errorf("the static analysis job does not run %q", want)
-		}
-	}
 	codeql, ok := blocks["codeql"]
 	if !ok {
 		t.Fatal("the workflow declares no code scanning job")

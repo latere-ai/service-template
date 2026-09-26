@@ -21,7 +21,7 @@ EXAMPLE_MODULE := github.com/example/reference-service
 EXAMPLE_NAME := reference-service
 EXAMPLE_PROFILE := service
 EXAMPLE_FEATURES := frontend,seo,i18n,database,background
-EXAMPLE_VERSION := v1.0.0
+EXAMPLE_VERSION := v1.1.0
 
 # Both modules render their lint configuration from the shared template in
 # latere.ai/x/ci-gate rather than committing one. golangci-lint cannot inherit
@@ -161,15 +161,19 @@ adoption:
 # committed tree and a fresh generation must be identical. A difference means
 # either the skeleton moved without the example being refreshed, or generation
 # stopped being deterministic; both are defects and both read from this diff.
+# The files the shared bar writes on a run in the reference service, which its
+# .gitignore lists, are left out of the comparison.
+EXAMPLE_RUN_OUTPUT := -x .golangci.yml -x coverage.out
+
 example:
 	@rm -rf $(EXAMPLE).check
 	@$(MAKE) --no-print-directory generate-example DIR=$(EXAMPLE).check
-	@if diff -ru $(EXAMPLE) $(EXAMPLE).check >/dev/null 2>&1; then \
+	@if diff -ru $(EXAMPLE_RUN_OUTPUT) $(EXAMPLE) $(EXAMPLE).check >/dev/null 2>&1; then \
 		rm -rf $(EXAMPLE).check; \
 		echo "example: matches a fresh generation"; \
 	else \
 		echo "the committed reference service differs from a fresh generation:"; \
-		diff -ru $(EXAMPLE) $(EXAMPLE).check | head -80; \
+		diff -ru $(EXAMPLE_RUN_OUTPUT) $(EXAMPLE) $(EXAMPLE).check | head -80; \
 		rm -rf $(EXAMPLE).check; \
 		echo ""; \
 		echo "run: make example-update"; \

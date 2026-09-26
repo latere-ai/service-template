@@ -29,27 +29,39 @@ job graph, and its caching.
 
 ## Design
 
+### Division with the shared bar
+
+A consumer runs two pipelines on every push. The fleet's shared per-push bar,
+`lateregate.yml` in `latere-ai/ci`, runs every gate lateregate names for the
+repository: formatting, modernization, lint with `go vet`, outbound
+instrumentation, the license notice, the spec tree, the vulnerability scan,
+and the suite with its race, hermetic, temporary-directory, and coverage
+properties. The consumer calls it from the generated `.github/workflows/ci.yml`.
+This workflow runs only what the bar does not cover, so no check runs twice
+and two pinned versions of one tool never disagree about one commit.
+
+Branch protection requires one aggregate from each: `gate / all gates passed`
+and `verify / gate`.
+
 ### Job graph
 
 ```mermaid
 flowchart LR
-  P[prepare<br/>resolve versions, restore caches] --> L[lint]
-  P --> S[static analysis]
-  P --> T[test unit + race]
+  P[prepare<br/>declared version, run inputs] --> C[checks<br/>template drift, settings, suppressions]
+  P --> Q[code scanning]
   P --> I[test integration<br/>with service containers]
   P --> F[frontend<br/>guard, typecheck, test, build]
-  L --> G[gate]
-  S --> G
-  T --> G
+  C --> G[gate]
+  Q --> G
   I --> G
   F --> G
   G --> B[build artifacts<br/>binary + bundle]
 ```
 
 Jobs run in parallel after `prepare` because they are independent. The `gate`
-job is the single required check: it evaluates the result of every upstream job
-and fails when any of them failed, was cancelled, or was skipped. A skipped
-required job is a failure, which closes the path filter loophole.
+job is this pipeline's required check: it evaluates the result of every
+upstream job and fails when any of them failed, was cancelled, or was skipped.
+A skipped required job is a failure, which closes the path filter loophole.
 
 The `build` job produces the binary and the bundle as artifacts. The release
 pipeline reuses them rather than rebuilding, so the released artifact is the
@@ -71,8 +83,9 @@ a cache miss produce the same result.
 
 ### Reporting
 
-Each job writes a summary block: findings by linter, coverage by package,
-advisories, and bundle size with the change against the default branch. The
+Each job writes a summary block: coverage by package across both tiers, code
+scanning findings, and bundle size with the change against the default
+branch. Findings per linter and advisories are the shared bar's report. The
 summary is where a reviewer reads the result, so it must contain the numbers and
 not only a pass mark.
 
@@ -89,6 +102,7 @@ cancel, because their results feed the release path.
    the failure.
 4. Artifacts from the build job are consumable by the release pipeline.
 5. A cache miss and a cache hit produce identical results for one commit.
-6. The summary reports coverage per package, findings per linter, and bundle
-   size change.
+6. The summary reports coverage per package, code scanning findings, and
+   bundle size change.
+8. No step repeats a gate the shared bar runs.
 7. Branch runs cancel predecessors; default-branch runs do not.
