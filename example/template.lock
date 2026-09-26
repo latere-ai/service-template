@@ -13,7 +13,10 @@ files:
     digest: sha256:71a875ee706446b5b6db8ab98c434f82f021ca6a236f1fa9a44ff5d22fbcc96a
   - path: .githooks/pre-commit
     mode: generated
-    digest: sha256:25df0330d612d476f23db7c6fc1e23b64d053940148eb4f699b60a865c5f15e1
+    digest: sha256:a5ce92e3d619afa794f824f013e0c88fb70820b6896bd92a2fd7a21b0a34a0ea
+  - path: .githooks/pre-push
+    mode: generated
+    digest: sha256:c437110b1601988955b05c6f9d803a0af01c4b710f3fcb46c6803dfc53b010a0
   - path: .github/CODEOWNERS
     mode: seed
     digest: sha256:516e9399588da95260580a4ff5c29946a094c58baa181ede8d8668c8c3ce777f
@@ -26,6 +29,12 @@ files:
   - path: .github/suppressions.yml
     mode: seed
     digest: sha256:f260e626f339fb17fce87b14235a0705409fe9b4b82487f6aabbc4b34d48448c
+  - path: .github/workflows/ci-gate-bump.yml
+    mode: generated
+    digest: sha256:bb4dae70b3eb97a63a03fdcfa0b6acded1250f6b68d15a9f7b670f81402afdac
+  - path: .github/workflows/ci.yml
+    mode: generated
+    digest: sha256:c63815d75c2f42d9d113e12881c69847f88faf0da95c96e1c067e7cb21bbb2c2
   - path: .github/workflows/settings.yml
     mode: generated
     digest: sha256:7e9c787bcc8f5d7d254d746e34ad1fc6948937904102d12c7ad92252e9b710a4
@@ -34,13 +43,16 @@ files:
     digest: sha256:520b7fd6effc6159606674554ac4d961b479cba7132fec871a2cea8367df4ca9
   - path: .gitignore
     mode: merged
-    digest: sha256:da5b8fb48770ef19202dec916aae077103445e04e8e42577c67477303c40dd7e
+    digest: sha256:a170171764c39903d38dbc519788599164cb49539a9a7be7969fed0dded52fc2
   - path: .lateregate.yaml
     mode: generated
-    digest: sha256:0b74e63aeb97c6000c405a21fb1ed0b9bc3e9cb16fdc73326bef882aed24d8cb
+    digest: sha256:ebbb8afa39f515392ba1f6d1c2e766d4ba436e25b831318ac4f467adbdc6473a
+  - path: CHANGELOG.md
+    mode: seed
+    digest: sha256:06ae03968a22bbe92246ee9a8f7f0cae266fd80d03607ddadb312b8cb0e2b996
   - path: CONTRIBUTING.md
     mode: seed
-    digest: sha256:c6054f08f85ca7c5b03e0be4d67fd5a0a50afb714294a374e652bfec183f8d6f
+    digest: sha256:cde0decabc05b062e1e75d26bdaa0dcc7b036e24fe90a0cda1e9a4a3532e5203
   - path: Dockerfile
     mode: generated
     digest: sha256:8e624f6bef7cfb5d36bb89287a849407bbe4706f9bc5d07faf56c2a98fd33de4
@@ -55,7 +67,7 @@ files:
     digest: sha256:358fc58caa7bce19361b41652d5e1bca616f932d23c1a96c1c4c0b55b816fd81
   - path: README.md
     mode: seed
-    digest: sha256:8accda5d1d905b846d0000ef86ad883a678001be7f4a94b06500282ce65e04d2
+    digest: sha256:cca43468be9397e29812b5be0c875f3c34ede000f696ffc575018dea443d3e0a
   - path: SECURITY.md
     mode: seed
     digest: sha256:ecef5e288def37df3fbf2c59a37e878f69db9f0b1607daf42d978fa5d2dfc408
@@ -82,13 +94,13 @@ files:
     digest: sha256:f35d9c0738e1cc0c5b05dd7ceaa597de829ba3d446e2c126c4b729afc1466128
   - path: cmd/reference-service/main_test.go
     mode: seed
-    digest: sha256:43db9d302738ad37b86834b2201cf96f76cfb2a78f26fd4869c0ec55ef1d4118
+    digest: sha256:cd707c8f40f10a5d5317a8038444d5603d87321c4503147117cafd063efdbbbd
   - path: cmd/reference-service/outbound_test.go
     mode: seed
     digest: sha256:d7608d96a3444dd9d06f0b5c9811c550f73422c9b610719979171b18d89662b3
   - path: cmd/reference-service/startup_test.go
     mode: seed
-    digest: sha256:9d86a833022f91816c209e11e3fdd5d548a9429c40ef66044f5910651f5cc990
+    digest: sha256:f66b9b462f97a3a970e139a6a163957f2d36e8324ab84d2bd0026bc4542cdf4a
   - path: deploy/base/deployment.yaml
     mode: seed
     digest: sha256:26e171ab84b793534b2d879d179e817c0f362b1d1a0b6ab37e8f6484a5796da4
@@ -403,10 +415,10 @@ files:
     digest: sha256:e40ee4c8ecf1846f1425fa60ed29c597df1cd9859cc9f848400b889b3b0c2798
   - path: go.mod
     mode: seed
-    digest: sha256:fce68c48d6c2114c01d0f4d63ae4d7726c73deccc732a1685c15c9724af764d7
+    digest: sha256:c825502a6faf1c9af99c5cb52fba65cdaaa70825620b9cf747b023013adea1f4
   - path: go.sum
     mode: seed
-    digest: sha256:b36353da9a6b5291b59275be12ed88768f02824ca3ce3c551de4d8febcd87c59
+    digest: sha256:fa57a4a29d7c2831c118036278d3cace5206cb7d5cacaa1b0de1a8e8c5a1f236
   - path: internal/auth/anonymous.go
     mode: generated
     digest: sha256:6611fdb0a37cd87530e634a36cc0e7e377bd6058ce4982481b2817211aef3548
@@ -676,7 +688,7 @@ files:
     digest: sha256:e2c222c05d79c1f60ccba284ca21dcb8446ad82ebbf9460cb77eb2ca4a5facb2
   - path: internal/testsupport/githooks_test.go
     mode: generated
-    digest: sha256:8577f842a909bae4577e0a83a2e5e07aa1893be2fe2741ab12c40ad4ed7c10e2
+    digest: sha256:171f8c378031508742df9e420aa3ef44d6261118d443245dc1f2af1d90a9c7db
   - path: internal/testsupport/lintconfig_test.go
     mode: generated
     digest: sha256:5253a6a3431d9e3c6fc216174d86f591c2109437b6ecd4681f7089b74eaaef22
@@ -775,7 +787,7 @@ files:
     digest: sha256:86b54e8e1e27f7a3bcd7acec65ee20313ddf0e7c7c555bcc5c99b783d83ea08c
   - path: make/core.mk
     mode: generated
-    digest: sha256:09900634f180a4352cdb4606819835dc78a3844b99030610ad33f882e4869ad8
+    digest: sha256:69ca617954fd51f1e8ce458f6e668d05c0315a14c43b15f7e27c8db6725d0b10
   - path: make/dev.mk
     mode: generated
     digest: sha256:fbc6113aa52a626a9d01904b7c1dd015578007ec6ba0a5e5cad423e2a4ed4f47

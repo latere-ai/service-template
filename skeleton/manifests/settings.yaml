@@ -10,10 +10,16 @@
 files:
   # The workflow callers. They are the consumer's whole pipeline: each one
   # calls the reusable workflow that holds the jobs, so a change to the
-  # pipeline reaches every repository without a file change here. The job id
-  # in the verify caller is the name of the required status check, which is
-  # why the caller is generated rather than seed.
+  # pipeline reaches every repository without a file change here. ci.yml runs
+  # the fleet's shared per-push bar, verify.yml the service-specific checks
+  # the bar does not cover, and ci-gate-bump.yml keeps the bar's pin current.
+  # The job ids in the ci and verify callers name the required status checks,
+  # which is why the callers are generated rather than seed.
+  - path: .github/workflows/ci.yml
+    mode: generated
   - path: .github/workflows/verify.yml
+    mode: generated
+  - path: .github/workflows/ci-gate-bump.yml
     mode: generated
   - path: .github/workflows/settings.yml
     mode: generated

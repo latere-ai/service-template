@@ -1,0 +1,28 @@
+# The caller a consumer commits at .github/workflows/ci.yml. It runs the
+# fleet's shared per-push bar: the reusable workflow asks lateregate, pinned in
+# go.mod, which gates apply and runs one job per gate, the same set
+# `go tool lateregate` runs on a workstation. The job id makes the aggregate
+# report as "gate / all gates passed", the second context branch protection
+# requires beside "verify / gate".
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # The daily ci-gate bump pushes with the Actions token, which starts no
+  # workflow, so it dispatches this one on the commit it pushed.
+  workflow_dispatch:
+
+# A newer push to the same ref supersedes this run: its commit carries every
+# change this one would verify, and the runner is better spent on it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    uses: latere-ai/ci/.github/workflows/lateregate.yml@v1

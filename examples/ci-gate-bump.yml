@@ -1,0 +1,26 @@
+# The caller a consumer commits at .github/workflows/ci-gate-bump.yml. Once a
+# day it moves the go.mod pin of latere.ai/x/ci-gate to the latest release
+# when the service's whole bar passes on it, pushes `gate: ci-gate vX.Y.Z` to
+# the branch, and dispatches the per-push gate in ci.yml on that commit. When
+# the bar fails it opens one issue for the version instead and pushes nothing.
+name: ci-gate bump
+
+on:
+  schedule:
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+
+# The pipeline pushes the pin, opens the issue, and dispatches the per-push
+# gate. The organization defaults to a read-only token.
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+jobs:
+  bump:
+    uses: latere-ai/ci/.github/workflows/ci-gate-bump.yml@v1
+    # A private repository on a self-hosted runner passes the label its
+    # per-push gate runs on:
+    # with:
+    #   runs_on: linux-vm

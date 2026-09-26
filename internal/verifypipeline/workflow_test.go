@@ -339,7 +339,7 @@ func TestSettingsWorkflowTakesAnAdministrativeToken(t *testing.T) {
 // The caller in examples/ is what the generator materializes into a consumer
 // repository. Two copies of the same file drift, so they are compared.
 func TestGeneratedCallersMatchTheExamples(t *testing.T) {
-	for _, name := range []string{"verify.yml", "settings.yml"} {
+	for _, name := range []string{"ci.yml", "verify.yml", "ci-gate-bump.yml", "settings.yml"} {
 		example := readFile(t, "examples", name)
 		generated := readFile(t, "skeleton", ".github", "workflows", name)
 		if example != generated {
