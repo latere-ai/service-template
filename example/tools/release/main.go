@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Command release is the release pipeline's logic and the maintainer's release
 // command in one place.
 //

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Command envexample writes the example environment file from the
 // configuration struct, or verifies that the committed copy still matches it.
 //

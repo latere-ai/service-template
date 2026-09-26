@@ -4,11 +4,14 @@
 package generator
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"testing/fstest"
+	"time"
 )
 
 func TestInitWritesTheSelectedFiles(t *testing.T) {
@@ -678,7 +681,7 @@ func licenseSkeleton() fstest.MapFS {
 // copy renders from its own declaration.
 func TestTheTemplateWinsOverItsInPlaceTwin(t *testing.T) {
 	cfg := testConfig()
-	cfg.License = License{SPDX: "MIT", Holder: "Acme"}
+	cfg.License = License{SPDX: "MIT", Holder: "Acme", Year: testYear}
 	dir := initRepo(t, licenseSkeleton(), cfg)
 	if got := read(t, dir, ".lateregate.yaml"); got != "spdx: MIT\nholder: Acme\n" {
 		t.Fatalf(".lateregate.yaml was not rendered from its template:\n%s", got)
@@ -710,4 +713,165 @@ func TestInitWritesNoLicenseTextItDoesNotShip(t *testing.T) {
 		t.Fatalf("init accepted a license the gate cannot check, exit %d:\n%s%s", code, out, errOut)
 	}
 	mustContain(t, errOut, "license.spdx", "the refused license")
+}
+
+// wantNotice is the header the test declaration renders on every Go file.
+func wantNotice(terms License) string {
+	return "// SPDX-FileCopyrightText: " + terms.Year + " " + terms.Holder + "\n" +
+		"// SPDX-License-Identifier: " + terms.SPDX + "\n\n"
+}
+
+// Every Go file a scaffold holds starts with the notice the license gate
+// reads, generated and seed alike, rendered from the declaration: the year
+// it recorded, the holder, and the identifier.
+func TestEveryGeneratedGoFileCarriesTheNotice(t *testing.T) {
+	src := os.DirFS(filepath.Join("..", "..", "skeleton"))
+	cfg := testConfig()
+	cfg.License = License{SPDX: "Apache-2.0", Holder: "Acme", Year: "2024"}
+	dir := initRepo(t, src, cfg)
+	lock, err := LoadLock(dir)
+	if err != nil {
+		t.Fatalf("load the lock: %v", err)
+	}
+	checked := 0
+	for _, e := range lock.Files {
+		if !strings.HasSuffix(e.Path, ".go") {
+			continue
+		}
+		checked++
+		if got := read(t, dir, e.Path); !strings.HasPrefix(got, wantNotice(cfg.License)) {
+			t.Errorf("%s (%s) does not start with the declared notice:\n%s", e.Path, e.Mode, firstLines(got, 4))
+		}
+	}
+	if checked == 0 {
+		t.Fatal("the scaffold holds no Go file")
+	}
+}
+
+func firstLines(s string, n int) string {
+	lines := strings.SplitN(s, "\n", n+1)
+	if len(lines) > n {
+		lines = lines[:n]
+	}
+	return strings.Join(lines, "\n")
+}
+
+// The notice is a function of the declaration and not of the clock: a check
+// run in a later year against a repository scaffolded in an earlier one
+// reports it clean, and two scaffolds of one declaration are identical.
+func TestTheNoticeIsAFunctionOfTheDeclaration(t *testing.T) {
+	src := skeletonFS(t)
+	first := initRepo(t, src, testConfig())
+	second := initRepo(t, src, testConfig())
+	for _, rel := range []string{"cmd/widget/main.go", "internal/version/version.go"} {
+		if a, b := read(t, first, rel), read(t, second, rel); a != b {
+			t.Errorf("two scaffolds of one declaration differ in %s", rel)
+		}
+	}
+	var out, errOut bytes.Buffer
+	later := time.Date(2031, 1, 1, 0, 0, 0, 0, time.UTC)
+	code := Run(Env{Skeleton: src, Stdout: &out, Stderr: &errOut, Now: later, Version: testVersion},
+		[]string{"check", "-C", first})
+	if code != ExitOK {
+		t.Fatalf("a check in a later year reports the scaffold as drift, exit %d\n%s%s", code, out.String(), errOut.String())
+	}
+}
+
+// init records the year it runs in unless -year names another, and the
+// notice and LICENSE carry the recorded year.
+func TestInitRecordsTheLicenseYear(t *testing.T) {
+	src := skeletonFS(t)
+	dir := t.TempDir()
+	code, _, errOut := runCLI(t, src, "init", "-C", dir, "-module", "github.com/acme/widget", "-profile", "service")
+	if code != ExitOK {
+		t.Fatalf("init exited %d\n%s", code, errOut)
+	}
+	cfg, err := LoadConfig(dir)
+	if err != nil {
+		t.Fatalf("load the declaration: %v", err)
+	}
+	if want := strconv.Itoa(testNow.Year()); cfg.License.Year != want {
+		t.Fatalf("init recorded license.year %q, want the year it ran in, %s", cfg.License.Year, want)
+	}
+	mustContain(t, read(t, dir, "internal/version/version.go"), "// SPDX-FileCopyrightText: "+cfg.License.Year+" ", "the notice")
+
+	pinned := t.TempDir()
+	code, _, errOut = runCLI(t, src, "init", "-C", pinned, "-module", "github.com/acme/widget", "-year", "2019")
+	if code != ExitOK {
+		t.Fatalf("init -year exited %d\n%s", code, errOut)
+	}
+	mustContain(t, read(t, pinned, ConfigFile), "  year: 2019\n", "the pinned year")
+}
+
+// A declaration that names no year cannot render a Go file, and says what
+// records one rather than rendering a notice with a year nobody chose.
+func TestADeclarationWithNoYearNamesTheRemedy(t *testing.T) {
+	cfg := testConfig()
+	cfg.License = License{}
+	_, err := Render(skeletonFS(t), Entry{Path: "internal/version/version.go", Source: "internal/version/version.go"}, cfg)
+	if err == nil || !strings.Contains(err.Error(), "run upgrade") {
+		t.Fatalf("a declaration with no year rendered a Go file, err %v", err)
+	}
+}
+
+// A repository scaffolded before the notice existed holds Go files without
+// one, a lock recording those bytes, and a declaration with no license year,
+// perhaps no license block at all. upgrade records the year, writes the
+// notice on every generated Go file, and leaves the repository clean.
+func TestUpgradeRecordsTheYearAndWritesTheNotice(t *testing.T) {
+	cases := map[string]func(string) string{
+		"no license block": func(decl string) string {
+			i := strings.Index(decl, "license:\n")
+			j := strings.Index(decl, "waivers:")
+			return decl[:i] + decl[j:]
+		},
+		"a license block with no year": func(decl string) string {
+			return strings.Replace(decl, "  year: "+testYear+"\n", "", 1)
+		},
+	}
+	for name, strip := range cases {
+		t.Run(name, func(t *testing.T) {
+			src := skeletonFS(t)
+			dir := initRepo(t, src, testConfig())
+			write(t, dir, ConfigFile, strip(read(t, dir, ConfigFile)))
+			lock, err := LoadLock(dir)
+			if err != nil {
+				t.Fatalf("load the lock: %v", err)
+			}
+			notice := wantNotice(testConfig().Terms())
+			for i, e := range lock.Files {
+				if !strings.HasSuffix(e.Path, ".go") {
+					continue
+				}
+				bare := strings.TrimPrefix(read(t, dir, e.Path), notice)
+				write(t, dir, e.Path, bare)
+				lock.Files[i].Digest = Digest([]byte(bare))
+			}
+			if err := WriteLock(dir, lock); err != nil {
+				t.Fatalf("write the lock: %v", err)
+			}
+
+			var out, errOut bytes.Buffer
+			upgradeYear := time.Date(2027, 3, 1, 0, 0, 0, 0, time.UTC)
+			code := Run(Env{Skeleton: src, Stdout: &out, Stderr: &errOut, Now: upgradeYear, Version: testVersion},
+				[]string{"upgrade", "-C", dir, "-version", "v1.5.0"})
+			if code != ExitOK {
+				t.Fatalf("upgrade exited %d\n%s%s", code, out.String(), errOut.String())
+			}
+			mustContain(t, out.String(), "recorded license.year 2027", "the upgrade report")
+			cfg, err := LoadConfig(dir)
+			if err != nil {
+				t.Fatalf("reload the declaration: %v", err)
+			}
+			if cfg.License.Year != "2027" {
+				t.Fatalf("upgrade recorded license.year %q, want 2027", cfg.License.Year)
+			}
+			mustContain(t, read(t, dir, "internal/version/version.go"),
+				"// SPDX-FileCopyrightText: 2027 "+DefaultHolder+"\n", "the generated file's notice")
+
+			if code, _, errOut := runCLI(t, src, "check", "-C", dir); code != ExitOK {
+				t.Fatalf("check after the upgrade exited %d\n%s", code, errOut)
+			}
+		})
+	}
 }

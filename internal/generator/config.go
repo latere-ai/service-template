@@ -67,9 +67,16 @@ var profileFeatures = map[string]map[string]bool{
 var AllProfiles = []string{ProfileService, ProfileLibrary, ProfileFrontendOnly}
 
 // License is the terms a generated repository is released under. The
-// generator stamps its notice on every Go file it writes, declares it to the
-// license gate in .lateregate.yaml, and writes LICENSE from it where it ships
-// the text, so the notice, the gate, and the root file name the same terms.
+// generator renders its notice at the top of every Go file it writes,
+// declares it to the license gate in .lateregate.yaml, and writes LICENSE from
+// it where it ships the text, so the notice, the gate, and the root file name
+// the same terms.
+//
+// The notice is ordinary rendered content: it is part of the bytes the lock
+// records a digest of, so check, sync, and upgrade compare and rewrite it like
+// any other line and need no rule of their own for it. Its year is declared
+// rather than read from the clock for the same reason: a render that read the
+// clock would report every generated Go file as drift on 1 January.
 //
 // The skeleton itself carries no notice. It is published under the template
 // repository's license, and the terms of a service built from it are that
@@ -79,6 +86,10 @@ type License struct {
 	SPDX string
 	// Holder is the copyright holder, written literally in every notice.
 	Holder string
+	// Year is the year of first publication every notice names. init
+	// records the year it runs in, and upgrade records it for a declaration
+	// written before the field existed.
+	Year string
 }
 
 // The license a declaration that names none is released under. A repository
@@ -104,6 +115,10 @@ var Licenses = []string{
 // unquoted into YAML and into a comment on every Go file, so a character
 // either would read as syntax is refused rather than escaped.
 var holderPattern = regexp.MustCompile(`^[A-Za-z0-9](?:[A-Za-z0-9 .,&()'-]*[A-Za-z0-9.)])?$`)
+
+// yearPattern is the one year a notice names. The license gate also accepts a
+// range, which a repository writes by hand on the files it owns.
+var yearPattern = regexp.MustCompile(`^[0-9]{4}$`)
 
 // Waiver records a generated file the repository deliberately diverges on. A
 // waiver suppresses the "edited" verdict for that path until it expires.
@@ -240,13 +255,13 @@ func readLicense(file string, root *node, cfg *Config) error {
 		return nil
 	}
 	if l.kind != kindMapping {
-		return errAt(file, l.line, "\"license\" must be a mapping with spdx and holder")
+		return errAt(file, l.line, "\"license\" must be a mapping with spdx, holder, and year")
 	}
 	for _, key := range l.keys {
 		switch key {
-		case "spdx", "holder":
+		case "spdx", "holder", "year":
 		default:
-			return errAt(file, l.get(key).line, "unknown license field %q, the fields are spdx and holder", key)
+			return errAt(file, l.get(key).line, "unknown license field %q, the fields are spdx, holder, and year", key)
 		}
 	}
 	var err error
@@ -254,6 +269,9 @@ func readLicense(file string, root *node, cfg *Config) error {
 		return err
 	}
 	if cfg.License.Holder, err = l.scalar(file, "holder"); err != nil {
+		return err
+	}
+	if cfg.License.Year, err = l.scalar(file, "year"); err != nil {
 		return err
 	}
 	return nil
@@ -354,6 +372,9 @@ func (c *Config) Validate(file string) error {
 		return errAt(file, 0, "\"license.holder\" must be a plain name of letters, digits, spaces, and .,&()'- found %q",
 			terms.Holder)
 	}
+	if terms.Year != "" && !yearPattern.MatchString(terms.Year) {
+		return errAt(file, 0, "\"license.year\" must be a four digit year such as 2026, found %q", terms.Year)
+	}
 	return nil
 }
 
@@ -375,7 +396,8 @@ func (c *Config) WaiverFor(path string) (Waiver, bool) {
 // version line is rewritten.
 func (c *Config) Marshal() []byte {
 	var b strings.Builder
-	b.WriteString("# The template declaration. Only \"version\" is rewritten by the generator.\n")
+	b.WriteString("# The template declaration. Only \"version\" is rewritten by the generator, and\n")
+	b.WriteString("# \"license.year\" is recorded once by an upgrade that finds none.\n")
 	fmt.Fprintf(&b, "template: %s\n", c.Template)
 	fmt.Fprintf(&b, "version: %s\n", c.Version)
 	fmt.Fprintf(&b, "module: %s\n", c.Module)
@@ -389,6 +411,9 @@ func (c *Config) Marshal() []byte {
 	b.WriteString("license:\n")
 	fmt.Fprintf(&b, "  spdx: %s\n", terms.SPDX)
 	fmt.Fprintf(&b, "  holder: %s\n", terms.Holder)
+	if terms.Year != "" {
+		fmt.Fprintf(&b, "  year: %s\n", terms.Year)
+	}
 	if len(c.Waivers) == 0 {
 		b.WriteString("waivers: []\n")
 	} else {
@@ -428,4 +453,62 @@ func SetVersionLine(data []byte, version string) ([]byte, error) {
 	}
 	lines[found] = "version: " + version + comment
 	return []byte(strings.Join(lines, "\n")), nil
+}
+
+// SetLicenseYear records the year every license notice names in a declaration
+// that holds none, leaving every other byte of the file untouched, and
+// reports whether it changed anything. A declaration written before the
+// license field existed gets the whole block, spelled out with the defaults
+// it was already released under; one with a license block and no year gets
+// the year line appended to the block. A declared year is never replaced:
+// the year of first publication does not move.
+func SetLicenseYear(data []byte, year string) ([]byte, bool, error) {
+	if !yearPattern.MatchString(year) {
+		return nil, false, fmt.Errorf("the license year must be a four digit year such as 2026, found %q", year)
+	}
+	lines := strings.Split(string(data), "\n")
+	start := -1
+	for i, l := range lines {
+		if key, _, ok := splitKey(stripComment(l)); ok && key == "license" && !strings.HasPrefix(l, " ") {
+			start = i
+			break
+		}
+	}
+	if start < 0 {
+		text := string(data)
+		if text != "" && !strings.HasSuffix(text, "\n") {
+			text += "\n"
+		}
+		text += "license:\n" +
+			"  spdx: " + DefaultLicense + "\n" +
+			"  holder: " + DefaultHolder + "\n" +
+			"  year: " + year + "\n"
+		return []byte(text), true, nil
+	}
+	// The block runs until the next line that is neither indented, blank,
+	// nor a comment. The year goes after its last field, at that field's
+	// indentation.
+	last, indent := start, "  "
+	for i := start + 1; i < len(lines); i++ {
+		l := lines[i]
+		trimmed := strings.TrimSpace(l)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		if !strings.HasPrefix(l, " ") {
+			break
+		}
+		if key, _, ok := splitKey(strings.TrimLeft(stripComment(l), " ")); ok && key == "year" {
+			return data, false, nil
+		}
+		last, indent = i, l[:len(l)-len(strings.TrimLeft(l, " "))]
+	}
+	if last == start && strings.TrimSpace(stripComment(lines[start])) != "license:" {
+		return nil, false, fmt.Errorf("%s writes license on one line; spell it as a block to record the year", ConfigFile)
+	}
+	out := make([]string, 0, len(lines)+1)
+	out = append(out, lines[:last+1]...)
+	out = append(out, indent+"year: "+year)
+	out = append(out, lines[last+1:]...)
+	return []byte(strings.Join(out, "\n")), true, nil
 }

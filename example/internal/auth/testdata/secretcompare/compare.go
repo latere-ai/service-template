@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package fixture is the input of the secret comparison gate's own test. It
 // holds deliberate violations, so the scanner is proved to report them, next
 // to the forms that are allowed. It lives under testdata and is never built.

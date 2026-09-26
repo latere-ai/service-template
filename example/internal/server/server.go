@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package server holds the service runtime: the component run group, the
 // health and build-identity endpoints, and the shutdown sequence.
 //

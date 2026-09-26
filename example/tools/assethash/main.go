@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Command assethash prints the hashed entry asset of the embedded frontend
 // bundle.
 //

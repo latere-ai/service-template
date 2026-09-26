@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package deps pins the module requirements that the service packages import.
 //
 // It exists so the dependency set is fixed in one place while the packages that

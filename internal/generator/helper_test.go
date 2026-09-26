@@ -62,8 +62,12 @@ func testConfig() *Config {
 		Name:     "widget",
 		Profile:  ProfileService,
 		Features: map[string]bool{FeatureFrontend: true, FeatureDatabase: true},
+		License:  License{Year: testYear},
 	}
 }
+
+// testYear is the year the test declarations record for the license notice.
+const testYear = "2026"
 
 // initRepo scaffolds a repository and returns its directory.
 func initRepo(t *testing.T, src fs.FS, cfg *Config) string {

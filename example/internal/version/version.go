@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package version exposes the build metadata compiled into the binary.
 //
 // The values are set at link time with -ldflags -X by the build target. When

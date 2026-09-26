@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -155,6 +156,7 @@ func runInit(env Env, args []string) error {
 	spdx := set.String("license", DefaultLicense,
 		"SPDX identifier of the terms the repository is released under: "+strings.Join(Licenses, ", "))
 	holder := set.String("holder", DefaultHolder, "copyright holder every license notice names")
+	year := set.String("year", strconv.Itoa(env.Now.Year()), "year of first publication every license notice names")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -174,7 +176,7 @@ func runInit(env Env, args []string) error {
 		Name:     *name,
 		Profile:  *profile,
 		Features: map[string]bool{},
-		License:  License{SPDX: *spdx, Holder: *holder},
+		License:  License{SPDX: *spdx, Holder: *holder, Year: *year},
 	}
 	for f := range strings.SplitSeq(*features, ",") {
 		f = strings.TrimSpace(f)
@@ -274,6 +276,8 @@ func runUpgrade(env Env, args []string) error {
 	set := newFlagSet(env, "upgrade")
 	dir := set.String("C", ".", "repository directory")
 	version := set.String("version", env.Version, "template version to move to")
+	year := set.String("year", strconv.Itoa(env.Now.Year()),
+		"year of first publication every license notice names, recorded only when the declaration names none")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -300,6 +304,14 @@ func runUpgrade(env Env, args []string) error {
 	if err != nil {
 		return err
 	}
+	// Every generated Go file carries a notice naming a year, and a
+	// declaration written before the field existed names none. The upgrade
+	// records one, so the files it renders are a function of the declaration
+	// from here on.
+	updated, recorded, err := SetLicenseYear(updated, *year)
+	if err != nil {
+		return err
+	}
 	next, err := ParseConfig(ConfigFile, updated)
 	if err != nil {
 		return err
@@ -312,6 +324,10 @@ func runUpgrade(env Env, args []string) error {
 		return fmt.Errorf("write %s: %w", ConfigFile, err)
 	}
 	_, _ = fmt.Fprintf(env.Stdout, "upgraded %s from %s to %s\n", ConfigFile, from, *version)
+	if recorded {
+		_, _ = fmt.Fprintf(env.Stdout, "recorded license.year %s in %s for the notice on every generated Go file\n",
+			*year, ConfigFile)
+	}
 	_, _ = fmt.Fprint(env.Stdout, report.String())
 	paths := make([]string, 0, len(report.Diffs))
 	for p := range report.Diffs {

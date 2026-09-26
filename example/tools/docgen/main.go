@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Command docgen generates the documents that are derived from the code and
 // verifies the claims the documentation set makes.
 //

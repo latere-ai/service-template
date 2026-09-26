@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package testsupport holds the helpers every test tier shares.
 //
 // Its purpose is one rule: a test tier that CI declares required cannot decide

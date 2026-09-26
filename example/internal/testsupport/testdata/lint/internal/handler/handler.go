@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package handler is the positive half of the lint fixture. Each function
 // breaks exactly one rule the generated configuration enables, so a test can
 // prove every linter fires rather than assuming the list is honoured.

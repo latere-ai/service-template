@@ -22,6 +22,9 @@ EXAMPLE_NAME := reference-service
 EXAMPLE_PROFILE := service
 EXAMPLE_FEATURES := frontend,seo,i18n,database,background
 EXAMPLE_VERSION := v1.1.0
+# The year every license notice in the example names. Pinned, so a fresh
+# generation in another year still matches the committed tree.
+EXAMPLE_YEAR := 2026
 
 # Both modules render their lint configuration from the shared template in
 # latere.ai/x/ci-gate rather than committing one. golangci-lint cannot inherit
@@ -207,7 +210,8 @@ generate-example:
 		-name $(EXAMPLE_NAME) \
 		-profile $(EXAMPLE_PROFILE) \
 		-features $(EXAMPLE_FEATURES) \
-		-version $(EXAMPLE_VERSION) >/dev/null
+		-version $(EXAMPLE_VERSION) \
+		-year $(EXAMPLE_YEAR) >/dev/null
 
 clean:
 	rm -rf $(EXAMPLE).check

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 //go:build integration
 
 // Rendering a diagram runs in the integration tier. It needs the mermaid

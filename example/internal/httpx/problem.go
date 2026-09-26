@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package httpx holds the HTTP surface every handler in this service shares:
 // the middleware chain in a fixed order, one error envelope, and the helpers
 // that carry the API version contract.

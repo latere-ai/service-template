@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // This file is the negative fixture for the gate that keeps migrations out of
 // the serving process. It is never compiled: the go tool ignores testdata.
 package main

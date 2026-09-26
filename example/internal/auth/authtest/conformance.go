@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package authtest holds the conformance suite every Authenticator must pass.
 //
 // The suite exists because authentication defects concentrate in the paths a

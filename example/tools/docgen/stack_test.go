@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 //go:build integration
 
 // The end-to-end test of the local environment runs in the integration tier.

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Command service is the service entry point. It reads configuration, installs
 // telemetry, assembles the HTTP surface, and blocks on the process lifecycle.
 //

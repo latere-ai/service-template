@@ -306,7 +306,8 @@ func TestParseConfigRejectsBadDeclarations(t *testing.T) {
 		// A license the gate has no fingerprint for fails that gate, so it
 		// fails here, at scaffold time, instead.
 		"unknown license":       base + "license:\n  spdx: GPL-2.0-only\n",
-		"unknown license field": base + "license:\n  spdx: MIT\n  year: 2026\n",
+		"unknown license field": base + "license:\n  spdx: MIT\n  owner: Acme\n",
+		"year not a year":       base + "license:\n  year: 26\n",
 		"license not a mapping": base + "license: MIT\n",
 		"holder with syntax":    base + "license:\n  holder: \"a: b\"\n",
 	}
@@ -551,5 +552,43 @@ func TestACarriedSkeletonPairsOnlyWithItsOwnRelease(t *testing.T) {
 
 	if code, errOut := runCarried(t, src, testVersion, "check", "-C", dir); code != ExitOK {
 		t.Fatalf("check at the declared release exited %d\n%s", code, errOut)
+	}
+}
+
+// SetLicenseYear records a year only where none is declared, keeps every
+// other byte, and refuses what it cannot edit in place.
+func TestSetLicenseYear(t *testing.T) {
+	base := "# note\nversion: v1.0.0\n"
+	got, changed, err := SetLicenseYear([]byte(base+"license:\n  spdx: MIT # terms\n  holder: Acme\nwaivers: []\n"), "2027")
+	if err != nil || !changed {
+		t.Fatalf("a block with no year: changed %t, err %v", changed, err)
+	}
+	if want := base + "license:\n  spdx: MIT # terms\n  holder: Acme\n  year: 2027\nwaivers: []\n"; string(got) != want {
+		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
+	}
+
+	declared := base + "license:\n  year: 2019\n  spdx: MIT\n"
+	got, changed, err = SetLicenseYear([]byte(declared), "2027")
+	if err != nil || changed || string(got) != declared {
+		t.Fatalf("a declared year moved: changed %t, err %v\n%s", changed, err, got)
+	}
+
+	got, changed, err = SetLicenseYear([]byte(base), "2027")
+	if err != nil || !changed {
+		t.Fatalf("no block: changed %t, err %v", changed, err)
+	}
+	cfg, err := ParseConfig(ConfigFile, append(got, []byte("module: m\nname: n\nprofile: service\n")...))
+	if err != nil {
+		t.Fatalf("the appended block does not parse: %v\n%s", err, got)
+	}
+	if cfg.Terms() != (License{SPDX: DefaultLicense, Holder: DefaultHolder, Year: "2027"}) {
+		t.Fatalf("the appended block declares %+v", cfg.Terms())
+	}
+
+	if _, _, err := SetLicenseYear([]byte(base+"license: {spdx: MIT}\n"), "2027"); err == nil {
+		t.Error("a one line license mapping was edited")
+	}
+	if _, _, err := SetLicenseYear([]byte(base), "27"); err == nil {
+		t.Error("a year that is not four digits was recorded")
 	}
 }

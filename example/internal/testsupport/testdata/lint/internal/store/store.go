@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package store is the negative half of the scoped logging fixture. The
 // request-path logging rule is anchored to the transport directories, so the
 // same call that fails in a handler is silent here.

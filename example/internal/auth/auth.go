@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package auth is the identity boundary. It defines what an authenticated
 // caller is, the two interfaces every identity source implements, and the
 // denial vocabulary the HTTP layer renders.

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package store holds the database pool and the migration runner.
 //
 // Two rules shape it. Migrations are forward only and apply as a separate step

@@ -34,7 +34,7 @@ var paths = map[string]string{
 	}
 
 	skeleton := fstest.MapFS{"main.go": {Data: []byte(src)}}
-	cfg := &Config{Module: "github.com/example/reference", Name: "a-much-longer-name"}
+	cfg := &Config{Module: "github.com/example/reference", Name: "a-much-longer-name", License: License{Year: testYear}}
 
 	out, err := Render(skeleton, Entry{Path: "main.go", Source: "main.go"}, cfg)
 	if err != nil {

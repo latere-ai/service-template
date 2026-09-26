@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Command smoke asserts that a released build is serving on a live target.
 //
 // It runs after the rollout completes and before the release is published. It

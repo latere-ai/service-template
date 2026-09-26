@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package web serves a built single-page frontend from the binary.
 //
 // The package owns three decisions that a hand-written static handler usually

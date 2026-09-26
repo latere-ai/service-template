@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package observability starts the telemetry a service emits: traces, metrics,
 // and logs that carry the identifiers of the trace they belong to.
 //

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package worker runs work that has no request behind it: a periodic
 // reconciliation, a queue consumer, a backfill invoked once from the command
 // line.

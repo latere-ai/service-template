@@ -92,6 +92,24 @@ func substitute(content []byte, cfg *Config) []byte {
 	return out
 }
 
+// notice is the license header every generated Go file starts with: the two
+// SPDX lines the license gate of latere.ai/x/ci-gate reads, then the blank
+// line that keeps them out of the package documentation. It is rendered from
+// the declaration alone, so the same declaration renders the same bytes in
+// any year.
+func notice(path string, cfg *Config) ([]byte, error) {
+	if !strings.HasSuffix(path, ".go") {
+		return nil, nil
+	}
+	terms := cfg.Terms()
+	if terms.Year == "" {
+		return nil, fmt.Errorf("%s names no license.year for the notice on %s; "+
+			"run upgrade, which records one", ConfigFile, path)
+	}
+	return fmt.Appendf(nil, "// SPDX-FileCopyrightText: %s %s\n// SPDX-License-Identifier: %s\n\n",
+		terms.Year, terms.Holder, terms.SPDX), nil
+}
+
 // gofmtSource re-formats generated Go source. The mechanical rewrite changes
 // identifier lengths, and gofmt aligns consecutive composite-literal values and
 // line comments to the widest entry in a run, so substituting a longer or
@@ -114,7 +132,8 @@ func gofmtSource(path string, out []byte) ([]byte, error) {
 }
 
 // Render reads one skeleton file, renders it when it carries the template
-// suffix, and applies the mechanical rewrite.
+// suffix, applies the mechanical rewrite, and puts the license notice on a Go
+// file.
 func Render(src fs.FS, e Entry, cfg *Config) ([]byte, error) {
 	if e.Source == "" {
 		return nil, fmt.Errorf("%s declares %q but the skeleton holds no such file",
@@ -124,8 +143,12 @@ func Render(src fs.FS, e Entry, cfg *Config) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read skeleton file %s: %w", e.Source, err)
 	}
+	header, err := notice(e.Path, cfg)
+	if err != nil {
+		return nil, err
+	}
 	if !strings.HasSuffix(e.Source, TemplateSuffix) {
-		return gofmtSource(e.Path, substitute(raw, cfg))
+		return gofmtSource(e.Path, append(header, substitute(raw, cfg)...))
 	}
 	t, err := template.New(path.Base(e.Source)).Option("missingkey=error").Parse(string(raw))
 	if err != nil {
@@ -135,5 +158,5 @@ func Render(src fs.FS, e Entry, cfg *Config) ([]byte, error) {
 	if err := t.Execute(&buf, NewData(cfg)); err != nil {
 		return nil, fmt.Errorf("render skeleton template %s: %w", e.Source, err)
 	}
-	return gofmtSource(e.Path, substitute(buf.Bytes(), cfg))
+	return gofmtSource(e.Path, append(header, substitute(buf.Bytes(), cfg)...))
 }

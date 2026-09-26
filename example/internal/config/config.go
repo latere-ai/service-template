@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Latere AI
+// SPDX-License-Identifier: LicenseRef-Proprietary
+
 // Package config holds the service configuration as one type, loaded once.
 //
 // No other package reads the environment. Every input the process needs is a
