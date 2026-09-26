@@ -10,6 +10,88 @@ committed: the commit log already holds that.
 
 ## Unreleased
 
+A service now runs two pipelines on every push. `.github/workflows/ci.yml`
+calls the fleet's shared per-push bar in `latere-ai/ci`, the gates lateregate
+names for the repository at the version `go.mod` pins, and the template's
+verify pipeline keeps only the checks that bar does not cover. No check runs
+in both. The verify and release pipelines now accept a `.template.yaml`
+version of `v1.1.0` or later, because the verify pipeline relies on the
+generated `.github/workflows/ci.yml` to run the checks it no longer runs.
+
+A v1.0.0 service moves with
+`go run latere.ai/x/service-template/cmd/template@v1.1.0 upgrade`. The upgrade
+writes the two new callers, the new pre-push hook, `.github/settings.yml`
+with the second required context, `.lateregate.yaml`, the `make/` fragments,
+and the `.gitignore` region, and writes `CHANGELOG.md` and `LICENSE` where the
+service holds neither. Four steps are by hand, because they touch seed files
+or live repository settings:
+
+1. Pin a ci-gate release with the `hook` command, since `go.mod` is the
+   service's: `go get -tool latere.ai/x/ci-gate/cmd/lateregate@v0.50.1`. The
+   daily bump keeps it current from there.
+2. Put the license notice on every Go file the service owns:
+   `go tool lateregate license -w`, then review and commit.
+3. Apply the declared settings, so `gate / all gates passed` becomes a
+   required check beside `verify / gate`: dispatch the settings workflow with
+   `mode: apply`, or run `make settings-apply`. `make settings-required-check`
+   reports a context the branch does not require yet.
+4. A service with a database reads `DATABASE_POOL_URL` on the serving path
+   and keeps `DATABASE_URL` for migrations, as the scaffold's
+   `cmd/<name>/database.go` and `internal/config/config.go` now do; both are
+   seed, so port the change by hand. The `postgres` gate holds the shape.
+
+`go tool lateregate contract` then reports the repository in shape.
+
+### Added
+
+- `.github/workflows/ci.yml`, a generated caller of the shared per-push bar
+  whose aggregate reports as `gate / all gates passed`. It carries the
+  top-level concurrency block the bar's wiring check requires, and a
+  `workflow_dispatch` trigger so the daily ci-gate bump can run it on the
+  commit it pushes.
+- `.github/workflows/ci-gate-bump.yml`, a generated caller that moves the
+  `latere.ai/x/ci-gate` pin to the latest release once a day when the whole
+  bar passes on it, and opens one issue for the version when it does not.
+- `.githooks/pre-push`, delegating to lateregate: it lints the packages a
+  push changes and refuses a release tag with no `CHANGELOG.md` section.
+- `CHANGELOG.md` in every new service, seed, with an `Unreleased` heading.
+- A service declares the license it is released under in `.template.yaml`,
+  with `-license` and `-holder` on `init`. The default is
+  `LicenseRef-Proprietary`. The generator writes `LICENSE` for the licenses
+  it ships the text of and declares the terms to the license gate.
+- The serving path connects through a transaction-mode pooler named by
+  `DATABASE_POOL_URL` and falls back to `DATABASE_URL`; the migrate command
+  keeps the direct connection, which its session-scoped lock needs.
+- The template's own gate runs `go tool lateregate contract` in the service it
+  scaffolds, so a skeleton that drifts from the shared bar's wiring fails
+  here rather than on a service's first push.
+
+### Changed
+
+- The verify pipeline keeps the drift check, the declared settings and
+  ownership, the tracked suppressions, code scanning, the integration tier
+  against Postgres, the frontend, and the build the release consumes. It no
+  longer runs formatting, modernization, `golangci-lint`, the spec tree,
+  outbound instrumentation, `go vet`, `govulncheck`, the unit tests, the
+  hermetic run, or the temporary directory run: the shared bar runs each of
+  them as a lateregate gate. Its aggregate still reports as `verify / gate`.
+- An advisory in `.github/suppressions.yml` no longer silences the
+  vulnerability scan, which is now the bar's `vuln` gate; waive that gate in
+  `.lateregate.yaml` with a reason and an expiry instead. The suppressions
+  check still fails on an expired entry and on an inline suppression no entry
+  covers.
+- `.github/settings.yml` requires `gate / all gates passed` and
+  `verify / gate` on the default branch.
+- The verify and release pipelines require `.template.yaml` version `v1.1.0`
+  or later, and name `.github/workflows/ci.yml` as the file they rely on.
+- The pre-commit hook and `make check` delegate to lateregate v0.50.1, pinned
+  in `go.mod`. `.lateregate.yaml` declares the identity role, the Postgres
+  role, and the license, restates no shared default, and exempts the store
+  and the migrate command from the unit coverage floor, which the
+  integration tier measures instead.
+- `make example` leaves out the files the shared bar writes on a run in the
+  reference service.
+
 ## v1.0.0 - 2026-09-24
 
 The first release. A service starts from it with

@@ -16,6 +16,21 @@ Layer 2 files are committed in the consumer repository on purpose. A developer
 must be able to read the lint rules and the hooks without network access, and
 editors and `golangci-lint` expect them on disk.
 
+The workflows layer has two sources. The fleet's shared per-push bar lives in
+`latere-ai/ci`, and a consumer calls it from `.github/workflows/ci.yml`; it
+runs every gate lateregate names for the repository, at the version `go.mod`
+pins. This repository's workflows hold what is specific to a service built
+from the template: `verify.yml` runs the drift check, the declared settings,
+tracked suppressions, code scanning, the integration tier, and the frontend,
+and `release.yml`, `settings.yml`, and `deps.yml` run on their own triggers.
+A check lives in exactly one source. A gate lateregate runs is never repeated
+in `verify.yml`, and a check `verify.yml` needs that no Go repository outside
+the template would share stays out of the shared bar.
+
+Branch protection requires one aggregate from each per-push pipeline:
+`gate / all gates passed` from the shared bar and `verify / gate` from the
+template's verify pipeline. Both are declared in `.github/settings.yml`.
+
 ## The consumer declaration
 
 Every consumer repository holds `.template.yaml` at its root.

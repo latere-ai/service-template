@@ -73,7 +73,8 @@ the frontend's routes and `package.json`. `.env.example`,
 yours; their check targets, not the drift check, keep them current.
 
 Generated files are the machinery every service shares: `.lateregate.yaml`,
-`.githooks/`, `.github/workflows/verify.yml` and `settings.yml`,
+`.githooks/`, the callers `.github/workflows/ci.yml`, `verify.yml`,
+`ci-gate-bump.yml`, and `settings.yml`,
 `.github/settings.yml`, `.github/dependabot.yml`, the two Dockerfiles,
 `docker-compose.yml`, the configuration loader, the `make/` fragments, and the
 rest of `tools/`. Add your own dependency services in `compose.override.yml`,
@@ -120,20 +121,40 @@ before the first push:
 
 ## Wire the pipelines
 
-The pipelines are reusable workflows in this repository. A service commits a
-thin caller for each one, pinned to `@v1`, the moving tag that follows the
-newest `v1` release. Pin a full version tag such as `@v1.0.0` instead to take
-workflow changes only when you move the pin.
+The pipelines are reusable workflows. Two run on every push. `ci.yml` calls
+the fleet's shared per-push bar in `latere-ai/ci`, which asks lateregate,
+pinned in `go.mod`, which gates apply and runs one job per gate: formatting,
+lint, `go vet`, the vulnerability scan, the license notice, the spec tree,
+and the suite with its race, hermetic, temporary-directory, and coverage
+properties. `verify.yml` in this repository runs what that bar does not
+cover: the drift check, the declared settings and ownership, tracked
+suppressions, CodeQL, the integration tier against Postgres, the frontend,
+and the build the release consumes. No check runs in both.
+
+A service commits a thin caller for each one, pinned to `@v1`, the moving tag
+that follows the newest `v1` release. Pin a full version tag such as
+`@v1.1.0` instead to take workflow changes only when you move the pin.
 
 | Workflow | Caller | What it needs from you |
 | --- | --- | --- |
-| `verify.yml` | generated at `.github/workflows/verify.yml` | nothing. The job reports as `verify / gate`, the check branch protection requires |
+| `latere-ai/ci` `lateregate.yml` | generated at `.github/workflows/ci.yml` | nothing. The aggregate reports as `gate / all gates passed`, a check branch protection requires |
+| `verify.yml` | generated at `.github/workflows/verify.yml` | nothing. The job reports as `verify / gate`, the other check branch protection requires |
+| `latere-ai/ci` `ci-gate-bump.yml` | generated at `.github/workflows/ci-gate-bump.yml` | nothing. Once a day it moves the `latere.ai/x/ci-gate` pin to the latest release when the whole bar passes on it and dispatches `ci.yml` on that commit, or opens one issue for the version when the bar fails |
 | `settings.yml` | generated at `.github/workflows/settings.yml` | a repository secret `SETTINGS_TOKEN` with administration rights on the repository. The weekly run reports drift; a dispatched run with `mode: apply` writes the settings |
 | `release.yml` | copy [`examples/release.yml`](../examples/release.yml) to `.github/workflows/release.yml` | `production-url`, `cluster-api-url`, and `cluster-ca` (the example reads it from the repository variable `CLUSTER_CA`); `preproduction-url` to smoke pre-release tags |
 | `deps.yml` | none shipped; write one that calls it with `job` set to `pins`, `automerge`, or `template-version` | `pins` checks dependency pinning on every change, `automerge` merges a dependency update once the gate passes, and a scheduled `template-version` keeps one open issue while a newer template release exists |
 
+Both aggregates are required status checks. `.github/settings.yml` declares
+`gate / all gates passed` and `verify / gate` as the contexts on the default
+branch, and the settings workflow applies them: dispatch it with
+`mode: apply`, or run `make settings-apply` with an administrative token.
+`make settings-required-check` reports a context the branch does not require yet.
+Each context is `<caller job id> / <job name>`, so renaming the `gate` job in
+`ci.yml` or the `verify` job in `verify.yml` unbinds the rule.
+
 A release is a `v*` tag. The pipeline gates the tag on a passing verify run
-on the default branch, proves its credentials, builds and attests the image,
+on the default branch, and the shared bar's result reaches it through branch
+protection, which refuses a merge the bar failed. It then proves its credentials, builds and attests the image,
 deploys the production overlay (the pre-production overlay for a pre-release
 tag), smokes the live service, rolls back if the smoke fails, and publishes
 the GitHub release last. The cluster credential is a short-lived token
@@ -177,7 +198,7 @@ that can.
 | 1 | the check could not run: a malformed declaration, a merged file with missing markers, or an expired waiver | fix what the message names |
 
 The verify and release workflows also check the declared version. Each names
-the lowest `.template.yaml` version it works with, `v1.0.0` today, and a
+the lowest `.template.yaml` version it works with, `v1.1.0` today, and a
 service below it fails the first job with the `upgrade` command to run.
 
 ### Waivers

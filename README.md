@@ -95,7 +95,10 @@ flowchart LR
     GEN["template command<br/>init, sync, check, upgrade"]
   end
   LIB["latere.ai/x/pkg<br/>latere.ai/x/ci-gate"]
+  BAR["latere-ai/ci<br/>shared per-push bar"]
   CALL -->|uses| WF
+  CALL -->|uses| BAR
+  BAR -->|runs the gates of| LIB
   CFG -->|generated and checked by| GEN
   SK -->|imports| LIB
   WF -->|publishes| REL["release with<br/>smoke evidence"]
@@ -107,11 +110,15 @@ flowchart LR
   traces, metrics, and trace-correlated logs.
 - **Quality gates.** The shared gates of `latere.ai/x/ci-gate`, pinned in
   `go.mod` and configured in one `.lateregate.yaml`: formatting,
-  modernization, the shared `golangci-lint` set, per-package coverage, the
-  suite with only the toolchain on `PATH`, the suite against an empty
-  `TMPDIR`, outbound tracing, and the spec tree. The pipeline adds `go vet`,
-  `govulncheck`, CodeQL, and the race detector. Each gate runs on a
-  workstation exactly as it runs in CI.
+  modernization, the shared `golangci-lint` set, `go vet`, `govulncheck`,
+  the license notice, the suite under the race detector, with only the
+  toolchain on `PATH`, and against an empty `TMPDIR`, per-package coverage,
+  outbound tracing, and the spec tree. `.github/workflows/ci.yml` runs them
+  on every push through the fleet's shared pipeline, and `make check` runs
+  the same set on a workstation. The template's verify pipeline adds what
+  that bar does not cover: the drift check, the declared settings, tracked
+  suppressions, CodeQL, the integration tier against Postgres, and the
+  frontend. No check runs in both.
 - **Delivery.** A multi-stage container image with a software bill of
   materials, build provenance, and a keyless signature. A version tag starts
   one pipeline that gates the tag, builds, deploys, smokes the live service,
