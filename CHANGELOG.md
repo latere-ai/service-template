@@ -29,8 +29,10 @@ or live repository settings:
 1. Pin a ci-gate release with the `hook` command, since `go.mod` is the
    service's: `go get -tool latere.ai/x/ci-gate/cmd/lateregate@v0.50.1`. The
    daily bump keeps it current from there.
-2. Put the license notice on every Go file the service owns:
-   `go tool lateregate license -w`, then review and commit.
+2. The license notice on the Go files the service owns, its seed files, is
+   written with `go tool lateregate license -w`. Do not run it over the
+   generated Go files: a notice the template did not render is drift, and
+   `make template-check` reports each such file as edited.
 3. Apply the declared settings, so `gate / all gates passed` becomes a
    required check beside `verify / gate`: dispatch the settings workflow with
    `mode: apply`, or run `make settings-apply`. `make settings-required-check`
