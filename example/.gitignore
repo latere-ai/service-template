@@ -4,7 +4,9 @@
 # Build output. The build target writes here and the image build copies from it.
 /out/
 
-# Coverage and profiling artifacts.
+# Coverage and profiling artifacts. coverage.out is the profile the shared
+# bar's suite writes on every run.
+coverage.out
 *.cover.out
 *.prof
 *.test

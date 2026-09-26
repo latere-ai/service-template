@@ -11,8 +11,9 @@
 cover:
   # Statement coverage every package clears, judged per package rather than as
   # a repository average. An average lets a well-tested package carry an
-  # untested one and reports a number nobody can act on.
-  threshold: 90.0
+  # untested one and reports a number nobody can act on. The floor is the
+  # shared one, 90%, so it is not restated here: a restated default is the
+  # line the next change to the default makes wrong.
   trim_prefix: example.com/service/
   # A package that genuinely cannot be measured is exempted with the reason
   # attached, because the value is the reason. An empty one fails the load.
@@ -20,10 +21,24 @@ cover:
   # An exemption also covers a package with no test file at all: those produce
   # no coverage data, and the gate reports them rather than letting them clear
   # the floor by being absent.
-  exempt: {}
+  #
+  # An exemption names a package suffix, so one for a package a repository
+  # does not carry, such as the store in a service without a database, holds
+  # nothing.
+  exempt:
+    internal/store: >-
+      the pool and the migration adapter run SQL against a live server, and
+      the suite runs with no database beside it; make cover reports their
+      figure with the integration tier, against the Postgres the verify
+      pipeline starts
+    internal/store/cmd/migrate: >-
+      applies migrations against a live server, which the suite has none of;
+      make cover reports its figure with the integration tier
+    internal/config/cmd/envexample: >-
+      main is the process exit around run, which the tests drive directly,
+      and a process exit cannot run inside the test binary
 
 spec:
-  dir: specs
   # The lifecycle states in order. A state outside this set is a typo, and a
   # typo in a status is how a spec leaves the work queue without anyone
   # deciding it should.
@@ -38,7 +53,6 @@ spec:
   # depends_on and affects may be empty lists, so they are required to be
   # present rather than non-empty; these are the keys that must carry a value.
   require: [title, status, created, author, trigger]
-  index: specs/README.md
   wikilinks: true
   # The number in the file name is a stable identifier: never reused and never
   # reassigned, so a reference keeps resolving after the file is archived.
@@ -90,22 +104,6 @@ otel_client:
   # with is covered.
   skip: [tools]
 
-modernize:
-  # Read by two gates: `go fix` through `make lint-modernize`, and the
-  # modernize linter in the generated .golangci.yml. They are the same
-  # analyzers, so a fixer turned off for one and left on for the other is this
-  # repository disagreeing with itself.
-  disable:
-    # newexpr rewrites pointer helpers such as func ptr(v T) *T to new(v), then
-    # inlines call sites unevenly: the helper is left with no callers, which
-    # trips unused, and an untyped constant argument takes the wrong default
-    # type.
-    - newexpr
-    # errorsastype rewrites errors.As to errors.AsType[T], whose type parameter
-    # is constrained to [E error]. A local non-error interface target does not
-    # satisfy it, so the rewrite does not compile.
-    - errorsastype
-
 golangci:
   # A log record on the request path without the request context carries no
   # trace or span identifier, so it cannot be correlated with the request that
@@ -154,6 +152,26 @@ golangci:
                   desc: configuration is loaded before any component exists
                 - pkg: example.com/service/internal/handler
                   desc: configuration is loaded before any component exists
+
+identity:
+  # The layer this repository is in the family's identity shape, which the
+  # identity gate holds it to. The skeleton verifies its own signed bearer
+  # format in internal/auth rather than through the family's shared
+  # verifier, latere.ai/x/pkg/authkit/jwt, so it holds none of the service
+  # rules and declares none. A service that moves its verification onto the
+  # shared verifier declares `role: service` with `audience: <its name>`,
+  # and sets AUTH_AUDIENCE on its container under deploy/.
+  role: none
+
+postgres:
+  # The serving path reads DATABASE_POOL_URL, the connection string through a
+  # transaction-mode pooler, and falls back to DATABASE_URL, so a replica
+  # holds pooler connections rather than server slots. The migrate command
+  # keeps DATABASE_URL: a migration holds a session-scoped lock, which a
+  # transaction-mode pooler does not keep. The gate holds that both names are
+  # read wherever a Postgres client is imported. A library imports none, so
+  # it declares no role and the gate decides from its imports.
+  role: pooled
 
 license:
   # The terms this repository is released under, rendered from the license

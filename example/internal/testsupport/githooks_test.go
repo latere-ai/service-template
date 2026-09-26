@@ -2,17 +2,19 @@ package testsupport
 
 import (
 	"bufio"
-	"errors"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
 
-// These tests exercise the repository's own pre-commit hook. The hook is a
-// gate, and a gate nobody proves can fail is a gate that protects nothing, so
-// every rule it enforces is driven here against a throwaway repository.
+// These tests hold the repository's git hooks to the shape `lateregate
+// contract` checks: each is executable and delegates to the pinned lateregate,
+// so the checks a commit and a push run are the binary's and are configured
+// by .lateregate.yaml like every other gate. What the checks do is tested
+// where they live, in latere.ai/x/ci-gate; what a copy here could get wrong
+// is the delegation, so that is what is proved.
 
 // repoFile locates a file at the repository root by walking up from the test's
 // working directory. The same walk works in this module and in a repository
@@ -36,16 +38,11 @@ func repoFile(t *testing.T, rel string) string {
 	}
 }
 
-// hookPath is the pre-commit hook at the repository root.
-func hookPath(t *testing.T) string {
-	t.Helper()
-	return repoFile(t, ".githooks/pre-commit")
-}
-
-// lockingTools are binaries the hook must never run. golangci-lint takes a
-// module-wide lock, so a hook that ran it would block a parallel build, and a
-// hook that blocks a build gets disabled. The test tier and the vulnerability
-// scanner are here for the same reason: they are slow, and they run in CI.
+// lockingTools are commands a hook must never run itself. golangci-lint takes
+// a machine-wide lock, so a hook that ran it would block a parallel build, and
+// a hook that blocks a build gets disabled. The suite and the vulnerability
+// scanner are slow and need the network or the whole tree, so they belong to
+// the full bar in CI.
 var lockingTools = []string{
 	"golangci-lint",
 	"staticcheck",
@@ -55,9 +52,9 @@ var lockingTools = []string{
 	"go vet",
 }
 
-// scriptCommands returns the hook's executable lines, with comments and blank
-// lines removed. A comment naming a tool explains why the hook avoids it and
-// must not be read as an invocation.
+// scriptCommands returns a script's executable lines, with the shebang,
+// comments, and blank lines removed. A comment naming a tool explains why the
+// hook avoids it and must not be read as an invocation.
 func scriptCommands(t *testing.T, source string) []string {
 	t.Helper()
 	var out []string
@@ -90,13 +87,50 @@ func invokedLockingTools(t *testing.T, source string) []string {
 	return found
 }
 
-func TestPreCommitHookRunsNoModuleWideLinterOrTestSuite(t *testing.T) {
-	data, err := os.ReadFile(hookPath(t))
+// readHook returns a hook's source and fails unless git would run it.
+func readHook(t *testing.T, rel string) string {
+	t.Helper()
+	path := repoFile(t, rel)
+	info, err := os.Stat(path)
 	if err != nil {
-		t.Fatalf("read the hook: %v", err)
+		t.Fatalf("stat %s: %v", rel, err)
 	}
-	if found := invokedLockingTools(t, string(data)); len(found) != 0 {
-		t.Fatalf("the pre-commit hook invokes %v; these take a module-wide lock or run the suite, and belong in CI", found)
+	if info.Mode().Perm()&0o111 == 0 {
+		t.Fatalf("%s is not executable, so git never runs it; run make hooks", rel)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", rel, err)
+	}
+	return string(data)
+}
+
+// The pre-commit hook is the one delegation line, so the staged files are
+// judged by the same rules and configuration as the full bar.
+func TestPreCommitHookDelegatesToLateregate(t *testing.T) {
+	commands := scriptCommands(t, readHook(t, ".githooks/pre-commit"))
+	if !slices.Equal(commands, []string{"exec go tool lateregate hook"}) {
+		t.Fatalf("the pre-commit hook runs %q; it must be exactly `exec go tool lateregate hook`, "+
+			"because a check of its own is a copy no gate keeps in step with .lateregate.yaml", commands)
+	}
+}
+
+// The pre-push hook reads the pushed refs once and hands them to lateregate,
+// which refuses a release tag without a changelog section and lints the
+// packages the push changes.
+func TestPrePushHookDelegatesToLateregate(t *testing.T) {
+	commands := scriptCommands(t, readHook(t, ".githooks/pre-push"))
+	want := []string{"refs=$(cat)", `printf '%s\n' "$refs" | go tool lateregate prepush || exit 1`}
+	if !slices.Equal(commands, want) {
+		t.Fatalf("the pre-push hook runs %q, want %q", commands, want)
+	}
+}
+
+func TestHooksRunNoModuleWideLinterOrTestSuite(t *testing.T) {
+	for _, rel := range []string{".githooks/pre-commit", ".githooks/pre-push"} {
+		if found := invokedLockingTools(t, readHook(t, rel)); len(found) != 0 {
+			t.Errorf("%s invokes %v; these take a machine-wide lock or run the suite, and belong in CI", rel, found)
+		}
 	}
 }
 
@@ -104,238 +138,13 @@ func TestPreCommitHookRunsNoModuleWideLinterOrTestSuite(t *testing.T) {
 // A check that reports clean on a script that plainly breaks the rule proves
 // nothing about the script that passes it.
 func TestLockingToolDetectionCanFail(t *testing.T) {
-	violating := "#!/usr/bin/env bash\n# a comment about gofmt\ngolangci-lint run ./...\n"
+	violating := "#!/bin/sh\n# a comment about gofmt\ngolangci-lint run ./...\n"
 	if found := invokedLockingTools(t, violating); len(found) == 0 {
 		t.Fatal("the detector missed a plain golangci-lint invocation")
 	}
 
-	commentOnly := "#!/usr/bin/env bash\n# golangci-lint is deliberately not run here\ngofmt -l .\n"
+	commentOnly := "#!/bin/sh\n# golangci-lint is deliberately not run here\nexec go tool lateregate hook\n"
 	if found := invokedLockingTools(t, commentOnly); len(found) != 0 {
 		t.Fatalf("the detector flagged a comment: %v", found)
-	}
-}
-
-// hookRepo is a throwaway git repository with the hook installed.
-type hookRepo struct {
-	dir  string
-	hook string
-}
-
-// newHookRepo builds a repository the hook can run against. The hook is never
-// installed into the repository this test runs in, because core.hooksPath is
-// repository-wide configuration and a test must not change the developer's
-// working checkout.
-func newHookRepo(t *testing.T) *hookRepo {
-	t.Helper()
-	RequireBinary(t, "git")
-	RequireBinary(t, "go")
-	RequireBinary(t, "gofmt")
-
-	dir := t.TempDir()
-	r := &hookRepo{dir: dir, hook: filepath.Join(dir, ".githooks", "pre-commit")}
-
-	r.git(t, "init", "-q", "-b", "main")
-	r.git(t, "config", "user.email", "test@example.com")
-	r.git(t, "config", "user.name", "test")
-
-	r.write(t, "go.mod", "module fixture.example\n\ngo 1.27.0\n")
-
-	source, err := os.ReadFile(hookPath(t))
-	if err != nil {
-		t.Fatalf("read the hook: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Dir(r.hook), 0o755); err != nil {
-		t.Fatalf("create the hook directory: %v", err)
-	}
-	if err := os.WriteFile(r.hook, source, 0o755); err != nil {
-		t.Fatalf("install the hook: %v", err)
-	}
-	return r
-}
-
-// env isolates the repository from the developer's git configuration, so a
-// global hooksPath or template directory cannot change the result.
-func (r *hookRepo) env() []string {
-	return append(os.Environ(),
-		"GIT_CONFIG_GLOBAL="+os.DevNull,
-		"GIT_CONFIG_SYSTEM="+os.DevNull,
-	)
-}
-
-func (r *hookRepo) git(t *testing.T, args ...string) {
-	t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = r.dir
-	cmd.Env = r.env()
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
-	}
-}
-
-func (r *hookRepo) write(t *testing.T, name, body string) {
-	t.Helper()
-	path := filepath.Join(r.dir, name)
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		t.Fatalf("create the directory for %s: %v", name, err)
-	}
-	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
-		t.Fatalf("write %s: %v", name, err)
-	}
-}
-
-func (r *hookRepo) read(t *testing.T, name string) string {
-	t.Helper()
-	data, err := os.ReadFile(filepath.Join(r.dir, name))
-	if err != nil {
-		t.Fatalf("read %s: %v", name, err)
-	}
-	return string(data)
-}
-
-// stage writes a file and adds it to the index, which is the state the hook
-// judges.
-func (r *hookRepo) stage(t *testing.T, name, body string) {
-	t.Helper()
-	r.write(t, name, body)
-	r.git(t, "add", "--", name)
-}
-
-// run executes the hook and returns its exit code and its combined output.
-func (r *hookRepo) run(t *testing.T) (int, string) {
-	t.Helper()
-	cmd := exec.Command(r.hook)
-	cmd.Dir = r.dir
-	cmd.Env = r.env()
-	out, err := cmd.CombinedOutput()
-	if err == nil {
-		return 0, string(out)
-	}
-	if exit, ok := errors.AsType[*exec.ExitError](err); ok {
-		return exit.ExitCode(), string(out)
-	}
-	t.Fatalf("run the hook: %v\n%s", err, out)
-	return 0, ""
-}
-
-const formattedGo = "package fixture\n\nfunc Formatted() int {\n\treturn 1\n}\n"
-
-// unformattedGo differs from gofmt output by indentation only, so gofmt is the
-// only rule it breaks.
-const unformattedGo = "package fixture\n\nfunc Unformatted() int {\n        return 1\n}\n"
-
-func TestPreCommitHookAcceptsCleanContent(t *testing.T) {
-	r := newHookRepo(t)
-	r.stage(t, "go.mod", "module fixture.example\n\ngo 1.27.0\n")
-	r.stage(t, "clean.go", formattedGo)
-
-	code, out := r.run(t)
-	if code != 0 {
-		t.Fatalf("the hook rejected clean content with exit %d:\n%s", code, out)
-	}
-}
-
-func TestPreCommitHookRejectsUnformattedGoAndNamesTheFile(t *testing.T) {
-	r := newHookRepo(t)
-	r.stage(t, "go.mod", "module fixture.example\n\ngo 1.27.0\n")
-	r.stage(t, "bad.go", unformattedGo)
-
-	code, out := r.run(t)
-	if code == 0 {
-		t.Fatalf("the hook accepted an unformatted staged file:\n%s", out)
-	}
-	if !strings.Contains(out, "bad.go") {
-		t.Errorf("the failure does not name the file:\n%s", out)
-	}
-	if !strings.Contains(out, "gofmt") {
-		t.Errorf("the failure does not name the rule:\n%s", out)
-	}
-}
-
-// TestPreCommitHookNeverRewritesTheTree pins the reporting contract. go fix
-// has fixers that emit rewrites which do not compile and fixers that apply
-// partially and re-propose, so the hook reports and fails, and the developer
-// applies the change.
-func TestPreCommitHookNeverRewritesTheTree(t *testing.T) {
-	r := newHookRepo(t)
-	r.stage(t, "go.mod", "module fixture.example\n\ngo 1.27.0\n")
-	// A counted loop over a constant is the idiom go fix proposes to rewrite
-	// as a range over an integer.
-	stale := "package fixture\n\nfunc Stale() int {\n\ttotal := 0\n\tfor i := 0; i < 3; i++ {\n\t\ttotal += i\n\t}\n\treturn total\n}\n"
-	r.stage(t, "stale.go", stale)
-	r.stage(t, "bad.go", unformattedGo)
-
-	code, out := r.run(t)
-	if code == 0 {
-		t.Fatalf("the hook accepted content it should reject:\n%s", out)
-	}
-	if got := r.read(t, "stale.go"); got != stale {
-		t.Errorf("the hook rewrote stale.go:\n%s", got)
-	}
-	if got := r.read(t, "bad.go"); got != unformattedGo {
-		t.Errorf("the hook rewrote bad.go:\n%s", got)
-	}
-}
-
-func TestPreCommitHookReportsGoFixRewrites(t *testing.T) {
-	r := newHookRepo(t)
-	r.stage(t, "go.mod", "module fixture.example\n\ngo 1.27.0\n")
-	r.stage(t, "stale.go", "package fixture\n\nfunc Stale() int {\n\ttotal := 0\n\tfor i := 0; i < 3; i++ {\n\t\ttotal += i\n\t}\n\treturn total\n}\n")
-
-	code, out := r.run(t)
-	if code == 0 {
-		t.Fatalf("the hook accepted a package go fix proposes to rewrite:\n%s", out)
-	}
-	if !strings.Contains(out, "go fix") {
-		t.Errorf("the failure does not name go fix:\n%s", out)
-	}
-}
-
-func TestPreCommitHookRejectsTrailingWhitespace(t *testing.T) {
-	r := newHookRepo(t)
-	r.stage(t, "notes.md", "a line with a trailing space \nand a clean one\n")
-
-	code, out := r.run(t)
-	if code == 0 {
-		t.Fatalf("the hook accepted trailing whitespace:\n%s", out)
-	}
-	if !strings.Contains(out, "notes.md") {
-		t.Errorf("the failure does not name the file:\n%s", out)
-	}
-}
-
-func TestPreCommitHookRejectsAMissingFinalNewline(t *testing.T) {
-	r := newHookRepo(t)
-	r.stage(t, "notes.md", "no newline at the end")
-
-	code, out := r.run(t)
-	if code == 0 {
-		t.Fatalf("the hook accepted a file with no final newline:\n%s", out)
-	}
-	if !strings.Contains(out, "notes.md") {
-		t.Errorf("the failure does not name the file:\n%s", out)
-	}
-}
-
-func TestPreCommitHookPassesWithNothingStaged(t *testing.T) {
-	r := newHookRepo(t)
-	code, out := r.run(t)
-	if code != 0 {
-		t.Fatalf("the hook failed with an empty index, exit %d:\n%s", code, out)
-	}
-}
-
-// TestPreCommitHookIgnoresDeletedPaths guards the case where a staged path no
-// longer exists: reading its blob would fail and the hook must not treat that
-// as a formatting problem.
-func TestPreCommitHookIgnoresDeletedPaths(t *testing.T) {
-	r := newHookRepo(t)
-	r.stage(t, "go.mod", "module fixture.example\n\ngo 1.27.0\n")
-	r.stage(t, "gone.go", formattedGo)
-	r.git(t, "commit", "-q", "--no-verify", "-m", "seed")
-	r.git(t, "rm", "-q", "--", "gone.go")
-
-	code, out := r.run(t)
-	if code != 0 {
-		t.Fatalf("the hook failed on a deletion, exit %d:\n%s", code, out)
 	}
 }

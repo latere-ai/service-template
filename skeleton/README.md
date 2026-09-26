@@ -44,12 +44,14 @@ from it, so two checkouts of different services run at the same time. Run
 ```sh
 make build
 make test
-make
+make check
 ```
 
-`make build` writes a stamped binary to `out/`. `make test` runs the unit tier
-with the race detector. A bare `make` runs the full local gate: formatting,
-static analysis, lint, and tests.
+`make build` writes a stamped binary to `out/`. `make test` runs `go vet` and
+the unit tier. `make check` runs the whole shared bar exactly as CI does: every
+gate `go tool lateregate list` names, from formatting and lint to the race
+detector, the per-package coverage floor, and the vulnerability scan. A bare
+`make` runs the fast local subset.
 
 ## Documentation
 

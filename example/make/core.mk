@@ -4,13 +4,15 @@
 # The gates themselves are not written here. They live in latere.ai/x/ci-gate,
 # pinned in go.mod as a tool dependency and configured in .lateregate.yaml, so
 # a gate runs the same on a workstation as on a runner and every service gets
-# a fix to one by bumping a version. What stays here is the wiring: which
-# gates this repository runs, and which of them a bare `make` performs.
+# a fix to one by bumping a version. Every target named for a gate runs
+# `go tool lateregate <gate>` and nothing else, which is what `lateregate
+# contract` checks: a recipe of its own would be a second copy of the gate,
+# and the two drift. `make check` is the whole bar, exactly as CI runs it.
 
-PHONY_TARGETS += build fmt fmt-check hooks lint lint-config lint-fix \
-                 lint-modernize vet vuln test test-integration cover \
-                 test-hermetic test-tempdir lint-otel template-check
-ALL_TARGETS += fmt-check lint-modernize vet lint test lint-otel
+PHONY_TARGETS += build fmt fmt-check hooks check lint lint-config lint-fix \
+                 lint-modernize vet vuln test test-race test-integration \
+                 cover test-hermetic test-tempdir lint-otel template-check
+ALL_TARGETS += fmt-check lint-modernize lint test lint-otel
 
 # The module path is read from go.mod rather than restated, so the link-time
 # variable paths below stay correct whatever the repository is called.
@@ -82,8 +84,9 @@ fmt:
 fmt-check:
 	@go tool lateregate fmt-check
 
-# Code a standard library call already covers. The disabled fixers are named
-# in .lateregate.yaml, and each one is verified to still exist before the flag
+# Code a standard library call already covers. The disabled fixers are
+# lateregate's defaults unless .lateregate.yaml names others under
+# modernize.disable, and each one is verified to still exist before the flag
 # is trusted: `go fix` rejects an unknown -name=false, so a fixer dropped by
 # the toolchain would otherwise turn the whole check green over nothing.
 lint-modernize:
@@ -94,6 +97,12 @@ hooks:
 	git config core.hooksPath .githooks
 	@echo "git hooks installed from .githooks"
 
+# The whole shared bar: every gate `go tool lateregate list` says applies, in
+# the order and with the configuration CI uses. One gate is
+# `go tool lateregate <gate>`.
+check:
+	@go tool lateregate
+
 # .golangci.yml is generated and gitignored. golangci-lint cannot inherit a
 # shared configuration, so the file is rendered from the org's template on
 # every run. Regenerating rather than committing is what makes drift
@@ -101,9 +110,10 @@ hooks:
 lint-config:
 	@go tool lateregate golangci
 
-lint: lint-config
-	$(call require_tool,golangci-lint,go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest)
-	golangci-lint run ./...
+# golangci-lint at the version lateregate pins, against the configuration it
+# renders first, so a workstation and a runner lint with the same rules.
+lint:
+	@go tool lateregate lint
 
 lint-fix: lint-config
 	$(call require_tool,golangci-lint,go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest)
@@ -119,12 +129,19 @@ lint-otel:
 vet:
 	go vet ./...
 
+# govulncheck at the version lateregate pins. A reachable vulnerability fails;
+# one the code cannot reach is reported and passes.
 vuln:
-	$(call require_tool,govulncheck,go install golang.org/x/vuln/cmd/govulncheck@latest)
-	govulncheck ./...
+	@go tool lateregate vuln
 
+# go vet, then the suite. The race detector, the coverage floor, the stripped
+# PATH, and the empty TMPDIR are one more run of the same suite, `make check`
+# or `go tool lateregate suite`, which is what CI runs.
 test:
-	go test -race -count=1 ./...
+	@go tool lateregate test
+
+test-race:
+	@go tool lateregate race
 
 # The dependency mode is read from the environment. CI exports
 # TEST_DEPENDENCY_MODE=required so a missing database fails the tier instead of

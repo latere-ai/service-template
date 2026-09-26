@@ -17,18 +17,25 @@ the fix.
 ## The loop
 
 ```sh
+make hooks      # once per clone: the pre-commit and pre-push hooks
 make dev        # dependencies, migrations, seed data, live reload
-make            # the full local gate
+make check      # the whole shared bar, as CI runs it
 ```
 
-A bare `make` runs what the pipeline runs: formatting, static analysis, lint,
-and tests. Run it before you push. The pipeline runs the same targets, so a
-green local run is evidence rather than a hope.
+The gates live in `latere.ai/x/ci-gate`, pinned in `go.mod` and configured in
+`.lateregate.yaml`. `make check` runs every one of them, `go tool lateregate`
+under another name, and CI runs the same binary at the same version, so a
+green local run is evidence rather than a hope. Run it before you push. The
+pre-commit hook checks the staged Go files in seconds, and the pre-push hook
+lints the packages a push changes and refuses a release tag with no
+changelog section. A bare `make` runs the fast local subset.
 
 | Target | What it does |
 | --- | --- |
 | `make build` | Build the stamped binary into `out/` |
-| `make test` | Unit tier with the race detector |
+| `make check` | The whole shared bar |
+| `make test` | `go vet` and the unit tier |
+| `make test-race` | The unit tier with the race detector |
 | `make test-integration` | Integration tier, which needs the dependency stack |
 | `make cover` | Both tiers with the coverage gate |
 | `make lint` | Lint the module |
@@ -44,9 +51,11 @@ green local run is evidence rather than a hope.
 Every change carries its tests. A defect fix carries the test that reproduces
 the defect: a fix with no failing test to prove it is a claim, not a fix.
 
-Coverage is gated. The floor every package has to clear is in `.lateregate.yaml`,
-and the gate fails when a package is below it or when a package produced no
-coverage data at all.
+Coverage is gated. Every package clears the shared floor, and the gate fails
+when a package is below it or when a package produced no coverage data at all.
+A package that cannot be measured without a dependency the suite does not have
+is exempted in `.lateregate.yaml` with the reason, and `make cover` measures it
+with the integration tier.
 
 Handle every error. Return it with context, or log it. A discarded error is a
 failure that reappears later without its cause.

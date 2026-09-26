@@ -1,5 +1,6 @@
 # Core group: the Go module baseline, the build entry point, the quality-gate
-# configuration, the pre-commit hook, and the shared test helpers.
+# configuration, the git hooks, the changelog and the license, and the shared
+# test helpers.
 #
 # Modes follow the contract. go.mod and go.sum are seed because a consumer adds
 # its own requirements on the first day, and a drift-checked module file would
@@ -78,17 +79,28 @@ files:
     mode: generated
     profiles: [service, library]
 
-  # Formatting, hooks, and ignores.
+  # The two git hooks. Each delegates to lateregate, which is the shape
+  # `lateregate contract` checks, so the checks a commit and a push run are
+  # the pinned binary's and never a copy this repository keeps in step by
+  # hand. They need the Go module, so a frontend-only repository has neither.
   - path: .githooks/pre-commit
     mode: generated
+    profiles: [service, library]
+  - path: .githooks/pre-push
+    mode: generated
+    profiles: [service, library]
   - path: .gitignore
     mode: merged
 
-  # The terms. LICENSE is seed: which license the service is released under
-  # is the repository's decision, declared in .template.yaml. The generator
-  # renders the text for the licenses it ships and writes nothing for the
-  # others, and the license gate checks the notice on every Go file against
-  # it.
+  # The release notes and the terms, both seed. What a release says is the
+  # repository's: every release tag needs a CHANGELOG.md section, which the
+  # pre-push, `lateregate release`, and the release pipeline read. Which
+  # license the service is released under is the repository's decision,
+  # declared in .template.yaml: the generator renders the text for the
+  # licenses it ships and writes nothing for the others, and the license
+  # gate checks the notice on every Go file against it.
+  - path: CHANGELOG.md
+    mode: seed
   - path: LICENSE
     mode: seed
 
