@@ -9,5 +9,5 @@ require (
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/tools v0.47.0 // indirect
-	latere.ai/x/ci-gate v0.50.2-0.20260925224403-b2aa299fc80e // indirect
+	latere.ai/x/ci-gate v0.50.2 // indirect
 )
