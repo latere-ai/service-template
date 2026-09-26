@@ -23,16 +23,21 @@ A v1.0.0 service moves with
 writes the two new callers, the new pre-push hook, `.github/settings.yml`
 with the second required context, `.lateregate.yaml`, the `make/` fragments,
 and the `.gitignore` region, and writes `CHANGELOG.md` and `LICENSE` where the
-service holds neither. Four steps are by hand, because they touch seed files
-or live repository settings:
+service holds neither. It records `license.year` in `.template.yaml`, the year
+it runs in unless `-year` names another, and writes the license notice on
+every generated Go file. A declaration with no license block gets the
+default terms spelled out, `LicenseRef-Proprietary` held by `Latere AI`; to
+declare others, edit the block and run `sync`. Four steps are by hand,
+because they touch seed files or live repository settings:
 
-1. Pin a ci-gate release with the `hook` command, since `go.mod` is the
-   service's: `go get -tool latere.ai/x/ci-gate/cmd/lateregate@v0.50.1`. The
-   daily bump keeps it current from there.
-2. The license notice on the Go files the service owns, its seed files, is
-   written with `go tool lateregate license -w`. Do not run it over the
-   generated Go files: a notice the template did not render is drift, and
-   `make template-check` reports each such file as edited.
+1. Pin ci-gate v0.50.1 or later, which the delegating hooks need:
+   `go get -tool latere.ai/x/ci-gate/cmd/lateregate@v0.50.1`. `go.mod` is the
+   service's, so the upgrade leaves it alone. The daily bump keeps the pin
+   current from there.
+2. Write the license notice on the Go files the service owns, which the
+   upgrade does not rewrite: `go tool lateregate license -w` writes it on
+   every checked file that has none, which leaves the generated files, already
+   carrying the rendered notice, untouched. Review and commit.
 3. Apply the declared settings, so `gate / all gates passed` becomes a
    required check beside `verify / gate`: dispatch the settings workflow with
    `mode: apply`, or run `make settings-apply`. `make settings-required-check`
@@ -53,20 +58,32 @@ or live repository settings:
   commit it pushes.
 - `.github/workflows/ci-gate-bump.yml`, a generated caller that moves the
   `latere.ai/x/ci-gate` pin to the latest release once a day when the whole
-  bar passes on it, and opens one issue for the version when it does not.
+  bar passes on it, and opens one issue for the version when it does not. It
+  runs at a minute derived from the service name, so services sharing a
+  runner do not start together.
 - `.githooks/pre-push`, delegating to lateregate: it lints the packages a
   push changes and refuses a release tag with no `CHANGELOG.md` section.
 - `CHANGELOG.md` in every new service, seed, with an `Unreleased` heading.
 - A service declares the license it is released under in `.template.yaml`,
-  with `-license` and `-holder` on `init`. The default is
-  `LicenseRef-Proprietary`. The generator writes `LICENSE` for the licenses
-  it ships the text of and declares the terms to the license gate.
+  with `-license`, `-holder`, and `-year` on `init`. The default is
+  `LicenseRef-Proprietary`, and the year defaults to the year `init` runs in.
+  The generator writes the SPDX notice at the top of every Go file it
+  renders, writes `LICENSE` for the licenses it ships the text of, and
+  declares the terms to the license gate. The notice is ordinary rendered
+  content, so `check`, `sync`, and `upgrade` treat it like any other line,
+  and it names the declared year rather than the current one, so a check in
+  a later year reports nothing.
 - The serving path connects through a transaction-mode pooler named by
   `DATABASE_POOL_URL` and falls back to `DATABASE_URL`; the migrate command
   keeps the direct connection, which its session-scoped lock needs.
-- The template's own gate runs `go tool lateregate contract` in the service it
-  scaffolds, so a skeleton that drifts from the shared bar's wiring fails
-  here rather than on a service's first push.
+- The template's own gate scaffolds a service with no features, one with the
+  frontend and the database, one with every feature, and a library, and runs
+  `go tool lateregate contract` and the whole shared bar in each, so a
+  skeleton that drifts from the bar's wiring, misses a license notice, or
+  falls under the coverage floor for one feature set fails here rather than
+  on a service's first push.
+- The start-up tests open a store that needs no server, so the path after a
+  successful open is covered in every feature set with a database.
 
 ### Changed
 
@@ -83,7 +100,9 @@ or live repository settings:
   check still fails on an expired entry and on an inline suppression no entry
   covers.
 - `.github/settings.yml` requires `gate / all gates passed` and
-  `verify / gate` on the default branch.
+  `verify / gate` on the default branch. A `frontend-only` repository has no
+  Go module and no caller of the shared bar, so it requires `verify / gate`
+  alone.
 - The verify and release pipelines require `.template.yaml` version `v1.1.0`
   or later, and name `.github/workflows/ci.yml` as the file they rely on.
 - The pre-commit hook and `make check` delegate to lateregate v0.50.1, pinned

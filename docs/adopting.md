@@ -30,6 +30,9 @@ service runs that release, or the one it upgrades to, the same way.
 | `-name` | the last element of `-module` | the service name: lower case letters, digits, and hyphens. It names `cmd/<name>/` and the Kubernetes objects |
 | `-profile` | `service` | `service`, `library`, or `frontend-only` |
 | `-features` | none | a comma separated list of `frontend`, `seo`, `i18n`, `database`, `background` |
+| `-license` | `LicenseRef-Proprietary` | the SPDX identifier of the terms the service is released under: `LicenseRef-Proprietary`, `MIT`, `Apache-2.0`, `AGPL-3.0-only`, or `AGPL-3.0-or-later` |
+| `-holder` | `Latere AI` | the copyright holder every license notice names |
+| `-year` | the year `init` runs in | the year of first publication every license notice names |
 | `-version` | the generator's own release | the template version to record. A release records itself, and refuses any other value, because the files it writes are that release's |
 | `-template` | `github.com/latere-ai/service-template` | the template identity to record, for a fork |
 | `-skeleton` | the skeleton the command carries | a skeleton tree on disk to generate from instead, for a change to the template or a fork. `TEMPLATE_SKELETON` sets it too |
@@ -42,7 +45,16 @@ the module proxy resolves like a release, so the service's drift check can run
 it later. A plain `go run ./cmd/template` stamps no version, and a checkout
 with uncommitted changes has none that a download can reproduce; `init`
 refuses both and says why. The pipelines accept a declared version from
-`v1.0.0` on, so a pseudo-version of a commit before that release fails them.
+`v1.1.0` on, so a pseudo-version of a commit before that release fails them.
+
+The license terms are recorded in `.template.yaml` under `license`, with the
+year. Every Go file the generator writes starts with the SPDX notice rendered
+from them, which is the notice the shared bar's license gate reads, and
+`LICENSE` is written for the licenses the template ships the text of. The
+notice is part of each generated file's content, so it is regenerated and
+drift-checked with the rest of the file, and it names the recorded year, not
+the current one. Put the same notice on each Go file you add, or run
+`go tool lateregate license -w`.
 
 The [README](../README.md#profiles-and-features) describes the profiles and the
 features. A profile cannot be changed later; a feature can be switched on by
@@ -146,7 +158,8 @@ that follows the newest `v1` release. Pin a full version tag such as
 
 Both aggregates are required status checks. `.github/settings.yml` declares
 `gate / all gates passed` and `verify / gate` as the contexts on the default
-branch, and the settings workflow applies them: dispatch it with
+branch (a `frontend-only` repository has no Go module, no `ci.yml`, and
+requires `verify / gate` alone), and the settings workflow applies them: dispatch it with
 `mode: apply`, or run `make settings-apply` with an administrative token.
 `make settings-required-check` reports a context the branch does not require yet.
 Each context is `<caller job id> / <job name>`, so renaming the `gate` job in
