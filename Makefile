@@ -151,14 +151,16 @@ manifest:
 validate: skeleton-test skeleton-lint lint-otel manifest example adoption
 
 # The adoption proof runs the path the README documents, from outside this
-# checkout: the command built from this tree scaffolds a service into an empty
-# temporary directory, and the service builds, passes its own checks, and
-# passes the template drift check, before and after it adds a setting of its
-# own. It compiles and tests a whole generated service and downloads that
-# service's dependencies, so it sits behind a build tag rather than in the
-# suite every gate reruns.
+# checkout: the command built from this tree scaffolds a service with no
+# features, one with the frontend and the database, one with every feature,
+# and a library into empty temporary directories, and each passes the shared
+# bar's wiring check, the whole shared bar, its own checks, and the template
+# drift check; the service also adds a setting of its own and passes again.
+# It compiles, lints, scans, and tests whole generated repositories and
+# downloads their dependencies, so it sits behind a build tag rather than in
+# the suite every gate reruns.
 adoption:
-	@go test -tags adoption -count=1 -timeout 30m -run '^TestAdoption$$' ./cmd/template
+	@go test -tags adoption -count=1 -timeout 60m -run '^TestAdoption$$' ./cmd/template
 
 # The reference service is a generated artifact that is committed, so the
 # committed tree and a fresh generation must be identical. A difference means

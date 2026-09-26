@@ -10,8 +10,9 @@
 # than to a Go repository, and what the shared bar cannot see: the skeleton
 # compiled, tested, and linted as its own module, the manifest proved
 # complete, the committed reference service compared against a fresh
-# generation, and the adoption proof, which scaffolds a service from this
-# tree and runs its checks, the drift check among them.
+# generation, and the adoption proof, which scaffolds four repositories from
+# this tree and runs the shared bar and their own checks in each, the drift
+# check among them.
 name: template
 
 on:

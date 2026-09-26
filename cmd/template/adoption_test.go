@@ -21,38 +21,63 @@ import (
 // the documented command does.
 const adoptionVersion = "v1.1.0"
 
+// adoptionScaffolds are the repositories the proof builds. The feature sets
+// differ in which code the entry point holds, so a property that holds for
+// one, such as the coverage floor on cmd/<name>, can fail for another; each
+// shape a service commonly starts from is proven on its own.
+var adoptionScaffolds = []struct {
+	name, profile, features string
+}{
+	{"my-service", "service", "frontend,database"},
+	{"bare-service", "service", ""},
+	{"full-service", "service", "frontend,seo,i18n,database,background"},
+	{"my-library", "library", ""},
+}
+
 // The adoption proof. It runs the path the README documents for a developer
 // starting a service, from outside this repository: the command scaffolds a
-// service into an empty directory, and the service builds and passes its own
-// checks, the shared bar's wiring check and the template drift check among
-// them. Every step is a command the developer runs, so a change that breaks
-// the documented path fails here rather than in the first repository that
-// follows it.
+// repository into an empty directory, and the repository passes the shared
+// bar's wiring check, the whole shared bar, and its own checks, the template
+// drift check among them. Every step is a command the developer or the
+// service's first CI run executes, so a change that breaks the documented
+// path fails here rather than in the first repository that follows it.
 //
-// The suite compiles, vets, and tests a whole generated service, which takes
-// minutes and downloads the service's dependencies, so it sits behind the
+// The suite compiles, lints, scans, and tests whole generated repositories,
+// which takes minutes and downloads their dependencies, so it sits behind the
 // adoption build tag and runs as `make adoption`, part of `make validate`.
 func TestAdoption(t *testing.T) {
 	work := t.TempDir()
 	bin := filepath.Join(work, "bin", "template")
 	run(t, ".", "go", "build", "-ldflags", "-X main.version="+adoptionVersion, "-o", bin, ".")
 
-	// The scaffold runs from a directory that holds no template checkout, so
-	// the command can only use what it carries.
-	svc := filepath.Join(work, "my-service")
+	for _, sc := range adoptionScaffolds {
+		t.Run(sc.name, func(t *testing.T) {
+			svc := scaffold(t, bin, work, sc.name, sc.profile, sc.features)
+			if sc.name == "my-service" {
+				firstSetting(t, bin, svc)
+			}
+		})
+	}
+}
+
+// scaffold runs init from a directory that holds no template checkout, so the
+// command can only use what it carries, then proves the result.
+func scaffold(t *testing.T, bin, work, name, profile, features string) string {
+	t.Helper()
+	svc := filepath.Join(work, name)
 	run(t, work, bin, "init",
 		"-C", svc,
-		"-module", "github.com/acme/my-service",
-		"-name", "my-service",
-		"-profile", "service",
-		"-features", "frontend,database")
+		"-module", "github.com/acme/"+name,
+		"-name", name,
+		"-profile", profile,
+		"-features", features)
 	declared := readText(t, filepath.Join(svc, ".template.yaml"))
 	if !strings.Contains(declared, "version: "+adoptionVersion+"\n") {
 		t.Fatalf("the scaffold does not record the release that made it, want version %s in:\n%s",
 			adoptionVersion, declared)
 	}
 
-	// The service's gates ask git which files the repository tracks.
+	// The gates ask git which files the repository tracks.
 	run(t, svc, "git", "init", "-q")
 	run(t, svc, "git", "add", "-A")
 
@@ -64,16 +89,22 @@ func TestAdoption(t *testing.T) {
 		t.Fatalf("lateregate contract does not report the scaffold in shape:\n%s", out)
 	}
 
-	// The checks a bare `make` runs that need nothing beyond the Go toolchain,
-	// git, and make. lint needs golangci-lint installed and the frontend
-	// targets need Bun; `make validate` lints and tests the same code as the
-	// skeleton module.
-	for _, target := range []string{
-		"build", "vet", "test", "fmt-check", "lint-modernize", "lint-otel",
-		"env-example-check", "settings-verify", "spec-check",
-	} {
+	// The whole shared bar, exactly as ci.yml runs it on the first push:
+	// formatting, lint, the license notice, the vulnerability scan, and the
+	// suite under the race detector, on the stripped PATH, and over the
+	// per-package coverage floor. The frontend targets need Bun, and the
+	// skeleton module's own gates build and test the same frontend code.
+	run(t, svc, "go", "tool", "lateregate")
+
+	// The service's own checks the bar does not hold.
+	targets := []string{"settings-verify"}
+	if profile == "service" {
+		targets = append(targets, "env-example-check")
+	}
+	for _, target := range targets {
 		makeTarget(t, svc, target)
 	}
+
 	// The drift check. By default it runs the declared release through the
 	// module proxy, which is what the verify pipeline does; the proof's build
 	// is not on the proxy, so the check runs it through the variable that
@@ -83,10 +114,15 @@ func TestAdoption(t *testing.T) {
 		t.Fatalf("make template-check does not run the declared release, want %q in:\n%s", want, dry)
 	}
 	makeTarget(t, svc, "template-check", "TEMPLATE_COMMAND="+bin)
+	return svc
+}
 
-	// A service adds a setting of its own on the first day and regenerates the
-	// example environment file from the configuration struct. Neither the
-	// staleness check nor the drift check may fail over it.
+// firstSetting is what a service does on its first day: it adds a setting of
+// its own and regenerates the example environment file from the
+// configuration struct. Neither the staleness check nor the drift check may
+// fail over it.
+func firstSetting(t *testing.T, bin, svc string) {
+	t.Helper()
 	addSetting(t, filepath.Join(svc, "internal", "config", "config.go"))
 	makeTarget(t, svc, "env-example")
 	if env := readText(t, filepath.Join(svc, ".env.example")); !strings.Contains(env, "ADOPTION_GREETING") {

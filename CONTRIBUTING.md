@@ -67,8 +67,8 @@ names a tree on disk, which is how the targets below reach the working copy.
    stops reaching services.
 3. Run `make validate`: it compiles and tests the skeleton under the race
    detector, lints it as its own module, proves the manifest complete,
-   compares `example/` against a fresh generation, and scaffolds a service
-   from the tree and runs its checks.
+   compares `example/` against a fresh generation, and scaffolds four
+   repositories from the tree and runs the shared bar and their checks.
 4. Run `make example-update` and commit the regenerated `example/` and
    `internal/skeleton/skeleton.zip` in the same change.
 
@@ -95,14 +95,16 @@ the manifest check, the comparison of `example/` against a fresh generation,
 and the adoption proof. Run `make all` before you push; it covers both.
 
 The adoption proof, `make adoption`, is the README's path run end to end from
-outside this checkout. It builds the command from this tree, scaffolds a
-service into an empty temporary directory, and runs the service's own checks
-there: build, vet, the suite, formatting, modernization, outbound tracing,
-the environment reference, settings, the spec tree, and the drift check. It
-then adds a setting, regenerates `.env.example`, and runs the checks that
-must still pass. Lint and the frontend targets are left out, because they
-need golangci-lint and Bun installed; `make validate` lints and tests the
-same code as the skeleton module.
+outside this checkout. It builds the command from this tree and scaffolds four
+repositories into empty temporary directories: a service with no features,
+one with the frontend and the database, one with every feature, and a
+library. In each it runs `go tool lateregate contract`, the whole shared bar
+as the service's first CI run would, the settings and environment checks, and
+the drift check. The service with the frontend and the database then adds a
+setting, regenerates `.env.example`, and runs the checks that must still
+pass. The frontend targets are left out, because they need Bun installed;
+`make validate` builds and tests the same frontend code as the skeleton
+module.
 
 | Target | What it does |
 | --- | --- |
@@ -113,7 +115,7 @@ same code as the skeleton module.
 | `make manifest` | every skeleton file declared in exactly one fragment |
 | `make example` | the committed `example/` compared against a fresh generation |
 | `make example-update` | regenerates `example/` and, first, the skeleton archive |
-| `make adoption` | scaffolds a service from this tree into a temporary directory and runs its checks, the drift check among them |
+| `make adoption` | scaffolds four repositories from this tree into temporary directories and runs the shared bar and their own checks in each, the drift check among them |
 | `make skeleton-archive` | packs `skeleton/` into the archive the command embeds |
 | `make check` | the shared bar alone, `go tool lateregate`; `go tool lateregate list` names each gate |
 
