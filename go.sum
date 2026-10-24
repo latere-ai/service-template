@@ -8,5 +8,5 @@ golang.org/x/sync v0.23.0 h1:KameEIfc1IkluZyXWLn39Wd4tURc6GbCiISGiZm2bQk=
 golang.org/x/sync v0.23.0/go.mod h1:sUUOizhqBxiL6pEWpqNLUiaJn1ShEbZ6BBqskPbjZm0=
 golang.org/x/tools v0.51.0 h1:k4Xc/1Om9jwkBJBo4NVLMSARBoWtK10mx+W5BnXCeAI=
 golang.org/x/tools v0.51.0/go.mod h1:9eEncMayCV6zRMGhR5eZEC2iBx98qWcF1HZ9Z7wJOoA=
-latere.ai/x/ci-gate v0.55.0 h1:aiomol8bHtntD3fqjIT5XK+coHjEVDKVIA3VOmXZah8=
-latere.ai/x/ci-gate v0.55.0/go.mod h1:SYUdCY8Ob6oNGc+23pS0u7qoxafBFixY6IrpH2UgHzQ=
+latere.ai/x/ci-gate v0.56.0 h1:52eMeBew50UiJfFhLtAMUfwMH+ENUM4WKKLCzANXBd8=
+latere.ai/x/ci-gate v0.56.0/go.mod h1:SYUdCY8Ob6oNGc+23pS0u7qoxafBFixY6IrpH2UgHzQ=
