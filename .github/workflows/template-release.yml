@@ -20,6 +20,8 @@ jobs:
   notes:
     permissions:
       contents: write
+      # The release first checks that CI passed on the tagged commit.
+      actions: read
     uses: latere-ai/ci/.github/workflows/notes-release.yml@v1
     secrets: inherit
 
