@@ -1,0 +1,10 @@
+# actionlint 1.7.12 does not know the job context's workflow_* properties
+# (job.workflow_repository, job.workflow_sha, job.workflow_ref,
+# job.workflow_file_path). GitHub documents them for a job in a reusable
+# workflow, and verify.yml uses job.workflow_sha to check out the pipeline
+# scripts at the commit that provides the workflow. Only that message is
+# ignored, and only in verify.yml.
+paths:
+  .github/workflows/verify.yml:
+    ignore:
+      - 'property "workflow_(repository|sha|ref|file_path)" is not defined in object type'

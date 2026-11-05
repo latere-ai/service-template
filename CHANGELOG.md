@@ -19,6 +19,10 @@ committed: the commit log already holds that.
   golang.org/x/net@v0.60.0` and `go mod tidy`. Its lint needs ci-gate
   v0.51.0 or later on Go 1.27.3; a service pinned below that also runs
   `go get -tool latere.ai/x/ci-gate/cmd/lateregate@v0.51.0`.
+- The verify pipeline checks out its scripts at the commit that provides the
+  workflow (`job.workflow_sha`). It read `github.job_workflow_sha`, which
+  GitHub does not define, so every job took the scripts from the template's
+  default branch, whatever version the service called.
 
 ## v1.1.0 - 2026-09-26
 
