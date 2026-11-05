@@ -10,6 +10,14 @@ committed: the commit log already holds that.
 
 ## Unreleased
 
+- A new service builds with Go 1.27.3 (`toolchain go1.27.3` in `go.mod`),
+  starts on `golang.org/x/net` v0.60.0 and `golang.org/x/text` v0.42.0, and
+  pins ci-gate v0.51.0, whose golangci-lint reads Go 1.27.3 build output.
+  The scaffold now passes the vulnerability scan for GO-2026-6809,
+  GO-2026-6629, and GO-2026-6617. `go.mod` belongs to the service, so an
+  existing service moves with `go get toolchain@go1.27.3
+  golang.org/x/net@v0.60.0` and `go mod tidy`.
+
 ## v1.1.0 - 2026-09-26
 
 A service now runs two pipelines on every push. `.github/workflows/ci.yml`

@@ -98,7 +98,7 @@ lint-config:
 # The version is pinned rather than `latest`, so a run cannot pick up a build
 # published after this Makefile was reviewed, and `go run` fetches it, so the
 # gate needs no separately installed binary to be a gate.
-GOLANGCI_VERSION ?= v2.13.1
+GOLANGCI_VERSION ?= v2.14.0
 GOLANGCI = go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_VERSION)
 
 lint: skeleton-lint

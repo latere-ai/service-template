@@ -2,6 +2,8 @@ module latere.ai/x/service-template
 
 go 1.27.0
 
+toolchain go1.27.3
+
 tool latere.ai/x/ci-gate/cmd/lateregate
 
 require (
