@@ -16,7 +16,9 @@ committed: the commit log already holds that.
   The scaffold now passes the vulnerability scan for GO-2026-6809,
   GO-2026-6629, and GO-2026-6617. `go.mod` belongs to the service, so an
   existing service moves with `go get toolchain@go1.27.3
-  golang.org/x/net@v0.60.0` and `go mod tidy`.
+  golang.org/x/net@v0.60.0` and `go mod tidy`. Its lint needs ci-gate
+  v0.51.0 or later on Go 1.27.3; a service pinned below that also runs
+  `go get -tool latere.ai/x/ci-gate/cmd/lateregate@v0.51.0`.
 
 ## v1.1.0 - 2026-09-26
 
